@@ -1,6 +1,6 @@
 import argparse
 import logging
-import os
+import time
 from pathlib import Path
 from typing import List
 
@@ -11,24 +11,16 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-# Constants
-BASE_DOWNLOAD_DIR = Path.home() / 'MyDownloads'
-
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
 # Create argument parser
 parser = argparse.ArgumentParser(description='Web scraping script')
 
-# Add arguments
-parser.add_argument('--url', type=str, required=True, help='Base URL to scrape')
-
-# Parse arguments
-args = parser.parse_args()
-
 
 def create_driver(
-        browser_download_dir: os.path = BASE_DOWNLOAD_DIR) -> webdriver:
+        browser_download_dir) -> webdriver:
+    """Create a Firefox webdriver with custom options."""
     options: Options = Options()
     options.add_argument("--headless")  # Run in headless mode
     options.set_preference("browser.download.folderList",
@@ -43,6 +35,7 @@ def create_driver(
 
 
 def execute_script_from_file(driver: webdriver, file_path: str) -> None:
+    """Execute a JavaScript script from a file."""
     if not Path(file_path).is_file():
         raise FileNotFoundError(file_path)
 
@@ -56,16 +49,19 @@ def execute_script_from_file(driver: webdriver, file_path: str) -> None:
 
 
 def get_clear_url(url: str) -> str:
+    """Remove query parameters from a URL."""
     return url.split('?')[0]
 
 
-def make_custom_download_dir_for_url_and_get_it(url: str) -> os.path:
+def make_custom_download_dir_for_url_and_get_it(url: str) -> str:
+    """Create a custom download directory for a URL and return its absolute path."""
     dir_name: str = url.split('/')[-1]
     Path(dir_name).mkdir(exist_ok=True)
-    return os.path.abspath(dir_name)
+    return str(Path(dir_name).absolute())
 
 
 def get_existing_panels(driver: webdriver) -> List[int]:
+    """Get IDs of existing panels."""
     existing_panels: List[int] = []
 
     for i in range(
@@ -81,7 +77,8 @@ def get_existing_panels(driver: webdriver) -> List[int]:
     return existing_panels
 
 
-def process_elements(driver):
+def process_elements(driver: webdriver) -> None:
+    """Process elements in a webpage."""
     try:
         # Define the CSS selectors
         div_selector = 'div[class^="drawer drawer-right drawer-open css-"]'
@@ -90,59 +87,69 @@ def process_elements(driver):
         # Find the div
         div = driver.find_element(By.CSS_SELECTOR, div_selector)
 
-        # Print div details
-        print(f"Processing div number: 1")
-        print(f"Div Classes: {div.get_attribute('class')}")
-
         # Find the button within the div
         button = div.find_element(By.CSS_SELECTOR, button_selector)
 
-        # Print button details and click the button
-        print(f"Processing button number: 1 in div number: 1")
-        print(f"Button Classes: {button.get_attribute('class')}")
-        print(f"Clicking button: {button.get_attribute('class')}")
         button.click()
     except Exception as e:
         print(f"An error occurred: {str(e)}")
 
 
+def read_urls_from_config(config_path: str) -> List[str]:
+    """Read URLs from a configuration file."""
+    with open(config_path, 'r') as f:
+        urls = [line.strip() for line in f]
+    return urls
+
+
 # Main script
 if __name__ == '__main__':
-    parsed_url = args.url
-    clear_url: str = get_clear_url(parsed_url)
+    urls = read_urls_from_config('satellite_pages.txt')
 
-    download_path: os.path = make_custom_download_dir_for_url_and_get_it(
-        clear_url)
+    # Iterate over the URLs
+    for url in urls:
+        clear_url: str = get_clear_url(url)
 
-    print(download_path)
+        download_path: str = make_custom_download_dir_for_url_and_get_it(
+            clear_url)
 
-    firefox_driver = create_driver(download_path)
+        print(download_path)
 
-    print(clear_url)
+        firefox_driver = create_driver(download_path)
 
-    firefox_driver.get(clear_url)
-    panels_ids_list: List[int] = get_existing_panels(firefox_driver)
+        print(clear_url)
 
-    print(panels_ids_list)
+        SCROLL_PAUSE_TIME = 0.5
 
-    for i in panels_ids_list:  # Loop from start to end
-        # Construct the new URL
-        new_url = f"{clear_url}?orgId=1&from=now-5y&to=now&inspect={i}"
+        firefox_driver.execute_script(
+            "window.scrollTo(0, document.body.scrollHeight);")
 
-        # Navigate to the new URL
-        firefox_driver.get(new_url)
+        time.sleep(SCROLL_PAUSE_TIME)
 
-        # Wait for the button to appear
-        try:
-            WebDriverWait(firefox_driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR,
-                                                'button[class^="css-"][class$="-button"]')))
-        except TimeoutException:
-            logging.warning("Button did not appear within the 6 second window.")
-            continue  # Skip to the next iteration
+        firefox_driver.get(clear_url)
+        panels_ids_list: List[int] = get_existing_panels(firefox_driver)
 
-        logging.info(f"Downloading {new_url}")
+        print(panels_ids_list)
 
-        process_elements(firefox_driver)
+        for i in panels_ids_list:  # Loop from start to end
+            # Construct the new URL
+            new_url = f"{clear_url}?orgId=1&from=now-5y&to=now&inspect={i}"
 
-    firefox_driver.quit()
+            # Navigate to the new URL
+            firefox_driver.get(new_url)
+
+            # Wait for the button to appear
+            try:
+                WebDriverWait(firefox_driver, 2).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR,
+                                                    'button[class^="css-"][class$="-button"]')))
+            except TimeoutException:
+                logging.warning(
+                    "Button did not appear within the 2 second window.")
+                continue  # Skip to the next iteration
+
+            logging.info(f"Downloading {new_url}")
+
+            process_elements(firefox_driver)
+
+        firefox_driver.quit()
