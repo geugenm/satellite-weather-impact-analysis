@@ -1,6 +1,6 @@
 import argparse
 import logging
-import time
+import threading
 from pathlib import Path
 from typing import List
 
@@ -102,54 +102,36 @@ def read_urls_from_config(config_path: str) -> List[str]:
     return urls
 
 
-# Main script
+def process_url(url):
+    clear_url: str = get_clear_url(url)
+    download_path: str = make_custom_download_dir_for_url_and_get_it(clear_url)
+    print(f"download_path: {download_path}")
+    firefox_driver = create_driver(download_path)
+    print(f"clear_url: {clear_url}")
+    firefox_driver.get(clear_url)
+    panels_ids_list: List[int] = get_existing_panels(firefox_driver)
+    print(f"panels_ids_list: {panels_ids_list}")
+    for i in panels_ids_list:  # Loop from start to end
+        new_url = f"{clear_url}?orgId=1&from=now-5y&to=now&inspect={i}"
+        firefox_driver.get(new_url)
+        try:
+            WebDriverWait(firefox_driver, 2).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR,
+                                                'button[class^="css-"][class$="-button"]')))
+        except TimeoutException:
+            logging.warning("Button did not appear within the 2 second window.")
+            continue
+        logging.info(f"Downloading data from {new_url}")
+        process_elements(firefox_driver)
+    firefox_driver.quit()
+
+
 if __name__ == '__main__':
     urls = read_urls_from_config('satellite_pages.txt')
-
-    # Iterate over the URLs
+    threads = []
     for url in urls:
-        clear_url: str = get_clear_url(url)
-
-        download_path: str = make_custom_download_dir_for_url_and_get_it(
-            clear_url)
-
-        print(download_path)
-
-        firefox_driver = create_driver(download_path)
-
-        print(clear_url)
-
-        SCROLL_PAUSE_TIME = 0.5
-
-        firefox_driver.execute_script(
-            "window.scrollTo(0, document.body.scrollHeight);")
-
-        time.sleep(SCROLL_PAUSE_TIME)
-
-        firefox_driver.get(clear_url)
-        panels_ids_list: List[int] = get_existing_panels(firefox_driver)
-
-        print(panels_ids_list)
-
-        for i in panels_ids_list:  # Loop from start to end
-            # Construct the new URL
-            new_url = f"{clear_url}?orgId=1&from=now-5y&to=now&inspect={i}"
-
-            # Navigate to the new URL
-            firefox_driver.get(new_url)
-
-            # Wait for the button to appear
-            try:
-                WebDriverWait(firefox_driver, 2).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR,
-                                                    'button[class^="css-"][class$="-button"]')))
-            except TimeoutException:
-                logging.warning(
-                    "Button did not appear within the 2 second window.")
-                continue  # Skip to the next iteration
-
-            logging.info(f"Downloading {new_url}")
-
-            process_elements(firefox_driver)
-
-        firefox_driver.quit()
+        t = threading.Thread(target=process_url, args=(url,))
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()

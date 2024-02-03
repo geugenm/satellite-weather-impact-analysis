@@ -1,2 +1,1 @@
-https://dashboard.satnogs.org/d/BFU00FHMz/bobcat-1
-https://dashboard.satnogs.org/d/Quq4Bi6nk/ctim
+https://dashboard.satnogs.org/d/uSu4Uxank/sanosat-1
