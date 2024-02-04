@@ -125,7 +125,24 @@ def process_url(url: str, download_dir: str, period_from: str = 'now',
 if __name__ == '__main__':
     # Stellites dashboard catalog: https://dashboard.satnogs.org/d/QjDe5S8mk/satellite-telemetries?orgId=1
     urls: List[str] = [
-        'https://dashboard.satnogs.org/d/dnpcsk94k/cubebel-2']
+        'https://dashboard.satnogs.org/d/rKSqs57nz/ledsat?orgId=1&refresh=30s&from=now-5y&to=now',
+        'https://dashboard.satnogs.org/d/anRdyz9Vk/cubebel-1?orgId=1&refresh=30s&from=now-5y&to=now',
+        'https://dashboard.satnogs.org/d/L8ywE9oMz/vzlusat-2?orgId=1&refresh=5s',
+        'https://dashboard.satnogs.org/d/XZQTCYznz/ramsat?orgId=1&refresh=30s',
+        'https://dashboard.satnogs.org/d/9DnJFFO4z/geoscan-edelveis?orgId=1&refresh=10s',
+        'https://dashboard.satnogs.org/d/O-wbcw1nk/delfi-pq?orgId=1',
+        'https://dashboard.satnogs.org/d/FTRXX0knz/dhabisat?orgId=1&refresh=30s',
+        'https://dashboard.satnogs.org/d/_OK0f1bVk/cas-5a?orgId=1&refresh=30s',
+        'https://dashboard.satnogs.org/d/xRvgIfBZk/ops-sat?orgId=1&refresh=1m',
+        'https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&refresh=5m',
+        'https://dashboard.satnogs.org/d/iXL8Q0lGk/grbalpha?orgId=1&refresh=30s',
+        'https://dashboard.satnogs.org/d/D2TbAJXmz/csim-fd?orgId=1&refresh=1m',
+        'https://dashboard.satnogs.org/d/C25otlKIk/hades-d?orgId=1',
+        'https://dashboard.satnogs.org/d/qEsj3Yynk/targit?orgId=1',
+        'https://dashboard.satnogs.org/d/cVc9glM4k/qubik-3-4?orgId=1',
+        'https://dashboard.satnogs.org/d/ibXMGpBVz/cirbe?orgId=1&refresh=1m',
+        'https://dashboard.satnogs.org/d/CBwYeHSZk/lightsail-2?orgId=1&refresh=5m',
+        'https://dashboard.satnogs.org/d/XfQj4RD7z/cute?orgId=1&refresh=30s']
     download_dir: str = '../data/'
     for url in urls:
         logging.info(f"Downloading data from [{url}]")
