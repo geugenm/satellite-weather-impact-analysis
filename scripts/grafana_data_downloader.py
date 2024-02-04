@@ -47,16 +47,18 @@ def make_custom_download_dir_for_url_and_get_it(url: str,
 def get_existing_panels(driver: webdriver) -> List[Tuple[int, str]]:
     """Get IDs and titles of existing panels."""
     existing_panels = []
-    for i in range(
+    for panel_id in range(
             101):  # The range starts from 0, so 101 is needed to reach 100
-        element_id = f"panel-{i}"
+        element_id: str = f"panel-{panel_id}"
         try:
             element = driver.find_element(By.ID, element_id)
             if 'react-grid-item' in element.get_attribute('class'):
+                scroll_to_element(driver, element_id)
+
                 title_element = element.find_element(By.CLASS_NAME,
                                                      'panel-title-text')
                 title = title_element.text
-                existing_panels.append((i, title))
+                existing_panels.append((panel_id, title))
         except NoSuchElementException:
             continue
     return existing_panels
@@ -87,7 +89,7 @@ def process_url(url: str, download_dir: str, period_from: str = 'now',
                                                                      download_dir)
     firefox_driver: webdriver = create_driver(download_path)
     firefox_driver.get(clear_url)
-    panels_ids_list = get_existing_panels(firefox_driver)
+    panels_ids_list: List[Tuple[int, str]] = get_existing_panels(firefox_driver)
 
     for panel_id, panel_name in panels_ids_list:  # Loop from start to end
         new_url = f"{clear_url}?orgId=1&from={period_from}-{period_to}&to=now&inspect={panel_id}"
@@ -107,7 +109,7 @@ def process_url(url: str, download_dir: str, period_from: str = 'now',
             element_present = EC.presence_of_element_located(
                 (By.CSS_SELECTOR,
                  'button[class^="css-"][class$="-button"]'))
-            WebDriverWait(firefox_driver, 2).until(
+            WebDriverWait(firefox_driver, 10).until(
                 element_present)
         except TimeoutException:
             logging.warning(
@@ -123,7 +125,7 @@ def process_url(url: str, download_dir: str, period_from: str = 'now',
 if __name__ == '__main__':
     # Stellites dashboard catalog: https://dashboard.satnogs.org/d/QjDe5S8mk/satellite-telemetries?orgId=1
     urls: List[str] = [
-        'https://dashboard.satnogs.org/d/QGujdBBZk/aausat4?orgId=1']
+        'https://dashboard.satnogs.org/d/dnpcsk94k/cubebel-2']
     download_dir: str = '../data/'
     for url in urls:
         logging.info(f"Downloading data from [{url}]")
