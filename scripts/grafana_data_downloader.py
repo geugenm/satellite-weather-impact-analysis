@@ -127,6 +127,7 @@ if __name__ == '__main__':
     urls: List[str] = [
         'https://dashboard.satnogs.org/d/rKSqs57nz/ledsat?orgId=1&refresh=30s&from=now-5y&to=now',
         'https://dashboard.satnogs.org/d/anRdyz9Vk/cubebel-1?orgId=1&refresh=30s&from=now-5y&to=now',
+        'https://dashboard.satnogs.org/d/dnpcsk94k/cubebel-2?orgId=1&refresh=30s&from=1685298549931&to=1687890549931&var-suid=99163',
         'https://dashboard.satnogs.org/d/L8ywE9oMz/vzlusat-2?orgId=1&refresh=5s',
         'https://dashboard.satnogs.org/d/XZQTCYznz/ramsat?orgId=1&refresh=30s',
         'https://dashboard.satnogs.org/d/9DnJFFO4z/geoscan-edelveis?orgId=1&refresh=10s',
