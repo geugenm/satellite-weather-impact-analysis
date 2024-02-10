@@ -1,71 +1,148 @@
 import logging
 import os
 import re
+from typing import Union
 
 import pandas as pd
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging to display debug messages on the console
+logging.basicConfig(level=logging.DEBUG)
 
 
-def process_csv_file(file_path):
-    try:
-        # Read CSV file into a DataFrame
-        df = pd.read_csv(file_path)
-        logging.info(f"Processing file: {file_path}")
+def clean_and_save_csv(input_file: str, output_file: str) -> None:
+    # Load the CSV file into a DataFrame
+    df = pd.read_csv(input_file)
 
-        # Process each column (except the first time column)
-        for col in df.columns[1:]:
-            # Task 1: Rename column if it doesn't contain any words from its original name
-            if not any(word.lower() in col.lower() for word in
-                       re.findall(r'\w+', col)):
-                new_col_name = "new_name"  # Modify this as per your requirement
-                df.rename(columns={col: new_col_name}, inplace=True)
-                logging.info(f"Renamed column '{col}' to '{new_col_name}'")
+    # Identify the data columns based on their position in the DataFrame
+    data_columns = df.columns[1:]  # Assuming 'time' is the first column
 
-            # Task 2: Check if the column is a time/date column
-            if 'time' in col.lower() or 'date' in col.lower():
-                # Check if the data is convertible to time
+    # Log the shape of the original DataFrame
+    logging.debug(f"Original DataFrame shape: {df.shape}")
+
+    # Drop rows where all data columns are NaN
+    df = df.dropna(subset=data_columns, how='all')
+
+    # Log the shape of the DataFrame after dropping rows
+    logging.debug(f"DataFrame shape after dropping rows: {df.shape}")
+
+    # Save the cleaned DataFrame to a new CSV file
+    df.to_csv(output_file, index=False)
+
+    # Log confirmation that the DataFrame has been saved
+    logging.debug(f"DataFrame saved to {output_file}")
+
+
+def remove_units_and_rename(input_file: Union[str, pd.DataFrame],
+                            output_file: str) -> None:
+    # If a DataFrame is passed instead of a file path, use it directly
+    if isinstance(input_file, pd.DataFrame):
+        df = input_file
+    else:
+        # Otherwise, load the CSV file into a DataFrame
+        df = pd.read_csv(input_file)
+
+    # Regular expression pattern to match units at the end of a value
+    unit_pattern = re.compile(r'\s*(.*\s+)?([a-zA-Z]+)\s*$')
+
+    # Dictionary to store new column names and values
+    changes = {'names': {}, 'values': {}}
+
+    # Iterate over columns
+    for col in df.columns:
+        if col != 'time':  # Skip 'time' column
+            # Find units in column values
+            matches = df[col].apply(lambda x: unit_pattern.match(str(x)))
+            non_matches = matches[matches.isna()]
+
+            # If all values have units, remove units and append to column name
+            if len(non_matches) == 0:
+                unit = matches.iloc[-1].group(2)
+                new_name = f"{col}, {unit}"
+                changes['names'][col] = new_name
+                # Remove units from values
+                df[col] = df[col].str.replace(unit, '', regex=True)
+
+    # Rename columns with units
+    if changes['names']:
+        df.rename(columns=changes['names'], inplace=True)
+
+    # Save the DataFrame with updated column names and values to a new CSV file
+    df.to_csv(output_file, index=False)
+
+
+def state_convert_to_bool(input_file: str, output_file: str) -> None:
+    # Load the CSV file into a DataFrame
+    df = pd.read_csv(input_file)
+
+    # Identify the data columns based on their position in the DataFrame
+    data_columns = df.columns[1:]  # Assuming 'time' is the first column
+
+    # Process each data column
+    for col in data_columns:
+        # Initialize a dictionary to map unique words to integers
+        word_map = {}
+        # Initialize counters for unique words
+        counter = 0
+
+        # Iterate over each cell in the column
+        for cell in df[col]:
+            # Split the cell into words
+            words = re.split(r'\s+', cell)
+
+            # Map each unique word to a unique integer
+            for word in words:
+                if word not in word_map:
+                    word_map[word] = counter
+                    counter += 1
+
+        if counter > 3:
+            return
+
+        # Function to replace words with their mapped integer
+        def replace_words_with_integers(cell):
+            words = re.split(r'\s+', cell)
+            return ' '.join(
+                str(word_map[word]) for word in words if word in word_map)
+
+        # Apply the replacement function to the column
+        df[col] = df[col].apply(replace_words_with_integers)
+
+        # Rename the column to include the mapping
+        description = ', '.join(
+            f'{value} is {key}' for key, value in word_map.items())
+        df.rename(columns={col: f'{col}, where {description}'}, inplace=True)
+
+    # Save the processed DataFrame to a new CSV file
+    df.to_csv(output_file, index=False)
+
+    # Log confirmation that the DataFrame has been saved
+    logging.debug(f"DataFrame saved to {output_file}")
+
+
+def process_csvs_in_folder(root_directory: str) -> None:
+    # Walk through the directory tree
+    for dirpath, dirnames, filenames in os.walk(root_directory):
+        # Iterate over each file in the current directory
+        for filename in filenames:
+            # Check if the file is a CSV file
+            if filename.endswith('.csv'):
+                # Construct the full file path
+                filepath: str = os.path.join(dirpath, filename)
                 try:
-                    df[col] = pd.to_datetime(df[col])
-                    logging.info(f"Converted column '{col}' to datetime")
-                except ValueError:
-                    logging.warning(
-                        f"Column '{col}' could not be converted to datetime")
+                    clean_and_save_csv(filepath, filepath)
+                except Exception as e:
+                    logging.error(f"Error: {e}")
 
-            # Task 3: Extract unit from data column entries and move it to column name
-            if col != 'time':  # Exclude time column
-                unit_match = re.search(r'(\d+)\s*(\w+)', str(df[col].iloc[0]))
-                if unit_match:
-                    unit = unit_match.group(2)
-                    new_col_name = f"{col}, {unit}"
-                    df.rename(columns={col: new_col_name}, inplace=True)
-                    logging.info(
-                        f"Moved unit '{unit}' from data entries to column name '{new_col_name}'")
+                try:
+                    remove_units_and_rename(filepath, filepath)
+                except Exception as e:
+                    logging.error(f"Error: {e}")
 
-            # Task 4: Convert words to numbers
-            if col != 'time':  # Exclude time column
-                word_to_number = {'On': 1, 'OFF': 2,
-                                  'Full': 3}  # Define mappings (modify as needed)
-                df[col] = df[col].map(word_to_number).fillna(df[col])
-                logging.info(f"Converted words to numbers in column '{col}'")
-
-        # Write modified DataFrame back to CSV
-        df.to_csv(file_path, index=False)
-        logging.info(f"Modified data written to {file_path}")
-
-    except Exception as e:
-        logging.error(f"Error processing file {file_path}: {e}")
+                try:
+                    state_convert_to_bool(filepath, filepath)
+                except Exception as e:
+                    logging.error(f"Error: {e}")
 
 
-def process_csv_files_in_folder(folder_path):
-    for root, dirs, files in os.walk(folder_path):
-        for file in files:
-            if file.endswith('.csv'):
-                file_path = os.path.join(root, file)
-                process_csv_file(file_path)
-
-
-if __name__ == "__main__":
-    data_folder = "../data"  # Modify this as per your folder structure
-    process_csv_files_in_folder(data_folder)
+# Example usage:
+process_csvs_in_folder('../data/')
