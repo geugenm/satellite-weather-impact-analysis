@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List, Tuple
 
@@ -145,6 +146,8 @@ if __name__ == '__main__':
         'https://dashboard.satnogs.org/d/CBwYeHSZk/lightsail-2?orgId=1&refresh=5m',
         'https://dashboard.satnogs.org/d/XfQj4RD7z/cute?orgId=1&refresh=30s']
     download_dir: str = '../data/'
-    for url in urls:
-        logging.info(f"Downloading data from [{url}]")
-        process_url(url, download_dir)
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        # Submit each URL for processing
+        for url in urls:
+            logging.info(f"Downloading data from [{url}]")
+            executor.submit(process_url, url, download_dir)

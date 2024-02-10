@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import Union
+from typing import Union, List
 
 import pandas as pd
 
@@ -57,7 +57,7 @@ def remove_units_and_rename(input_file: Union[str, pd.DataFrame],
             # If all values have units, remove units and append to column name
             if len(non_matches) == 0:
                 unit = matches.iloc[-1].group(2)
-                new_name = f"{col}, {unit}"
+                new_name = f"{col} {unit}"
                 changes['names'][col] = new_name
                 # Remove units from values
                 df[col] = df[col].str.replace(unit, '', regex=True)
@@ -108,9 +108,9 @@ def state_convert_to_bool(input_file: str, output_file: str) -> None:
         df[col] = df[col].apply(replace_words_with_integers)
 
         # Rename the column to include the mapping
-        description = ', '.join(
+        description = ' '.join(
             f'{value} is {key}' for key, value in word_map.items())
-        df.rename(columns={col: f'{col}, where {description}'}, inplace=True)
+        df.rename(columns={col: f'{col} where {description}'}, inplace=True)
 
     # Save the processed DataFrame to a new CSV file
     df.to_csv(output_file, index=False)
@@ -119,26 +119,74 @@ def state_convert_to_bool(input_file: str, output_file: str) -> None:
     logging.debug(f"DataFrame saved to {output_file}")
 
 
+def merge_by_time(input_csv_filenames: List[str], output_csv_filename):
+    # Load the CSV files into pandas DataFrames
+    dfs = [pd.read_csv(filename) for filename in input_csv_filenames]
+
+    # Convert 'Time' column to datetime type if not already
+    for df in dfs:
+        df['Time'] = pd.to_datetime(df['Time'])
+
+    # Merge the DataFrames on the 'Time' column
+    merged_df = dfs[0]
+    for df in dfs[1:]:
+        merged_df = pd.merge(merged_df, df, on='Time', how='outer')
+
+    # Save the merged DataFrame to a new CSV file
+    merged_df.to_csv(output_csv_filename, index=False)
+
+
+def remove_csv_files_containing_image(directory):
+    # Get the list of all files in the directory
+    files = os.listdir(directory)
+
+    # Iterate over each file
+    for file in files:
+        # Check if the file is a CSV file and contains "Image" in its name
+        if file.endswith('.csv') and 'Image' in file:
+            # Construct the full path to the file
+            file_path = os.path.join(directory, file)
+            # Remove the file
+            os.remove(file_path)
+
+
+def find_and_rename_time_column(input_file, output_file):
+    # Read the input CSV file into a DataFrame
+    df = pd.read_csv(input_file)
+
+    # Find columns with time-like data
+    time_columns = df.select_dtypes(
+        include=['datetime64', 'timedelta64']).columns
+
+    # Check if 'Time' column is missing and a time-compatible column is found
+    if 'Time' not in df.columns and len(time_columns) > 0:
+        time_column = time_columns[0]  # Take the first time-compatible column
+        df.rename(columns={time_column: 'Time'},
+                  inplace=True)  # Rename to 'Time'
+        try:
+            df['Time'] = pd.to_datetime(
+                df['Time']).dt.time  # Convert to time format
+            print("Conversion to time format successful.")
+        except ValueError:
+            print(
+                "Conversion to time format failed. Incompatible data found in the 'Time' column.")
+    else:
+        print("No suitable time-compatible column found.")
+
+    # Write the modified DataFrame to the output CSV file
+    df.to_csv(output_file, index=False)
+
+
 def process_csvs_in_folder(root_directory: str) -> None:
-    # Walk through the directory tree
+    remove_csv_files_containing_image(root_directory)
     for dirpath, dirnames, filenames in os.walk(root_directory):
-        # Iterate over each file in the current directory
         for filename in filenames:
-            # Check if the file is a CSV file
             if filename.endswith('.csv'):
-                # Construct the full file path
-                filepath: str = os.path.join(dirpath, filename)
+                filepath = os.path.join(dirpath, filename)
                 try:
+                    find_and_rename_time_column(filepath, filepath)
                     clean_and_save_csv(filepath, filepath)
-                except Exception as e:
-                    logging.error(f"Error: {e}")
-
-                try:
                     remove_units_and_rename(filepath, filepath)
-                except Exception as e:
-                    logging.error(f"Error: {e}")
-
-                try:
                     state_convert_to_bool(filepath, filepath)
                 except Exception as e:
                     logging.error(f"Error: {e}")
