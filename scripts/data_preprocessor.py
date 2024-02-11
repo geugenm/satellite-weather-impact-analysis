@@ -211,4 +211,5 @@ def process_csvs_in_folder(root_directory: str) -> None:
 
 
 # Example usage:
-process_csvs_in_folder('../data/')
+if __name__ == "__main__":
+    process_csvs_in_folder('../data/')
