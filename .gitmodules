@@ -1,0 +1,3 @@
+[submodule "scripts/polaris"]
+	path = scripts/polaris
+	url = https://gitlab.com/geugenm/polaris-ml-sandbox
