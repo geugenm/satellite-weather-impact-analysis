@@ -42,16 +42,16 @@ relationships between them. This helps in identifying trends and patterns in the
 data. Heatmaps of correlation matrices can also be used to present the
 correlation data in a more compact and informative manner.
 
-### Data Preprocessing (like skipping non-numerical data  and etc.)
+<figure>
+    <img src=".github/img/example_anomaly.webp" width="800" height="400" alt="Example Anomaly">
+    <figcaption>An example of an anomaly in the data.</figcaption>
+</figure>
 
-Before calculating correlations, the script preprocesses the data by loading it
-from JSON files and CSV files, converting timestamps to a universal format,
-filtering data by specific years, removing non-numeric data, and merging
-datasets by time. This ensures that the correlation analysis is performed on
-clean, relevant data.
-There is `scripts/data_preprocessor.py` script that will clear the csv data
-in `data/` subfolders (sats name). You can see the example of preprocessings
-in `test/data-preprocessor/data`.
+<figure>
+    <img src=".github/img/example_data_change.png" width="800" height="400" alt="Example Data Change">
+    <figcaption>An example of a data change over time.</figcaption>
+</figure>
+
 
 ### Logging
 
@@ -59,14 +59,6 @@ The script logs important events and warnings during execution. For instance, if
 a column is nearly constant and therefore not suitable for correlation analysis,
 a warning is logged. All outputs are formatted professionally, with variables
 enclosed in square brackets for clarity.
-
-## Requirements
-
-- Python 3.7+
-- pandas
-- numpy
-- matplotlib
-- scipy
 
 ## Contributing
 
