@@ -113,3 +113,10 @@ lib/matplotlib/backends/web_backend/node_modules/
 lib/matplotlib/backends/web_backend/package-lock.json
 
 LICENSE/LICENSE_QHULL
+
+# Data folder
+data/*
+!data/README.md
+!data/observed_solar_cycle_indices.json
+!data/predicted_solar_cycle.json
+!data/swpc_observed_ssn.json
