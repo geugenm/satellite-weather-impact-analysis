@@ -121,6 +121,8 @@ data/*
 !data/predicted_solar_cycle.json
 !data/swpc_observed_ssn.json
 
+!data/lightsail-2/*
+
 scripts/mlruns/
 
 *.log
