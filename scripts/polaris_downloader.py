@@ -36,6 +36,8 @@ def run_polaris_fetch(sat_name: str, start_date: str, end_date: str) -> None:
     """Fetch satellite data using Polaris."""
     json_name = f"{sat_name.lower()}_normalized_frames.json"
     cache_dir = os.path.join(BASE_DATA_DIR, sat_name.lower())
+    cache_dir = os.path.abspath(cache_dir)
+
     command = [
         get_command_path("polaris"), "fetch",
         "--start_date", start_date,
@@ -51,6 +53,8 @@ def run_polaris_learn(sat_name: str) -> None:
     """Analyze satellite data using Polaris."""
     graph_name = f"{sat_name.lower()}-graph.json"
     cache_dir = os.path.join(BASE_DATA_DIR, sat_name.lower())
+    cache_dir = os.path.abspath(cache_dir)
+
     command = [
         get_command_path("polaris"), "learn",
         "--force_cpu",
@@ -77,8 +81,8 @@ def run_polaris_behave(sat_name: str) -> None:
 def main() -> None:
     """Main entry point for the application."""
     sat_name = "LightSail-2"
-    start_date = "2020-01-21"
-    end_date = "2020-01-28"
+    start_date = "2019-07-07"
+    end_date = "2020-11-15"
 
     run_polaris_fetch(sat_name, start_date, end_date)
     run_polaris_learn(sat_name)
