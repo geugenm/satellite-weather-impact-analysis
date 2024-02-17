@@ -1,4 +1,7 @@
-# Solar Cycle Indices: Recent and Predicted
+# Satellite folders
+
+Containing  preprocessed by [my solaris modification](https://gitlab.com/geugenm/polaris-ml-sandbox) data (jsons of anomalies, merged data, decoded frames and graph)
+
 
 ## Observed Solar Cycle Indices
 

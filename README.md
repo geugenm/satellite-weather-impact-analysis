@@ -52,13 +52,26 @@ correlation data in a more compact and informative manner.
     <figcaption>An example of a data change over time.</figcaption>
 </figure>
 
-
 ### Logging
 
 The script logs important events and warnings during execution. For instance, if
 a column is nearly constant and therefore not suitable for correlation analysis,
 a warning is logged. All outputs are formatted professionally, with variables
 enclosed in square brackets for clarity.
+
+### Models
+
+We are utilizing a modified and upgraded version
+of [Polaris ML](https://gitlab.com/geugenm/polaris-ml-sandbox), enabling us to
+use `Python 3.8` with the latest setup tools. This modification includes the ability to
+use polaris `behave` and `report`ing capabilities.
+Additionally, Sun reports have been enabled, and some visualization styles have
+been adjusted.
+
+However, the graph functionality is still not fully operational. The graph can
+be accessed by pressing `Ctrl + /`, but it does not display vertex names
+correctly. As a workaround, exporting to [Gephi](https://gephi.org/) is the only
+viable option at this time.
 
 ## Contributing
 
