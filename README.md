@@ -4,6 +4,62 @@ This repository contains the code for analyzing the impact of space weather on
 active satellite systems. The analysis is performed by comparing solar and
 active satellite data to identify correlations between them.
 
+## Set up the Project
+
+1. After cloning the repository, navigate to the root directory and download
+   submodules recursively.
+2. Create a new Conda environment with Python 3.8 and activate it.
+3. In the project root, run the following command to install the required
+   packages:
+
+## Working with Polaris
+
+Polaris configurations are located in the `cfg` folder. For more information,
+refer to
+the [Polaris ML Sandbox repository](https://gitlab.com/geugenm/polaris-ml-sandbox/-/tree/master?ref_type=heads).
+
+1. From the root of the project, collect data and train on it with the following
+   command:
+
+```bash
+polaris batch --config_file cfg/polaris_cfg.json
+```
+
+2. This will download all data into the `./data/<sat_name>` folder,
+   where `sat_name` is specified in `cfg/polaris_cfg.json`.
+3. Build the graph using the following command:
+
+```bash
+polaris viz ./data/<sat_name>/cache/graph.json
+```
+
+4. Detect anomalies in telemetry data using the `polaris behave` command:
+
+```bash
+polaris behave ./data/<sat-name>/cache/normalized_frames.json --output_file ./data/<sat_name>/cache/anomaly_analysis.json
+```
+
+5. Visualize anomaly detection using the `polaris report` command:
+
+```bash
+polaris report ./data/<sat_name>/cache/anomaly_analysis.json
+```
+
+![Anomaly Interaction](.github/img/anomaly_interaction.gif)
+
+6. (Optional) Convert the dependency graph to another file format using
+   the `polaris convert` command:
+
+```bash
+polaris convert ./data/<sat_name>/cache/graph.json ./data/<sat_name>/cache/graph.gexf
+```
+
+7. (Optional) Information about the learning experiment with mlflow:
+
+```bash
+mlflow ui
+```
+
 ## Features
 
 - Loading and processing JSON data from SatNOGS Grafana Dashboard
@@ -63,7 +119,8 @@ enclosed in square brackets for clarity.
 
 We are utilizing a modified and upgraded version
 of [Polaris ML](https://gitlab.com/geugenm/polaris-ml-sandbox), enabling us to
-use `Python 3.8` with the latest setup tools. This modification includes the ability to
+use `Python 3.8` with the latest setup tools. This modification includes the
+ability to
 use polaris `behave` and `report`ing capabilities.
 Additionally, Sun reports have been enabled, and some visualization styles have
 been adjusted.
@@ -72,6 +129,10 @@ However, the graph functionality is still not fully operational. The graph can
 be accessed by pressing `Ctrl + /`, but it does not display vertex names
 correctly. As a workaround, exporting to [Gephi](https://gephi.org/) is the only
 viable option at this time.
+
+[Docs about `Polaris ML`](https://docs.polarisml.space/en/latest/using/getting_started_with_polaris.html#running-your-first-analysis-lightsail-2)
+
+[More about eXtreme Gradient Boosting](https://www.wikiwand.com/en/XGBoost)
 
 ## Contributing
 
