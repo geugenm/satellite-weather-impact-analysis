@@ -1,6 +1,6 @@
 {
   "file_layout": {
-    "root_dir": "data/LightSail-2"
+    "root_dir": "./data/LightSail-2"
   },
   "satellite": {
     "name": "LightSail-2",
@@ -11,7 +11,7 @@
       "viz": false
     },
     "learn": {
-      "configuration_file": "./cfg/polaris_learn_cfg.json",
+      "configuration_file": "./cfg/polaris_learn.json",
       "input_file": "./data/normalized_frames.json",
       "output_graph_file": "./data",
       "graph_link_threshold": 0.2

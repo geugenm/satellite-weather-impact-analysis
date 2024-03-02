@@ -12,7 +12,7 @@
     "objective": "reg:squarederror",
     "n_estimators": 81,
     "learning_rate": 0.1,
-    "n_jobs": 8,
+    "n_jobs": 16,
     "predictor": "cpu_predictor",
     "tree_method": "auto",
     "max_depth": 8
@@ -21,7 +21,7 @@
     "objective": "reg:squarederror",
     "n_estimators": 80,
     "learning_rate": 0.1,
-    "n_jobs": 8,
+    "n_jobs": 16,
     "max_depth": 8
     }
 }

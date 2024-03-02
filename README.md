@@ -22,11 +22,11 @@ the [Polaris ML Sandbox repository](https://gitlab.com/geugenm/polaris-ml-sandbo
    command:
 
 ```bash
-polaris batch --config_file cfg/polaris_cfg.json
+polaris batch --config_file cfg/polaris.json
 ```
 
 2. This will download all data into the `./data/<sat_name>` folder,
-   where `sat_name` is specified in `cfg/polaris_cfg.json`.
+   where `sat_name` is specified in `cfg/polaris.json`.
 3. Build the graph using the following command:
 
 ```bash
