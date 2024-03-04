@@ -1,0 +1,20 @@
+{
+    "file_layout": {
+        "root_dir": "./data/LightSail-2"
+    },
+    "satellite": {
+        "name": "LightSail-2",
+        "_comment": "Fields that begin with an underscore are ignored but preserved.  _comment is suggested as the default way to include comments anywhere they might be needed.",
+        "batch": {
+            "fetch": true,
+            "learn": true,
+            "viz": false
+        },
+        "learn": {
+            "configuration_file": "./cfg/polaris_learn.json",
+            "input_file": "./cfg/LightSail-2/cache/normalized_frames.json",
+            "output_graph_file": "./data/LightSail-2/graph.json",
+            "graph_link_threshold": 0.2
+        }
+    }
+}
