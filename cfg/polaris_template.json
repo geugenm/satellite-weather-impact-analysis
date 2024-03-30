@@ -12,7 +12,7 @@
     },
     "learn": {
       "configuration_file": "./cfg/polaris_learn.json",
-      "input_file": "./cfg/{satellite_name}/cache/normalized_frames.json",
+      "input_file": "./data/{satellite_name}/cache/normalized_frames.json",
       "output_graph_file": "./data/{satellite_name}/graph.json",
       "graph_link_threshold": 0.2
     }

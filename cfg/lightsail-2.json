@@ -12,7 +12,7 @@
         },
         "learn": {
             "configuration_file": "./cfg/polaris_learn.json",
-            "input_file": "./cfg/LightSail-2/cache/normalized_frames.json",
+            "input_file": "./data/LightSail-2/cache/normalized_frames.json",
             "output_graph_file": "./data/LightSail-2/graph.json",
             "graph_link_threshold": 0.2
         }

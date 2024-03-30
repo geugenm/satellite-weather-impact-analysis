@@ -6,13 +6,13 @@
         "name": "GRIFEX",
         "_comment": "Fields that begin with an underscore are ignored but preserved.  _comment is suggested as the default way to include comments anywhere they might be needed.",
         "batch": {
-            "fetch": true,
+            "fetch": false,
             "learn": true,
             "viz": false
         },
         "learn": {
             "configuration_file": "./cfg/polaris_learn.json",
-            "input_file": "./cfg/GRIFEX/cache/normalized_frames.json",
+            "input_file": "./data/GRIFEX/cache/normalized_frames.json",
             "output_graph_file": "./data/GRIFEX/graph.json",
             "graph_link_threshold": 0.2
         }
