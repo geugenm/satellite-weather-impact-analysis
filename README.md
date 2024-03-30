@@ -22,7 +22,13 @@ the [Polaris ML Sandbox repository](https://gitlab.com/geugenm/polaris-ml-sandbo
    command:
 
 ```bash
-polaris batch --config_file cfg/polaris.json
+polaris batch --config_file cfg/<satellite_config>.json
+```
+
+or fetch telemetry by manually specifying dates (polaris batch problem, cant specify dates in cfg file):
+
+```bash
+polaris fetch --cache_dir ./data/<sat_name>/cache --start_date 1970-01-01 --end_date 2024-03-25 <sat_name> ./data/<sat_name>/cache/normalized_frames.json
 ```
 
 2. This will download all data into the `./data/<sat_name>` folder,
@@ -126,8 +132,8 @@ Additionally, Sun reports have been enabled, and some visualization styles have
 been adjusted.
 
 However, the graph functionality is still not fully operational. The graph can
-be accessed by pressing `Ctrl + /`, but it does not display vertex names
-correctly. As a workaround, exporting to [Gephi](https://gephi.org/) is the only
+be accessed by pressing `Ctrl + /`, it does display vertex names
+correctly, but coloring is not available. As a workaround, exporting to [Gephi](https://gephi.org/) is the only
 viable option at this time.
 
 [Docs about `Polaris ML`](https://docs.polarisml.space/en/latest/using/getting_started_with_polaris.html#running-your-first-analysis-lightsail-2)
