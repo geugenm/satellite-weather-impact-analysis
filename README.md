@@ -14,7 +14,7 @@ active satellite data to identify correlations between them.
 
 ## Working with Polaris
 
-Polaris configurations are located in the `cfg` folder. For more information,
+Polaris' configurations are located in the `cfg` folder. For more information,
 refer to
 the [Polaris ML Sandbox repository](https://gitlab.com/geugenm/polaris-ml-sandbox/-/tree/master?ref_type=heads).
 
@@ -75,6 +75,10 @@ mlflow ui
 - Plotting scatter plots for visualization
 - Preprocessing solar and satellite data
 - Merging datasets and performing correlation analysis
+
+## Architecture
+
+![polaris_architecture](docs/polaris_arch.png)
 
 ## Scripts Details
 

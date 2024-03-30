@@ -48,7 +48,7 @@ def get_existing_panels(driver: webdriver) -> List[Tuple[int, str]]:
     """Get IDs and titles of existing panels."""
     existing_panels = []
     for panel_id in range(
-            101):  # The range starts from 0, so 101 is needed to reach 100
+        101):  # The range starts from 0, so 101 is needed to reach 100
         element_id: str = f"panel-{panel_id}"
         try:
             element = driver.find_element(By.ID, element_id)

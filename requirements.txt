@@ -1,4 +1,4 @@
-python>=3.9
+python==3.9
 pandas
 numpy
 matplotlib
@@ -6,7 +6,6 @@ scipy
 tabulate
 jupyter
 ./models/polaris
-imgui
 python-dateutil
 setuptools
-glfw
+selenium
