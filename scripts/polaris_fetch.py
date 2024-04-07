@@ -9,9 +9,7 @@ LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
 # Set up logging to stdout
 logging.basicConfig(
-    level=logging.INFO,
-    format=LOG_FORMAT,
-    handlers=[logging.StreamHandler(sys.stdout)]
+    level=logging.INFO, format=LOG_FORMAT, handlers=[logging.StreamHandler(sys.stdout)]
 )
 
 
@@ -31,20 +29,25 @@ def run_command(command: List[str]) -> None:
         logging.error(f"Failed to run '{command}': {e}")
 
 
-def run_polaris_fetch(sat_name: str, start_date: str, end_date: str,
-                      data_dir_path: str) -> None:
+def run_polaris_fetch(
+    sat_name: str, start_date: str, end_date: str, data_dir_path: str
+) -> None:
     """Fetch satellite data using Polaris."""
     json_name = f"{sat_name.lower()}_normalized_frames.json"
     cache_dir = os.path.join(data_dir_path, sat_name.lower())
     cache_dir = os.path.abspath(cache_dir)
 
     command = [
-        get_command_path("polaris"), "fetch",
-        "--start_date", start_date,
-        "--end_date", end_date,
-        "--cache_dir", cache_dir,
+        get_command_path("polaris"),
+        "fetch",
+        "--start_date",
+        start_date,
+        "--end_date",
+        end_date,
+        "--cache_dir",
+        cache_dir,
         sat_name,
-        os.path.join(cache_dir, json_name)
+        os.path.join(cache_dir, json_name),
     ]
     run_command(command)
 
@@ -56,24 +59,30 @@ def run_polaris_learn(sat_name: str, data_dir_path: str) -> None:
     cache_dir = os.path.abspath(cache_dir)
 
     command = [
-        get_command_path("polaris"), "learn",
+        get_command_path("polaris"),
+        "learn",
         "--force_cpu",
-        "--output_graph_file", os.path.join(cache_dir, graph_name),
-        os.path.join(cache_dir, f"{sat_name.lower()}_normalized_frames.json")
+        "--output_graph_file",
+        os.path.join(cache_dir, graph_name),
+        os.path.join(cache_dir, f"{sat_name.lower()}_normalized_frames.json"),
     ]
     run_command(command)
 
 
 def run_polaris_behave(sat_name: str, data_dir_path: str) -> None:
     """Analyze satellite behavior using Polaris."""
-    input_file = os.path.join(data_dir_path, sat_name.lower(),
-                              f"{sat_name.lower()}_normalized_frames.json")
-    output_file = os.path.join(data_dir_path, sat_name.lower(),
-                               f"{sat_name.lower()}-anomaly_analysis.json")
+    input_file = os.path.join(
+        data_dir_path, sat_name.lower(), f"{sat_name.lower()}_normalized_frames.json"
+    )
+    output_file = os.path.join(
+        data_dir_path, sat_name.lower(), f"{sat_name.lower()}-anomaly_analysis.json"
+    )
     command = [
-        get_command_path("polaris"), "behave",
+        get_command_path("polaris"),
+        "behave",
         input_file,
-        "--output_file", output_file
+        "--output_file",
+        output_file,
     ]
     run_command(command)
 
