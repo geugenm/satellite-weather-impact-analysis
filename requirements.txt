@@ -1,5 +1,5 @@
 # Core dependencies
-python==3.9
+# for polaris use python 3.9
 pandas
 numpy
 matplotlib
@@ -8,7 +8,6 @@ tabulate
 jupyter
 
 # Project-specific dependencies
-./models/polaris
 python-dateutil
 setuptools
 selenium
