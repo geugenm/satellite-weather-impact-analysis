@@ -12,3 +12,17 @@ python-dateutil
 setuptools
 selenium
 tqdm
+fets
+vinvelivaanilai
+scikit-learn
+glouton
+xgboost
+enlighten
+mlflow
+gputil
+mergedeep
+joblib
+click
+versioneer
+holoviews
+bokeh
