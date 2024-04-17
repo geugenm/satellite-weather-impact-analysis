@@ -1,7 +1,7 @@
 [General]
 kile_livePreviewEnabled=true
 kile_livePreviewStatusUserSpecified=false
-kile_livePreviewTool=LivePreview-PDFLaTeX
+kile_livePreviewTool=LivePreview-LuaLaTeX
 lastDocument=main.tex
 
 [document-settings,item:main.tex]
@@ -22,8 +22,8 @@ open=true
 order=0
 
 [view-settings,view=0,item:main.tex]
-CursorColumn=27
-CursorLine=194
+CursorColumn=40
+CursorLine=17
 Dynamic Word Wrap=false
 JumpList=
 TextFolding=[]
