@@ -27,18 +27,6 @@ Choose a TeX distribution that aligns with your operating system:
 
 Install the following packages using your TeX distribution's package manager (e.g., `tlmgr` for TeX Live):
 
-* **fontspec:** Advanced font selection and OpenType font support.
-* **enumitem:** Customization of list environments.
-* **extsizes:** Extended font size options. 
-* **subfig:** Management of subfigures and captions.
-* **caption:** Enhanced caption formatting.
-* **natbib:** Flexible bibliography management.
-* **babel-russian:** Russian language hyphenation and typography support.
-* **titlesec:** Customization of section headings.
-* **lh:** Cyrillic font support for LuaLaTeX or XeLaTeX.
-
-(List may differ, from the actual content, but those are basic)
-
 ## 3. Editor Configuration
 
 **Doom Emacs:**
