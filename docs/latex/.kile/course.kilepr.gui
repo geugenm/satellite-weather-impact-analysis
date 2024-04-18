@@ -1,6 +1,6 @@
 [General]
 kile_livePreviewEnabled=true
-kile_livePreviewStatusUserSpecified=false
+kile_livePreviewStatusUserSpecified=true
 kile_livePreviewTool=LivePreview-LuaLaTeX
 lastDocument=main.tex
 
@@ -22,9 +22,9 @@ open=true
 order=0
 
 [view-settings,view=0,item:main.tex]
-CursorColumn=40
-CursorLine=17
+CursorColumn=42
+CursorLine=30
 Dynamic Word Wrap=false
 JumpList=
 TextFolding=[]
-ViMarks=.,139,0,[,139,0,],139,0
+ViMarks=.,21,21,[,21,21,],21,21

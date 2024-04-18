@@ -1,4 +1,70 @@
-﻿\documentclass[14pt, a4paper]{extreport}
+﻿% LuaTeX Project Setup and Compilation Guide
+
+% This document outlines the necessary steps to configure a comprehensive LaTeX environment 
+% for editing and typesetting documents using either Emacs with AUCTeX or the Kile editor.
+
+%----------------------------------------------------------------------------------------
+% 1. Installing a TeX Distribution
+
+% Choose one of the following TeX distributions based on your operating system:
+
+% * **Linux:**
+%   * **TeX Live:** Recommended for its extensive package collection and regular updates.
+%     ```bash
+%     sudo dnf install texlive-full  % Comprehensive installation
+%     sudo dnf install texlive-babel-russian  % Russian language support
+%     ```
+%   * **Other Distributions:** Explore options like TeX Live or TeXstudio depending on your preferences.
+% * **Windows:**
+%   * **MiKTeX:** A popular choice with on-the-fly package installation. Download the installer from https://miktex.org/download.
+% * **macOS:**
+%   * **MacTeX:** A complete TeX distribution specifically for macOS. Download from https://tug.org/mactex/.
+
+%----------------------------------------------------------------------------------------
+% 2. Essential LaTeX Packages
+
+% Install the following packages using your TeX distribution's package manager (e.g., `tlmgr` for TeX Live):
+
+% * **fontspec:** Advanced font selection and OpenType font support.
+% * **enumitem:** Customization of list environments.
+% * **extsizes:** Extended font size options. 
+% * **subfig:** Management of subfigures and captions.
+% * **caption:** Enhanced caption formatting.
+% * **natbib:** Flexible bibliography management.
+% * **babel-russian:** Russian language hyphenation and typography support.
+% * **titlesec:** Customization of section headings.
+% * **lh:** Cyrillic font support for LuaLaTeX or XeLaTeX.
+
+%----------------------------------------------------------------------------------------
+% 3. Editor Configuration
+
+% Select your preferred LaTeX editor:
+
+% * **Doom Emacs**
+%   1. Install latex for doomemacs: Refer to the Emacs package manager or official instructions - https://docs.doomemacs.org/v21.12/modules/lang/latex/.
+%   2. Optionally, install and configure `pdf-tools` for enhanced PDF interaction within Emacs. 
+% * **Kile:**
+%   1. Install Kile using your system's package manager or download from https://kile.org/.
+%   2. Kile provides a user-friendly graphical interface with project management, syntax highlighting, 
+%      code completion, and integrated PDF viewing.
+
+%----------------------------------------------------------------------------------------
+% 4. Compilation and Workflow
+
+% * Use the appropriate command or keybinding to compile your LaTeX document (e.g., `pdflatex` for PDF output).
+% * Configure your editor to automatically build and view the generated PDF.
+% * Utilize the features of your chosen editor and installed packages to enhance your LaTeX workflow.
+
+%----------------------------------------------------------------------------------------
+% 5. Additional Resources
+
+% * Comprehensive TeX documentation: https://www.tug.org/texlive/doc.html
+% * LaTeX community forums and support: https://tex.stackexchange.com/
+% * Package documentation and examples: Refer to the respective package websites or CTAN (https://ctan.org/).
+
+%----------------------------------------------------------------------------------------
+
+\documentclass[12pt, a4paper]{extreport}
 
 \usepackage[utf8]{inputenc}
 \usepackage[english, russian]{babel}
@@ -13,7 +79,11 @@
 
 \graphicspath{{img/}}
 
-\setmainfont{Times New Roman}
+\setmainfont[Path = ./fonts/,
+             UprightFont = *-Regular,
+             BoldFont = *-Bold,
+             ItalicFont = *-Italic,
+             BoldItalicFont = *-BoldItalic]{JetBrainsMono}
 
 \titleformat*{\section}{\Large\bfseries}
 \titleformat*{\subsection}{\large\bfseries}
@@ -68,26 +138,7 @@
 
 {\Large \textbf{Введение}}
 
-Космическая погода представляет собой комплекс явлений, происходящих
-в околоземном космическом пространстве, которые могут влиять на работу
-низкоорбитальных спутников. К ним относятся: солнечные вспышки, выбросы
-корональной массы, геомагнитные бури. Влияние космической погоды может
-проявляться в виде аномалий телеметрии, сбоев в работе бортовых систем
-и даже полной потери спутника \cite{green2017impact}. В большинстве случаев, для обнаружения
-аномалий используются критерии на основе пороговых значений нижних и верхних
-пределов наиболее критичных параметров телеметрии бортовой электроники
-наноспутника. Также в последнее время, в область проектирования и
-эксплуатации наноспутников внедряются автоматизированные системы мониторинга
-состояния телеметрии, которые используют различные модели машинного обучения \cite{schlag2018numerical}.
-Подобные автоматизированные системы оценивают в целом работоспособность бортовых
-систем на момент испытаний или в режиме полетной диагностики. Спутник является
-сложной электрической системой, где события на каждом узле (компоненты бортовых
-систем) могу привести к последовательности не предугаданных сбоев. Причиной сбоев
-может послужить как естественные неполадки бортовых компонентов, так и внешние
-факторы.  В данной работе проводится оценка взаимосвязи и влияния солнечной
-активности на работу бортовой электроники по данным телеметрии космических
-аппаратов, а также разработка и оптимизация готовых решений с открытым исходным
-кодом для анализа больших данных.
+Космическая погода представляет собой комплекс явлений, происходящих в околоземном космическом пространстве, которые могут влиять на работу низкоорбитальных спутников. К ним относятся: солнечные вспышки, выбросы корональной массы, геомагнитные бури. Влияние космической погоды может проявляться в виде аномалий телеметрии, сбоев в работе бортовых систем и даже полной потери спутника \cite{green2017impact}. В большинстве случаев, для обнаружения аномалий используются критерии на основе пороговых значений нижних и верхних пределов наиболее критичных параметров телеметрии бортовой электроники наноспутника. Также в последнее время, в область проектирования и эксплуатации наноспутников внедряются автоматизированные системы мониторинга состояния телеметрии, которые используют различные модели машинного обучения \cite{schlag2018numerical}. Подобные автоматизированные системы оценивают в целом работоспособность бортовых систем на момент испытаний или в режиме полетной диагностики. Спутник является сложной электрической системой, где события на каждом узле (компоненты бортовых систем) могу привести к последовательности не предугаданных сбоев. Причиной сбоев может послужить как естественные неполадки бортовых компонентов, так и внешние факторы.  В данной работе проводится оценка взаимосвязи и влияния солнечной активности на работу бортовой электроники по данным телеметрии космических аппаратов, а также разработка и оптимизация готовых решений с открытым исходным кодом для анализа больших данных.
 
 \newpage
 
