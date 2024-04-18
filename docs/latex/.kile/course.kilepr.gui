@@ -22,9 +22,9 @@ open=true
 order=0
 
 [view-settings,view=0,item:main.tex]
-CursorColumn=42
-CursorLine=30
+CursorColumn=40
+CursorLine=101
 Dynamic Word Wrap=false
 JumpList=
 TextFolding=[]
-ViMarks=.,21,21,[,21,21,],21,21
+ViMarks=.,0,0,[,0,0,],0,0

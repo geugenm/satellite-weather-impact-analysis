@@ -23,7 +23,7 @@ format:
 ifndef TEX_FORMATTER
 	@echo "Error: TeX formatter '$(TEX_FORMATTER)' not found. Please install it or update the Makefile with the correct command."
 else
-	$(TEX_FORMATTER) $(MAIN).tex -o $(MAIN).tex
+	$(TEX_FORMATTER) -l $(MAIN).tex -o $(MAIN).tex
 endif
 
 # Clean rule to remove build directory
