@@ -37,6 +37,8 @@ Install the following packages using your TeX distribution's package manager (e.
 * **titlesec:** Customization of section headings.
 * **lh:** Cyrillic font support for LuaLaTeX or XeLaTeX.
 
+(List may differ, from the actual content, but those are basic)
+
 ## 3. Editor Configuration
 
 **Doom Emacs:**
@@ -61,7 +63,15 @@ Install the following packages using your TeX distribution's package manager (e.
 * **LaTeX community forums and support:** https://tex.stackexchange.com/
 * **Package documentation and examples:** Refer to package websites or CTAN (https://ctan.org/).
 
-## 6. Advanced Techniques with Latexmk
+## 6. Simple way without db files in the root
+
+Just use:
+
+```bash
+make all
+```
+
+## 7. Advanced Techniques with Latexmk
 
 **Latexmk** is a powerful tool for automating LaTeX compilation. It can watch for changes in your files and automatically recompile your document, ensuring that the PDF output is always up-to-date. Here's how to use it:
 
@@ -77,3 +87,4 @@ Install the following packages using your TeX distribution's package manager (e.
 * **Using Custom Build Rules:** Define custom build rules to handle specific file types or compilation steps.
 
 **By mastering latexmk, you can significantly improve your LaTeX workflow and make the compilation process more efficient.**
+
