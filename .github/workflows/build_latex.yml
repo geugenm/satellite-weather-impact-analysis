@@ -24,7 +24,7 @@ jobs:
 
       - name: Install TeX Live (latest version)
         run: |
-          sudo perl ./install-tl-*/install-tl --no-interaction --scheme=small
+          sudo perl ./install-tl-*/install-tl --no-interaction
 
       - name: Update tlmgr (optional)
         run: |
@@ -46,7 +46,7 @@ jobs:
           fi
 
       - name: Build LaTeX project
-        run: export PATH=$PATH:/usr/local/texlive/2024/bin/x86_64-linux/ && sudo apt-get install -y latexmk texlive-luatex && cd docs/latex && make all
+        run: export PATH=$PATH:/usr/local/texlive/2024/bin/x86_64-linux/ && sudo apt-get install -y latexmk && cd docs/latex && make all
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
