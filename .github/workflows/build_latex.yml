@@ -19,12 +19,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y texlive-base luatex
 
+      - name: Initialize tlmgr for user mode
+        run: |
+          sudo tlmgr init-usertree
+
       - name: Install additional TeX Live packages
         run: |
-          sudo tlmgr update --self
-          sudo tlmgr install collection-fontsrecommended collection-langcyrillic 
+          tlmgr update --self --all
+          tlmgr install collection-fontsrecommended collection-langcyrillic 
           # Add specific packages from your latexmkrc
-          sudo tlmgr install $(cat docs/latex/latexmkrc | grep '^\\$usepackage' | sed -E 's/.*qw\((.*)\).*/\1/')
+          tlmgr install $(cat docs/latex/latexmkrc | grep '^\\$usepackage' | sed -E 's/.*qw\((.*)\).*/\1/')
 
       - name: Build LaTeX project
         run: cd docs/latex && make all
