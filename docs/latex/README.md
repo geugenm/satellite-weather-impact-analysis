@@ -25,7 +25,7 @@ Choose a TeX distribution that aligns with your operating system:
 
 ## 2. Essential LaTeX Packages
 
-Install the following packages using your TeX distribution's package manager (e.g., `tlmgr` for TeX Live):
+The list of required packages is listed in LaTeX document, also you can use `make` to get erros about required packages. Install packages using your TeX distribution's package manager (e.g., `tlmgr` for TeX Live).
 
 ## 3. Editor Configuration
 

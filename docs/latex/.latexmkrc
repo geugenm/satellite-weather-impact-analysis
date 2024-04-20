@@ -24,7 +24,9 @@ $usepackage = qw(
     titlesec
     lh
     cyrillic
+    hyperref
     latexindent
+    etoolbox
 );
 push @generated_exts, 'bbl', 'blg';
 
