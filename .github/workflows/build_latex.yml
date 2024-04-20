@@ -28,8 +28,7 @@ jobs:
 
       - name: Add TeX Live to PATH
         run: |
-          TEXLIVE_PATH=/usr/local/texlive/$(ls -d */ | grep -Eo '[0-9]{4}')  # Get TeX Live version directory
-          echo "export PATH=$TEXLIVE_PATH/bin:$PATH" >> $GITHUB_ENV  # Add path to environment variables
+          echo "export PATH=usr/local/texlive/2024/bin/x64_64-linux:$PATH" >> $GITHUB_ENV  # Add path to environment variables
           source $GITHUB_ENV  # Load environment variables
 
       - name: Update tlmgr (optional)
