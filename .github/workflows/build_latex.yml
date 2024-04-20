@@ -1,0 +1,36 @@
+name: LaTeX Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install TeX Live basic and LuaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-base luatex
+
+      - name: Install additional TeX Live packages
+        run: |
+          sudo tlmgr update --self
+          sudo tlmgr install collection-fontsrecommended collection-langcyrillic 
+          # Add specific packages from your latexmkrc
+          sudo tlmgr install $(cat docs/latex/latexmkrc | grep '^\\$usepackage' | sed -E 's/.*qw\((.*)\).*/\1/')
+
+      - name: Build LaTeX project
+        run: cd docs/latex && make all
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: latex-build
+          path: docs/latex/.build/
