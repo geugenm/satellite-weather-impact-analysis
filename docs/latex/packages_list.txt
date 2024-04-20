@@ -12,3 +12,4 @@ hyperref
 latexindent
 etoolbox
 titling
+hyphen-russian
