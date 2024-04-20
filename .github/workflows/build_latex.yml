@@ -24,7 +24,7 @@ jobs:
 
       - name: Install TeX Live (latest version)
         run: |
-          sudo perl ./install-tl/install-tl --profile=default  # Installs most common packages
+          sudo perl ./install-tl-*/install-tl --profile=default
 
       - name: Update tlmgr (optional)
         run: |
