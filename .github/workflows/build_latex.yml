@@ -25,10 +25,10 @@ jobs:
 
       - name: Install additional TeX Live packages
         run: |
-          tlmgr update --self --all
-          tlmgr install collection-fontsrecommended collection-langcyrillic 
+          sudo tlmgr update --self --all
+          sudo tlmgr install collection-fontsrecommended collection-langcyrillic 
           # Add specific packages from your latexmkrc
-          tlmgr install $(cat docs/latex/latexmkrc | grep '^\\$usepackage' | sed -E 's/.*qw\((.*)\).*/\1/')
+          sudo tlmgr install $(cat docs/latex/latexmkrc | grep '^\\$usepackage' | sed -E 's/.*qw\((.*)\).*/\1/')
 
       - name: Build LaTeX project
         run: cd docs/latex && make all
