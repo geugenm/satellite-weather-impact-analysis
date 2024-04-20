@@ -24,7 +24,13 @@ jobs:
 
       - name: Install TeX Live (latest version)
         run: |
-          sudo perl ./install-tl-*/install-tl --no-interaction --scheme=scheme
+          sudo perl ./install-tl-*/install-tl --no-interaction --scheme=small
+
+      - name: Add TeX Live to PATH
+        run: |
+          TEXLIVE_PATH=/usr/local/texlive/$(ls -d */ | grep -Eo '[0-9]{4}')  # Get TeX Live version directory
+          echo "export PATH=$TEXLIVE_PATH/bin:$PATH" >> $GITHUB_ENV  # Add path to environment variables
+          source $GITHUB_ENV  # Load environment variables
 
       - name: Update tlmgr (optional)
         run: |
