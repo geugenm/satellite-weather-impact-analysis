@@ -28,6 +28,6 @@ endif
 
 # Clean rule to remove build directory
 clean:
-	rm -rf $(BUILD_DIR)
+	latexmk -c && rm -rf $(BUILD_DIR)
 
 .PHONY: all clean

@@ -12,5 +12,3 @@ hyperref
 latexindent
 etoolbox
 titling
-biber
-makeindex
