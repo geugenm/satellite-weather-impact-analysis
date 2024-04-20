@@ -24,7 +24,7 @@ jobs:
 
       - name: Install TeX Live (latest version)
         run: |
-          sudo perl ./install-tl-*/install-tl --no-interaction --scheme=minimal
+          sudo perl ./install-tl-*/install-tl --no-interaction --scheme=small
 
       - name: Update tlmgr (optional)
         run: |
