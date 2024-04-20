@@ -24,11 +24,11 @@ jobs:
 
       - name: Install TeX Live (latest version)
         run: |
-          sudo perl ./install-tl-*/install-tl --profile=default
+          sudo perl ./install-tl-*/install-tl --no-interaction
 
       - name: Update tlmgr (optional)
         run: |
-          tlmgr update --self
+          sudo tlmgr update --self
 
       - name: Install additional TeX Live packages (optional)
         run: |
