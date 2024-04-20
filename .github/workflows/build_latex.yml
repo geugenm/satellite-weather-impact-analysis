@@ -24,7 +24,7 @@ jobs:
 
       - name: Install TeX Live (latest version)
         run: |
-          sudo perl ./install-tl-*/install-tl --no-interaction --scheme=small
+          sudo perl ./install-tl-*/install-tl --no-interaction --scheme=sheme
 
       - name: Add TeX Live to PATH
         run: |
