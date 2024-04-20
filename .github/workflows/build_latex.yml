@@ -46,8 +46,7 @@ jobs:
           fi
 
       - name: Build LaTeX project
-        run: export PATH=$PATH:/usr/local/texlive/2024/bin/x86_64-linux/ && 
-sudo apt-get install -y latexmk && cd docs/latex && make all
+        run: export PATH=$PATH:/usr/local/texlive/2024/bin/x86_64-linux/ && sudo apt-get install -y latexmk && cd docs/latex && make all
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
