@@ -1,40 +1,61 @@
-name: LaTeX Build
+# Install runner-archlinux action (if not already installed globally)
+- uses: ioquatix/github-actions-bin@v1.2.1
+  with:
+    name: runner-archlinux
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+---
+
+name: LaTeX Build
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    
+    runs-on: runner-archlinux
+    strategy:
+      fail-fast: false  # Continue all steps even if one fails (optional)
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install TeX Live basic and LuaTeX
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y texlive-base luatex
+          sudo pacman -Syu --noconfirm  # Update pacman and install upgrades
+          sudo pacman -S --noconfirm base-devel git paru  # Install development tools, git, and paru
+          echo "** Installed dependencies successfully! **"
 
-      - name: Initialize tlmgr for user mode
+      - name: Install TeX Live (latest from AUR)
         run: |
-          sudo tlmgr init-usertree
+          sudo paru -S --noconfirm texlive-full  # Install full TeX Live from AUR
+          echo "** Installed TeX Live (latest from AUR) successfully! **"
 
-      - name: Install additional TeX Live packages
+      - name: Update tlmgr (to handle potential version mismatch)
         run: |
-          sudo tlmgr update --self --all
-          sudo tlmgr install collection-fontsrecommended collection-langcyrillic 
-          # Add specific packages from your latexmkrc
-          sudo tlmgr install $(cat docs/latex/latexmkrc | grep '^\\$usepackage' | sed -E 's/.*qw\((.*)\).*/\1/')
+          sudo tlmgr update --self
+          echo "** Updated tlmgr to the latest version. **"
+
+      - name: Install additional TeX Live packages (optional)
+        run: |
+          if [[ -f "docs/latex/latexmkrc" ]]; then
+            PACKAGES=$(cat docs/latex/latexmkrc | grep '^\\$usepackage' | sed -E 's/.*qw\((.*)\).*/\1/')
+            if [[ ! -z "$PACKAGES" ]]; then
+              echo "** Parsed packages from latexmkrc: $PACKAGES"
+              sudo tlmgr install $PACKAGES
+              echo "** Installed parsed packages from latexmkrc successfully! **"
+            else
+              echo "** No packages found in latexmkrc. Skipping installation. **"
+            fi
+          else
+            echo "** docs/latex/latexmkrc file not found. Skipping parsing. **"
+          fi
 
       - name: Build LaTeX project
-        run: cd docs/latex && make all
+        run: |
+          cd docs/latex && make all
+          echo "** Built LaTeX project successfully! **"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: latex-build
           path: docs/latex/.build/
+          name: LaTeX Build
