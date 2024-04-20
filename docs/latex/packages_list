@@ -1,0 +1,14 @@
+fontspec
+enumitem
+extsizes
+subfig
+caption
+natbib
+babel-russian
+titlesec
+lh
+cyrillic
+hyperref
+latexindent
+etoolbox
+titling

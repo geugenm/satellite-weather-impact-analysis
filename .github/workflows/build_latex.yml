@@ -33,16 +33,16 @@ jobs:
       - name: Install additional TeX Live packages (optional)
         run: |
           if [[ -f "docs/latex/.latexmkrc" ]]; then
-            PACKAGES=$(cat docs/latex/.latexmkrc | grep '^\\$usepackage' | sed -E 's/.*qw\((.*)\).*/\1/')
+            PACKAGES=$(cat docs/latex/packages_list)
             if [[ ! -z "$PACKAGES" ]]; then
               echo "** Parsed packages from latexmkrc: $PACKAGES"
               sudo /usr/local/texlive/2024/bin/x86_64-linux/tlmgr install $PACKAGES
               echo "** Installed parsed packages from latexmkrc successfully! **"
             else
-              echo "** No packages found in latexmkrc. Skipping installation. **"
+              echo "** No packages found in .latexmkrc. Skipping installation. **"
             fi
           else
-            echo "** docs/latex/latexmkrc file not found. Skipping parsing. **"
+            echo "** docs/latex/.latexmkrc file not found. Skipping parsing. **"
           fi
 
       - name: Build LaTeX project

@@ -12,23 +12,6 @@ $bibtex = "bibtex -output-directory=$outdir %O %S";
 $biber = "biber --output-directory=$outdir %O %S";
 $makeindex = "makeindex -s gind.ist -o %O.ind %O.idx";
 
-# Required packages (ensure they are installed)
-$usepackage = qw(
-    fontspec
-    enumitem
-    extsizes
-    subfig
-    caption
-    natbib
-    babel-russian
-    titlesec
-    lh
-    cyrillic
-    hyperref
-    latexindent
-    etoolbox
-    titling
-);
 push @generated_exts, 'bbl', 'blg';
 
 # Rule to create the build directory
