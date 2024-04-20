@@ -27,6 +27,7 @@ $usepackage = qw(
     hyperref
     latexindent
     etoolbox
+    titling
 );
 push @generated_exts, 'bbl', 'blg';
 

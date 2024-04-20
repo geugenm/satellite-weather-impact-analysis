@@ -66,7 +66,6 @@
 
 \documentclass[12pt, a4paper]{extreport}
 
-\usepackage[utf8]{inputenc}
 \usepackage[english, russian]{babel}
 \usepackage{fontspec} % Advanced font management
 \usepackage{graphicx}
@@ -76,6 +75,8 @@
 \usepackage{enumitem}
 \usepackage{subfig}
 \usepackage{hyperref}
+\usepackage{authblk}
+\usepackage{titling}
 \usepackage[numbers]{natbib}
 
 \hypersetup{
@@ -84,6 +85,7 @@
 
 \title{МЕТОДЫ ОЦЕНКИ ВЛИЯНИЯ КОСМИЧЕСКОЙ ПОГОДЫ НА БОРТОВЫЕ СИСТЕМЫ НИЗКООРБИТАЛЬНЫХ СПУТНИКОВ}
 \author{Глеба Е. М., Баранова В. С.}
+\date{\the\year}
 
 \graphicspath{{img/}}
 
@@ -121,8 +123,7 @@
     \end{center}
 
     \begin{center}
-        \Large МЕТОДЫ ОЦЕНКИ ВЛИЯНИЯ КОСМИЧЕСКОЙ ПОГОДЫ \\
-        НА БОРТОВЫЕ СИСТЕМЫ НИЗКООРБИТАЛЬНЫХ СПУТНИКОВ
+        \Large \thetitle
     \end{center}
 
     \vspace{2em}
@@ -141,7 +142,7 @@
 
 
     \begin{center}
-        Минск, 2024
+        Минск, \thedate
     \end{center}
 
 \end{titlepage}
