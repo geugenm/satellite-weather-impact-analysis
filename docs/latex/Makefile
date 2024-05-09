@@ -18,8 +18,8 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 # Compilation rule using latexmk
-$(BUILD_DIR)/$(MAIN).pdf: $(SRC_DIR)/$(MAIN).tex | $(BUILD_DIR) .latexmkrc
-	latexmk -pdf -outdir=$(BUILD_DIR) $(SRC_DIR)/$(MAIN).tex
+$(BUILD_DIR)/$(MAIN).pdf: $(SRC_DIR)/$(MAIN).tex | $(BUILD_DIR) $(SRC_DIR)/.latexmkrc
+	cd $(SRC_DIR) && latexmk -pdf -outdir=../$(BUILD_DIR) $(MAIN).tex && cd ..
 
 # Rule for formatting TeX files
 format:

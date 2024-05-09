@@ -2,9 +2,9 @@
 kile_livePreviewEnabled=true
 kile_livePreviewStatusUserSpecified=true
 kile_livePreviewTool=LivePreview-LuaLaTeX
-lastDocument=main.tex
+lastDocument=src/main.tex
 
-[document-settings,item:main.tex]
+[document-settings,item:src/main.tex]
 Bookmarks=
 Encoding=UTF-8
 Highlighting=LaTeX
@@ -17,14 +17,14 @@ Mode Set By User=false
 open=false
 order=-1
 
-[item:main.tex]
+[item:src/main.tex]
 open=true
 order=0
 
-[view-settings,view=0,item:main.tex]
-CursorColumn=8
-CursorLine=177
+[view-settings,view=0,item:src/main.tex]
+CursorColumn=0
+CursorLine=4
 Dynamic Word Wrap=false
 JumpList=
 TextFolding=[]
-ViMarks=.,0,0,[,0,0,],0,0
+ViMarks=
