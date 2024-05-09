@@ -1,6 +1,9 @@
 # Name of the main LaTeX file
 MAIN = main
 
+# Define the source directory
+SRC_DIR = src
+
 # Build directory
 BUILD_DIR = .build
 
@@ -15,19 +18,19 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 # Compilation rule using latexmk
-$(BUILD_DIR)/$(MAIN).pdf: $(MAIN).tex | $(BUILD_DIR) .latexmkrc
-	latexmk -pdf -outdir=$(BUILD_DIR) $(MAIN).tex
+$(BUILD_DIR)/$(MAIN).pdf: $(SRC_DIR)/$(MAIN).tex | $(BUILD_DIR) .latexmkrc
+	latexmk -pdf -outdir=$(BUILD_DIR) $(SRC_DIR)/$(MAIN).tex
 
 # Rule for formatting TeX files
 format:
 ifndef TEX_FORMATTER
 	@echo "Error: TeX formatter '$(TEX_FORMATTER)' not found. Please install it or update the Makefile with the correct command."
 else
-	$(TEX_FORMATTER) -l $(MAIN).tex -o $(MAIN).tex
+	$(TEX_FORMATTER) -l $(SRC_DIR)/$(MAIN).tex -o $(SRC_DIR)/$(MAIN).tex
 endif
 
 # Clean rule to remove build directory
 clean:
-	latexmk -c && rm -rf $(BUILD_DIR)
+	latexmk -c
 
 .PHONY: all clean

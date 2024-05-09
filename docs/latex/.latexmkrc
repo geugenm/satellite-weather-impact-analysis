@@ -1,5 +1,5 @@
 # Set main LaTeX file
-$main_file = "main.tex";
+$main_file = "src/main.tex";
 
 # Build directory
 $outdir = ".build";
