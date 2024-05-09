@@ -135,7 +135,7 @@ def process_url(
 if __name__ == "__main__":
     # Satellites dashboard catalog: https://dashboard.satnogs.org/d/QjDe5S8mk/satellite-telemetries?orgId=1
     urls: List[str] = [
-        "https://dashboard.satnogs.org/d/TauG79dWz/grifex?orgId=1&from=now-9y&to=now"
+        "https://dashboard.satnogs.org/d/anRdyz9Vk/cubebel-1?orgId=1&refresh=30s&from=now-6y&to=now"
     ]
     download_dir: str = "./data/"
     for url in urls:
