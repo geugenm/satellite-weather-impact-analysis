@@ -1,8 +1,0 @@
-*.log
-*.build/
-*.fdb_latexmk
-*.aux
-*.toc
-*.blg
-*.bbl
-*.pdf
