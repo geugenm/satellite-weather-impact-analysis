@@ -29,8 +29,4 @@ else
 	$(TEX_FORMATTER) -l $(SRC_DIR)/$(MAIN).tex -o $(SRC_DIR)/$(MAIN).tex
 endif
 
-# Clean rule to remove build directory
-clean:
-	latexmk -c
-
 .PHONY: all clean

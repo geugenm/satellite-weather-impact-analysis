@@ -15,7 +15,7 @@ $pdflatex = "$lualatex -output-directory=$outdir %O %S";
 $pdf_mode = 1;
 
 # Rule for cleaning auxiliary files and build directory
-$clean_ext = "bbl blg aux log out fdb_latexmk";
+$clean_ext = "bbl blg fls aux log out fdb_latexmk";
 sub clean {
     rmtree $outdir;
 }
