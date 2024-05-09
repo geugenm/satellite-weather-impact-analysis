@@ -1,4 +1,3 @@
-fontspec
 enumitem
 extsizes
 subfig
