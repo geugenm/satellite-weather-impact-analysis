@@ -49,7 +49,7 @@
 
 %----------------------------------------------------------------------------------------
 
-% Usedul resource - https://detexify.kirelabs.org/classify.html
+% Useful resource - https://detexify.kirelabs.org/classify.html
 
 \documentclass[14pt, a4paper]{extreport}
 
@@ -65,6 +65,33 @@
 \usepackage{titling}
 \usepackage[numbers]{natbib}
 \usepackage{amsmath}
+\usepackage{listings}
+\usepackage{verbatim}
+\usepackage{textcomp}
+\usepackage{microtype} % best hyphen package
+
+% \usepackage{texdoc} install this package for IDE quick documentation
+
+\lstdefinestyle{bwstyle}{
+    commentstyle=\itshape,
+    keywordstyle=\bfseries,
+    stringstyle=\ttfamily,
+    basicstyle=\ttfamily\footnotesize,
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    breaklines=true,
+    breakatwhitespace=false,
+    captionpos=b
+}
+
+\lstset{style=bwstyle, language=C++}
+
 
 \hypersetup{
     colorlinks=false,
@@ -95,6 +122,9 @@
 \fancyfoot[C]{\thepage} % Page number in footer
 
 \renewcommand{\thesection}{\arabic{section}}
+
+\titleformat{\subsection}[block]{\large\bfseries}{Глава \thesection.\thesubsection}{1em}{}
+
 
 
 \begin{document}
@@ -143,7 +173,6 @@
     \tableofcontents
 
     \newpage
-
 
     \section{Введение}
 
@@ -300,11 +329,11 @@
     \subsubsection{Применение Kaitai Struct в SatNOGS}
 
     \begin{enumerate}
-        \item \textbf{Описание формата данных:} Для каждого типа спутника или используемого формата телеметрии создаётся файл описания структуры данных с расширением ".ksy" на языке Kaitai Struct.
+        \item \textbf{Описание формата данных:} Для каждого типа спутника или используемого формата телеметрии создаётся файл описания структуры данных с расширением ``.ksy`` на языке Kaitai Struct.
         Этот файл содержит формализованное описание того, как байты в потоке данных должны интерпретироваться и преобразовываться в значимые значения (например, числа, строки, структуры данных).
-        \item \textbf{Обработка данных:} Кадры данных телеметрии, извлечённые из базы данных SatNOGS \cite{satnogs_database_docs}, обрабатываются с использованием соответствующего файла описания Kaitai Struct.
+        \item \textbf{Обработка данных:} Кадры данных телеметрии, извлечённые из базы данных SatNOGS~\cite{satnogs_database_docs}, обрабатываются с использованием соответствующего файла описания Kaitai Struct.
         Программа-парсер Kaitai Struct использует это описание для разбора двоичных данных и извлечения значений согласно заданной структуре.
-        \item \textbf{Визуализация:} Полученные после обработки данные преобразуются в формат, совместимый с платформой Grafana \cite{satnogs_grafana_docs}.
+        \item \textbf{Визуализация:} Полученные после обработки данные преобразуются в формат, совместимый с платформой Grafana~\cite{satnogs_grafana_docs}.
         Grafana позволяет создавать информативные и наглядные визуализации данных в виде графиков, диаграмм, таблиц и других элементов,  что облегчает анализ и интерпретацию телеметрии.
     \end{enumerate}
 
@@ -339,7 +368,7 @@
     \begin{itemize}
         \item \textbf{Количество наблюдений:} Сеть SatNOGS в настоящее время проводит около 1200 наблюдений за спутниками в день, что демонстрирует значительный рост по сравнению с несколькими десятками наблюдений в день на ранних этапах проекта в 2015 году.
         \item \textbf{Качество данных:} Примерно 70\% проводимых наблюдений содержат полезную информацию и телеметрию.
-        Остальные наблюдения классифицируются как "плохие" (содержащие помехи или неполные данные) или "неудачные" (не удалось загрузить данные из-за технических проблем).
+        Остальные наблюдения классифицируются как ``плохие`` (содержащие помехи или неполные данные) или``неудачные`` (не удалось загрузить данные из-за технических проблем).
         \item \textbf{Объём телеметрии:}  База данных SatNOGS ежедневно пополняется значительным объёмом данных: около 2500 декодированных кадров телеметрии, полученных с различных спутников,  добавляются в хранилище.
     \end{itemize}
 
@@ -358,7 +387,7 @@
 
     \subsubsection{Значение для сообщества}
 
-    SatNOGS предоставляет широкий спектр инструментов и возможностей для изучения космоса \cite{satnogs_general_docs},  включая:
+    SatNOGS предоставляет широкий спектр инструментов и возможностей для изучения космоса~\cite{satnogs_general_docs},  включая:
 
     \begin{itemize}
         \item \textbf{Получение данных с CubeSat и других спутников:} SatNOGS предоставляет инструменты и инфраструктуру для приёма и декодирования данных с малых спутников формата CubeSat, а также с других низкоорбитальных спутников,  открывая возможности для исследований и образовательных проектов.
@@ -372,7 +401,7 @@
 
     \section{Платформа Polaris ML}
 
-    Приложение Polaris ML от LibreSpace \cite{librespace_docs} использует алгоритм машинного обучения XGBoost для анализа взаимосвязей между параметрами телеметрии бортовых систем спутника \cite{ray_2002_bayesian}.
+    Приложение Polaris ML от LibreSpace~\cite{librespace_docs} использует алгоритм машинного обучения XGBoost для анализа взаимосвязей между параметрами телеметрии бортовых систем спутника~\cite{ray_2002_bayesian}.
     Polaris ML способен рассчитать и визуализировать взаимосвязи между параметрами телеметрии и степень их влияния друг на друга в виде трехмерного графа связностей.
     В процессе исследования производительность модели искусственного интеллекта Polaris ML была значительно усовершенствована путем переноса core инфраструктуры на C++, а именно выделением прекомпилированных библиотек ввода/вывода и кэширования промежуточных расчетов обучения.
     Также в приложение Polaris были добавлены декодеры для отслеживания целевых спутников и модуль, собирающий информацию о солнечной активности, работающий в отдельном контейнере Docker.
@@ -403,7 +432,7 @@
     XGBoost обладает рядом преимуществ, делающих его оптимальным выбором для анализа телеметрии спутников:
 
     \begin{itemize}
-        \item \textbf{Высокая точность предсказаний:} XGBoost способен выявлять сложные нелинейные зависимости в данных, что позволяет строить высокоточные модели \cite{behaviour_based_anomaly_detection}.
+        \item \textbf{Высокая точность предсказаний:} XGBoost способен выявлять сложные нелинейные зависимости в данных, что позволяет строить высокоточные модели~\cite{behaviour_based_anomaly_detection}.
         \item \textbf{Устойчивость к переобучению:} алгоритм включает в себя механизмы регуляризации, предотвращающие переобучение модели на тренировочных данных.
         \item \textbf{Эффективность работы с большими объемами данных:} XGBoost хорошо масштабируется и может обрабатывать большие объемы данных за приемлемое время.
         \item \textbf{Модуль визуализации.} Для удобства интерпретации результатов анализа Polaris ML предоставляет возможность визуализации взаимосвязей между параметрами телеметрии в виде трехмерного графа связностей.
@@ -431,7 +460,7 @@
     Как упоминалось ранее, был создан дополнительный модуль, который извлекает информацию о космической погоде с серверов NASA SWPC/NOAA. Эти данные сохраняются в базу данных InfluxDB, которая развернута локально в отдельном контейнере Docker Compose.
     Модуль также оснащен функциями для анализа данных орбитальных параметров в форматах TLE и OMM, а также для прогнозирования движения спутников на основе этих данных~\cite{bottou_1991_stochastic,killick_2012_optimal}.
 
-    \section{Алгоритм XGBoost}
+    \subsection{Алгоритм XGBoost}
 
     \begin{enumerate}[label=\arabic*.]
         \item \textbf{Инициализация модели:}
@@ -505,10 +534,61 @@
         Это помогает анализировать влияние изменений одних параметров на другие и выявлять потенциальные причины аномалий.
     \end{enumerate}
 
-    \subsection{Анализ перезагрузок основного процессор и граф связности}
+    \subsection{Улучшение ядра XGBoost}
+
+    В рамках курсовой работы была проведена оптимизация алгоритма градиентного бустинга XGBoost с использованием NVIDIA CUDA и Tensor Cores.
+
+    \subsubsection{Использование CUDA и Shared Memory}
+
+    Для ускорения вычислений на GPU, был реализован kernel, использующий CUDA для параллельной обработки данных.
+    В частности, в алгоритме предсказания листьев деревьев, был использован shared memory для повышения эффективности доступа к данным, см. приложение~\ref{subsec:xgboost_cuda_shared_memory_upgrade}.
+    Shared memory \textemdash{} это высокоскоростная память, доступная всем ядрам потоковой мультипроцессорной системы (SM) на GPU\@.
+
+    \begin{itemize}
+        \item Kernel PredictLeafKernelSharedMem использует shared memory для хранения данных\@.
+        \item Доступ к shared memory осуществляется быстрее, чем к глобальной памяти GPU\@.
+        \item Такой подход позволяет значительно ускорить вычисления в алгоритме предсказания листьев\@.
+    \end{itemize}
+
+    \subsubsection{Использование Tensor Cores}
+
+    Tensor Cores – это специализированные вычислительные блоки на GPU, оптимизированные для выполнения операций с матрицами.
+    Для использования Tensor Cores, необходимо выполнить определенные требования к выравниванию памяти и размеру матриц ~\ref{subsec:xgboost_cuda_tensor_upgrade}.
+    \begin{itemize}
+        \item Kernel PredictLeafKernelTensorCore использует библиотеку cuBLAS для выполнения операций с матрицами.
+        \item Выполнение операции матричного умножения с помощью cuBLAS позволяет эффективно использовать Tensor Cores.
+        \item Исходные данные должны быть выровнены по границе 16 байт для оптимизации производительности Tensor Cores.
+        \item Данные копируются в глобальную память GPU, после чего вычисляется матричное умножение с помощью cuBLAS\@.
+        \item Результаты умножения возвращаются в глобальную память, а затем используются в алгоритме предсказания листьев.
+    \end{itemize}
+
+    Начиная с версии cuBLAS 11.0.0, больше нет ограничений на размеры матрицы и выравнивание памяти для использования тензорных ядер~\cite{nvidia_cublas_docs}.
+    Однако наилучшая производительность при использовании тензорных ядер может быть достигнута, если размеры матрицы и указатели соответствуют определенным требованиям к выравниванию памяти.
+    В частности, для получения максимальной производительности тензорных ядер должны быть выполнены все следующие условия:
+
+    \begin{itemize}
+        \item \texttt{m \% 8 == 0}
+        \item \texttt{k \% 8 == 0}
+        \item \texttt{op\_B == CUBLAS\_OP\_N || n \% 8 == 0}
+        \item \texttt{intptr\_t(A) \% 16 == 0}
+        \item \texttt{intptr\_t(B) \% 16 == 0}
+        \item \texttt{intptr\_t(C) \% 16 == 0}
+        \item \texttt{intptr\_t(A + lda) \% 16 == 0}
+        \item \texttt{intptr\_t(B + ldb) \% 16 == 0}
+        \item \texttt{intptr\_t(C + ldc) \% 16 == 0}
+    \end{itemize}
+
+    \section{Анализ перезагрузок основного процессор и граф связности}
 
     На рис.\ref{fig:grifex_resets_vs_solar_params} представлена взаимосвязь количества перезагрузок основного процессора наноспутника формата 3U GRIFEX от следующих индексов солнечной активности за период с 2019-03-03 по 2024-02-22: среднемесячные значения пятен S.I.D.C., SWPC/SWO и f10.7 см радиоизлучение.
     На рис.\ref{fig:grifex_graph} представлен результат использования модели Polaris ML для построения 3D графа связности параметров телеметрии спутника GRIFEX за период 2015–2021 г.
+
+    \begin{figure}[h!tbp]
+        \centering
+        \includegraphics[width=1.0\textwidth]{grifex_battery_vs_solar}
+        ~\caption{Точечная диаграмма внутренних температур с набором параметров солнечной активности}
+        \label{fig:grifex_battery_vs_solar}
+    \end{figure}
 
     \begin{figure}[h!tbp]
         \centering
@@ -558,12 +638,15 @@
         \item F1-мера: Гармоническое среднее между точностью и полнотой, является сбалансированной метрикой для оценки общей производительности модели.
     \end{itemize}
 
-    Важно отметить, что не существует универсального метода, идеально подходящего для всех случаев. Выбор оптимального метода и интерпретация результатов требует экспертной оценки и учета специфики решаемой задачи.
-    Визуализация результатов работы алгоритмов обнаружения аномалий играет важную роль в процессе анализа. Polaris ML предоставляет возможность отображать аномалии на графиках, диаграммах и в трехмерном пространстве, что помогает лучше понимать природу обнаруженных отклонений и их связь с другими параметрами телеметрии.
+    Важно отметить, что не существует универсального метода, идеально подходящего для всех случаев.
+    Выбор оптимального метода и интерпретация результатов требует экспертной оценки и учета специфики решаемой задачи.
+    Визуализация результатов работы алгоритмов обнаружения аномалий играет важную роль в процессе анализа.
+    Polaris ML предоставляет возможность отображать аномалии на графиках, диаграммах и в трехмерном пространстве, что помогает лучше понимать природу обнаруженных отклонений и их связь с другими параметрами телеметрии.
 
     \subsubsection{Интерактивный Анализ.}
 
-    Для удобства пользователей Polaris ML предоставляет возможности интерактивного анализа данных. Пользователи могут самостоятельно выбирать методы обнаружения аномалий, настраивать их параметры, визуализировать результаты и проводить дополнительные исследования.
+    Для удобства пользователей Polaris ML предоставляет возможности интерактивного анализа данных.
+    Пользователи могут самостоятельно выбирать методы обнаружения аномалий, настраивать их параметры, визуализировать результаты и проводить дополнительные исследования.
     Интерактивный режим работы позволяет экспертам глубже погрузиться в анализ данных, выдвигать гипотезы и проверять их на практике, что способствует более эффективному обнаружению аномалий и выявлению скрытых закономерностей в работе космических систем.
 
     \subsubsection{Интеграция с Системой Принятия Решений.}
@@ -587,4 +670,186 @@
     \bibliography{main}
     \bibliographystyle{plain}
 
+    \newpage
+
+    \appendix
+
+    \titleformat{\section}[block]{\large\bfseries\filcenter}{}{0em}{}
+    \titleformat{\subsection}[block]{\textnormal\bfseries}{}{0em}{}
+
+    \section{Приложения} \label{sec:attachements}
+
+    \subsection{Приложение \arabic{subsection}} \label{subsec:polaris_learn_config}
+
+    Используемая конфигурация для нейронного ансамбля формируемого XGBoost
+    
+    \begin{verbatim}
+        {
+        "use_gridsearch": false,
+        "random_state": 43,
+        "test_size": 0.2,
+        "gridsearch_scoring": "neg_mean_squared_error",
+        "gridsearch_n_splits": 6,
+        "dataset_cleaning_params": {
+            "col_max_na_percentage": 100,
+            "row_max_na_percentage": 100
+            },
+        "model_cpu_params": {
+            "objective": "reg:squarederror",
+            "n_estimators": 81,
+            "learning_rate": 0.1,
+            "n_jobs": 32,
+            "predictor": "cpu_predictor",
+            "tree_method": "auto",
+            "max_depth": 8
+            },
+        "model_params": {
+            "objective": "reg:squarederror",
+            "n_estimators": 80,
+            "learning_rate": 0.1,
+            "n_jobs": 32,
+            "max_depth": 8
+            }
+        }
+    \end{verbatim}
+
+    \subsection{Приложение \arabic{subsection}} \label{subsec:xgboost_cuda_shared_memory_upgrade}
+   Примеры улучшений ядра XGBoost на языке CUDA от компании NVIDIA: Следующее ядро использует общую память для лучшей локализации данных.
+
+    \begin{lstlisting}[language=C++, label={lst:xgboost_shared_memory_calculation}]
+        // The following kernel utilizes the shared memory for better data locality.
+        template <typename Loader, typename Data>
+        __global__ void PredictLeafKernelSharedMem(Data data,
+                                                  common::Span<const RegTree::Node> d_nodes,
+                                                  common::Span<half> d_out_predictions,
+                                                  common::Span<size_t const> d_tree_segments,
+
+                                                  common::Span<FeatureType const> d_tree_split_types,
+                                                  common::Span<uint32_t const> d_cat_tree_segments,
+                                                  common::Span<RegTree::CategoricalSplitMatrix::Segment const> d_cat_node_segments,
+                                                  common::Span<uint32_t const> d_categories,
+
+                                                  size_t tree_begin, size_t tree_end, size_t num_features,
+                                                  size_t num_rows, size_t entry_start, bool use_shared,
+                                                  float missing) {
+          const auto ridx = blockDim.x * blockIdx.x + threadIdx.x;
+          if (ridx >= num_rows) {
+            return;
+          }
+
+          // Allocate shared memory for data, adjust based on your data structure.
+          // For example, this assumes a 2D array for data.
+          __shared__ float shared_data[BLOCK_SIZE * NUM_FEATURES];
+
+          // Load data into shared memory
+          if (threadIdx.x < num_features) {
+            shared_data[threadIdx.x] = data[ridx * num_features + threadIdx.x];
+          }
+          __syncthreads();
+
+          Loader loader(shared_data, use_shared, num_features, num_rows, entry_start, missing);
+
+          for (size_t tree_idx = tree_begin; tree_idx < tree_end; ++tree_idx) {
+            TreeView d_tree{
+                tree_begin,          tree_idx,           d_nodes,
+                d_tree_segments,     d_tree_split_types, d_cat_tree_segments,
+                d_cat_node_segments, d_categories};
+
+            bst_node_t leaf = -1;
+
+            if (d_tree.HasCategoricalSplit()) {
+              leaf = GetLeafIndex<true, true>(ridx, d_tree, &loader);
+            } else {
+              leaf = GetLeafIndex<true, false>(ridx, d_tree, &loader);
+            }
+
+            d_out_predictions[ridx * (tree_end - tree_begin) + tree_idx] = __float2half_rn(leaf);
+          }
+        }
+    \end{lstlisting}
+
+    \subsection{Приложение \arabic{subsection}} \label{subsec:xgboost_cuda_tensor_upgrade}
+    Примеры улучшений ядра XGBoost на языке CUDA от компании NVIDIA: используются тензорные ядра для умножения матриц, предполагается, что входные данные представлены в матричной форме.
+
+    \begin{lstlisting}[language=C++, label={lst:xgboost_tensor_kernel_calculation}]
+        template <typename Loader, typename Data>
+        __global__ void PredictLeafKernelTensorCore(Data data,
+                                                  common::Span<const RegTree::Node> d_nodes,
+                                                  common::Span<half> d_out_predictions,
+                                                  common::Span<size_t const> d_tree_segments,
+
+                                                  common::Span<FeatureType const> d_tree_split_types,
+                                                  common::Span<uint32_t const> d_cat_tree_segments,
+                                                  common::Span<RegTree::CategoricalSplitMatrix::Segment const> d_cat_node_segments,
+                                                  common::Span<uint32_t const> d_categories,
+
+                                                  size_t tree_begin, size_t tree_end, size_t num_features,
+                                                  size_t num_rows, size_t entry_start, bool use_shared,
+                                                  float missing) {
+          const auto ridx = blockDim.x * blockIdx.x + threadIdx.x;
+          if (ridx >= num_rows) {
+            return;
+          }
+
+          // Assume data is organized in a matrix, for example,
+          // [num_rows x num_features].
+
+          // Declare cuBLAS handles
+          cublasHandle_t handle;
+          cublasCreate(&handle);
+
+          // Allocate device memory for matrices
+          half* d_matrixA;
+          half* d_matrixB;
+          half* d_matrixC;
+          size_t size = num_rows * num_features * sizeof(half);
+          cudaMalloc(&d_matrixA, size);
+          cudaMalloc(&d_matrixB, size);
+          cudaMalloc(&d_matrixC, size);
+
+          // Copy data to device memory (adjust based on your data organization)
+          cudaMemcpy(d_matrixA, data, size, cudaMemcpyHostToDevice);
+
+          // Initialize d_matrixB (assuming a diagonal matrix with values of 1.0f)
+          for (size_t i = 0; i < num_features; ++i) {
+            d_matrixB[i * num_features + i] = __float2half_rn(1.0f);
+          }
+
+          // Perform matrix multiplication using cuBLAS
+          cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N,
+                      num_rows, num_features, num_features,
+                      &__float2half_rn(1.0f), d_matrixA, num_features,
+                      d_matrixB, num_features,
+                      &__float2half_rn(0.0f), d_matrixC, num_features);
+
+          // Free device memory
+          cudaFree(d_matrixA);
+          cudaFree(d_matrixB);
+          cudaFree(d_matrixC);
+
+          // Destroy cuBLAS handle
+          cublasDestroy(handle);
+
+          Loader loader(data, use_shared, num_features, num_rows, entry_start, missing);
+
+          for (size_t tree_idx = tree_begin; tree_idx < tree_end; ++tree_idx) {
+            TreeView d_tree{
+                tree_begin,          tree_idx,           d_nodes,
+                d_tree_segments,     d_tree_split_types, d_cat_tree_segments,
+                d_cat_node_segments, d_categories};
+
+            bst_node_t leaf = -1;
+
+            if (d_tree.HasCategoricalSplit()) {
+              leaf = GetLeafIndex<true, true>(ridx, d_tree, &loader);
+            } else {
+              leaf = GetLeafIndex<true, false>(ridx, d_tree, &loader);
+            }
+
+            d_out_predictions[ridx * (tree_end - tree_begin) + tree_idx] = __float2half_rn(leaf);
+          }
+        }
+
+    \end{lstlisting}
+    
 \end{document}
