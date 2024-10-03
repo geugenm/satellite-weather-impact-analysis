@@ -99,8 +99,7 @@ lib/matplotlib/backends/web_backend/{node_modules,package-lock.json}
 LICENSE/LICENSE_QHULL
 
 # Data Folder (exclude specific files)
-data/*
-!data/{README.md,observed_solar_cycle_indices.json,predicted_solar_cycle.json,swpc_observed_ssn.json}
+{README.md,observed_solar_cycle_indices.json,predicted_solar_cycle.json,swpc_observed_ssn.json}
 
 # Machine Learning Runs
 **/mlruns/
