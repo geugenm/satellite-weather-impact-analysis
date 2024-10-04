@@ -32,7 +32,7 @@
 
 <!-- TABLE OF CONTENTS -->
 <details>
-  <summary>Table of Contents</summary>
+  <summary>Table of Contents (click to reveal)</summary>
   <ol>
     <li>
       <a href="#about-the-project">About The Project</a>
@@ -44,7 +44,6 @@
         <li><a href="#installation">Installation</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
 
