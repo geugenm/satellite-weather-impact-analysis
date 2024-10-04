@@ -1,0 +1,33 @@
+name: Run Jupyter Notebook
+
+on: 
+  push:
+    branches:
+      - main
+
+jobs:
+  run-notebook:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.12'
+
+      - name: Run Jupyter Notebook
+        uses: yaananth/run-notebook@v2
+        with:
+          notebook: "notebooks/solar_correlations.ipynb"  # Update with your notebook path
+          params: "path/to/params.json"  # Optional, specify parameters if needed
+          isReport: true  # Set to true if you want to generate a report
+          poll: true  # Poll for completion
+
+      - name: Upload Output Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: notebook-output
+          path: nb-runner/*  # Adjust this if your output path is different
