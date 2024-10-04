@@ -20,11 +20,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install papermill nbconvert && pip install -r requirements.txt && sudo apt install python3-pydot graphviz
+          pip install papermill nbconvert
+          pip install -r requirements.txt
+          sudo apt install -y python3-pydot graphviz
 
-      - name: mkdir
+      - name: Create Output Directory
         run: |
-          mkdir output
+          mkdir -p output
 
       - name: Run Jupyter Notebook
         run: |
@@ -33,8 +35,15 @@ jobs:
       - name: Convert Notebook to HTML
         run: |
           jupyter nbconvert --to html output/solar_correlations_output.ipynb --output-dir=output/
+          
+      - name: Create Server Start Documentation
+        run: |
+          echo "To start the server, run the following command:" > how_to_start.md
+          echo "```" >> how_to_start.md
+          echo "python -m http.server 8000 --bind 127.0.0.1 --directory ." >> how_to_start.md
+          echo "```" >> how_to_start.md
 
-      - name: Upload Output Notebook
+      - name: Upload Output Notebook Artifact
         uses: actions/upload-artifact@v4
         with:
           name: output-notebook
