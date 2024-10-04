@@ -1,148 +1,80 @@
-# Satellite Weather Impact Analysis
+<h1 align="center">satellite-weather-impact-analysis</h1>
 
-This repository contains the code for analyzing the impact of space weather on
-active satellite systems. The analysis is performed by comparing solar and
-active satellite data to identify correlations between them.
+<div align="center" style="text-align: center;">
+  <div>
+    <a href="https://github.com/geugenm/satellite-weather-impact-analysis/issues">
+      <img alt="GitHub Issues or Pull Requests" src="https://img.shields.io/github/issues/geugenm/satellite-weather-impact-analysis?style=for-the-badge">
+    </a>
+    <img src="https://img.shields.io/badge/python-3.12+-green?style=for-the-badge&logo=python&logoColor=yellow" alt="python" />
+    <img src="https://img.shields.io/badge/Latex-LuaTeX-green?style=for-the-badge&logo=latex" alt="Latex" />
+    <img src="https://img.shields.io/badge/License-GPU--GPL3.0-green?style=for-the-badge" alt="License" />
+  </div>
+</div>
 
-## Set up the Project
+<!-- badges generated with: https://badgesgenerator.com/>
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/geugenm/satellite-weather-impact-analysis">
+    <img src="img/logo.png" alt="Logo" width="80" height="80">
+  </a>
 
-1. After cloning the repository, navigate to the root directory and download
-   submodules recursively.
-2. Create a new Conda environment with Python 3.8 and activate it.
-3. In the project root, run the following command to install the required
-   packages:
+  <h3 align="center">satellite-weather-impact-analysis</h3>
 
-## Working with Polaris
+  <p align="center">
+    This repository includes the code for a study that examines the effects of space weather on operational satellite systems. The analysis involves comparing solar data with active satellite data to uncover correlations between the two.
+    <br />
+    <a href="https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    ·
+    <a href="https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+  </p>
+</div>
 
-Polaris' configurations are located in the `cfg` folder. For more information,
-refer to
-the [Polaris ML Sandbox repository](https://gitlab.com/geugenm/polaris-ml-sandbox/-/tree/master?ref_type=heads).
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
 
-1. From the root of the project, collect data and train on it with the following
-   command:
+### Built With
 
-```bash
-polaris batch --config_file cfg/<satellite_config>.json
-```
+Primarily utilized major libraries for data processing and visualization:
+* ![jupyter](https://img.shields.io/badge/jupyter-white?style=for-the-badge&logo=jupyter)
+* ![pandas](https://img.shields.io/badge/pandas-darkgreen?style=for-the-badge&logo=pandas)
+* ![plotly](https://img.shields.io/badge/plotly-darkblue?style=for-the-badge&logo=plotly)
+* ![scipy](https://img.shields.io/badge/scipy-darkblue?style=for-the-badge&logo=scipy)
 
-or fetch telemetry by manually specifying dates (polaris batch problem, cant specify dates in cfg file):
+### Prerequisites
 
-```bash
-polaris fetch --cache_dir ./data/<sat_name>/cache --start_date 1970-01-01 --end_date 2024-03-25 <sat_name> ./data/<sat_name>/cache/normalized_frames.json
-```
+* python 3.12+
+  ```sh
+  python --version
+  ```
 
-2. This will download all data into the `./data/<sat_name>` folder,
-   where `sat_name` is specified in `cfg/polaris.json`.
-3. Build the graph using the following command:
+### Installation
 
-```bash
-polaris viz ./data/<sat_name>/cache/graph.json
-```
-
-4. Detect anomalies in telemetry data using the `polaris behave` command:
-
-```bash
-polaris behave ./data/<sat-name>/cache/normalized_frames.json --output_file ./data/<sat_name>/cache/anomaly_analysis.json
-```
-
-5. Visualize anomaly detection using the `polaris report` command:
-
-```bash
-polaris report ./data/<sat_name>/cache/anomaly_analysis.json
-```
-
-![Anomaly Interaction](.github/img/anomaly_interaction.gif)
-
-6. (Optional) Convert the dependency graph to another file format using
-   the `polaris convert` command:
-
-```bash
-polaris convert ./data/<sat_name>/cache/graph.json ./data/<sat_name>/cache/graph.gexf
-```
-
-7. (Optional) Information about the learning experiment with mlflow:
-
-```bash
-mlflow ui
-```
-
-## Features
-
-- Loading and processing JSON data from SatNOGS Grafana Dashboard
-- Converting timestamps to universal format
-- Filtering data by specific years
-- Calculating various types of correlations
-- Plotting scatter plots for visualization
-- Preprocessing solar and satellite data
-- Merging datasets and performing correlation analysis
-
-## Architecture
-
-![polaris_architecture](docs/polaris_arch.png)
-
-## Scripts Details
-
-### Correlation Calculation
-
-The script calculates several types of correlation coefficients between the
-columns of the processed dataset. It uses the `pandas.DataFrame.corr()` method
-to compute the Pearson correlation coefficients, which measure the linear
-relationship between two datasets. Additionally, it computes the
-Kendall Tau and Spearman rank correlation coefficients, which can capture
-nonlinear relationships.
-
-### Statistical Analysis
-
-For each pair of columns being compared, the script calculates the Pearson
-correlation, Kendall Tau, and Spearman rank correlation coefficients. It also
-performs a Chi-square test of independence to determine if there is a
-significant association between the two variables. The chi-square statistic and
-the corresponding p-value are computed using `scipy.stats.chi2_contingency()`,
-which provides insights into the likelihood that the observed data could have
-occurred by chance under the assumption of no association.
-
-### Visualizations
-
-Scatter plots are generated for each pair of columns to visualize the
-relationships between them. This helps in identifying trends and patterns in the
-data. Heatmaps of correlation matrices can also be used to present the
-correlation data in a more compact and informative manner.
-
-<figure>
-    <img src=".github/img/example_anomaly.webp" width="800" height="400" alt="Example Anomaly">
-    <figcaption>An example of an anomaly in the data.</figcaption>
-</figure>
-
-<figure>
-    <img src=".github/img/example_data_change.png" width="800" height="400" alt="Example Data Change">
-    <figcaption>An example of a data change over time.</figcaption>
-</figure>
-
-### Logging
-
-The script logs important events and warnings during execution. For instance, if
-a column is nearly constant and therefore not suitable for correlation analysis,
-a warning is logged. All outputs are formatted professionally, with variables
-enclosed in square brackets for clarity.
-
-### Models
-
-We are utilizing a modified and upgraded version
-of [Polaris ML](https://gitlab.com/geugenm/polaris-ml-sandbox), enabling us to
-use `Python 3.8` with the latest setup tools. This modification includes the
-ability to
-use polaris `behave` and `report`ing capabilities.
-Additionally, Sun reports have been enabled, and some visualization styles have
-been adjusted.
-
-However, the graph functionality is still not fully operational. The graph can
-be accessed by pressing `Ctrl + /`, it does display vertex names
-correctly, but coloring is not available. As a workaround, exporting to [Gephi](https://gephi.org/) is the only
-viable option at this time.
-
-[Docs about `Polaris ML`](https://docs.polarisml.space/en/latest/using/getting_started_with_polaris.html#running-your-first-analysis-lightsail-2)
-
-[More about eXtreme Gradient Boosting](https://www.wikiwand.com/en/XGBoost)
+1. Clone the repo
+   ```sh
+   git clone https://github.com/geugenm/satellite-weather-impact-analysis.git
+   ```
+2. Install pip requirements
+   ```sh
+   pip install -r requirements.txt
+   ```
+3. Render Researches
+   Open the project in [Jupyter Notebook]((https://docs.jupyter.org/en/latest/)) to explore and visualize the analyses.
 
 ## Contributing
 
@@ -151,4 +83,4 @@ first to discuss what you would like to change.
 
 ## License
 
-[GNU-GPL3.0](https://www.gnu.org/licenses/gpl-3.0.txt)
+Released under [GNU GPL](/license) by [@geugenm](https://github.com/geugenm).

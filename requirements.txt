@@ -1,22 +1,8 @@
-# Core dependencies
-# for polaris use python 3.9
-pandas
-numpy
-matplotlib
-scipy
-tabulate
-jupyter
-
-# Project-specific dependencies
 python-dateutil
 setuptools
 selenium
-tqdm
 fets
-vinvelivaanilai
 scikit-learn
-glouton
-xgboost
 enlighten
 mlflow
 gputil
@@ -26,3 +12,13 @@ click
 versioneer
 holoviews
 bokeh
+pandas
+numpy
+matplotlib
+scipy
+tabulate
+jupyter
+graphviz
+statsmodels
+plotly
+pyecharts
