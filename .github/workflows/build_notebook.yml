@@ -38,10 +38,10 @@ jobs:
           
       - name: Create Server Start Documentation
         run: |
-          echo "To start the server, run the following command:" > how_to_start.md
-          echo "```" >> how_to_start.md
-          echo "python -m http.server 8000 --bind 127.0.0.1 --directory ." >> how_to_start.md
-          echo "```" >> how_to_start.md
+          echo "To start the server, run the following command:" > output/how_to_start.md
+          echo "```" >> output/how_to_start.md
+          echo "python -m http.server 8000 --bind 127.0.0.1 --directory ." >> output/how_to_start.md
+          echo "```" >> output/how_to_start.md
 
       - name: Upload Output Notebook Artifact
         uses: actions/upload-artifact@v4
