@@ -12,3 +12,6 @@ plotly
 pyecharts
 black
 seaborn
+
+#ci/cd
+lxml==5.0.1
