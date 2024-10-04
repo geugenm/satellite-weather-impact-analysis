@@ -27,6 +27,16 @@ Choose a TeX distribution that aligns with your operating system:
 
 The list of required packages is listed in LaTeX document, also you can use `make` to get erros about required packages. Install packages using your TeX distribution's package manager (e.g., `tlmgr` for TeX Live).
 
+To search for some missing packages use:
+```sh
+tlmgr search --file mathrsfs.sty --global
+```
+
+To install on fedora just add prefix `texlive-`:
+```sh
+sudo dnf install texlive-some-example-package
+```
+
 ## 3. Editor Configuration
 
 **Doom Emacs:**
