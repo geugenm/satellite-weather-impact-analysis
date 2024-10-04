@@ -6,28 +6,25 @@ on:
       - main
 
 jobs:
-  run-notebook:
+  run:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.12'
-
-      - name: Run Jupyter Notebook
-        uses: yaananth/run-notebook@v2
-        with:
-          notebook: "notebooks/solar_correlations.ipynb"  # Update with your notebook path
-          # params: "path/to/params.json"  # Optional, specify parameters if needed
-          isReport: true  # Set to true if you want to generate a report
-          poll: true  # Poll for completion
-
-      - name: Upload Output Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: notebook-output
-          path: nb-runner/*  # Adjust this if your output path is different
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+    - uses: yaananth/run-notebook@v2
+      env:
+        RUNNER: ${{ toJson(runner) }}
+        SECRETS: ${{ toJson(secrets) }}
+        GITHUB: ${{ toJson(github) }}
+      with:
+        notebook: "notebooks/solar_correlations.ipynb"
+        isReport: True
+        poll: True
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: output
+        path: ${{ RUNNER.temp }}/nb-runner
+      env:
+        RUNNER: ${{ toJson(runner) }}
