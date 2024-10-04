@@ -22,7 +22,7 @@ jobs:
         uses: yaananth/run-notebook@v2
         with:
           notebook: "notebooks/solar_correlations.ipynb"  # Update with your notebook path
-          params: "path/to/params.json"  # Optional, specify parameters if needed
+          # params: "path/to/params.json"  # Optional, specify parameters if needed
           isReport: true  # Set to true if you want to generate a report
           poll: true  # Poll for completion
 
