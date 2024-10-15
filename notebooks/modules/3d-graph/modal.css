@@ -1,0 +1,82 @@
+:root {
+    --background-secondary: #404040;
+    --blue: steelblue;
+    --background-primary: #121212;
+    --primary: #ededed;
+    --secondary: #bfbfbf;
+    --background-transparent: rgba(18, 18, 18, 0.1);
+    --bounceEasing: cubic-bezier(0.51, 0.92, 0.24, 1.15);
+}
+
+/* MODAL
+  –––––––––––––––––––––––––––––––––––––––––––––––––– */
+.modal {
+    position: absolute;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background-transparent);
+    cursor: pointer;
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.35s ease-in;
+    width: 100vw;
+    height: 100vh;
+}
+
+.close-modal {
+    cursor: pointer;
+    background: transparent;
+    color: var(--secondary);
+    border: none;
+    outline: none;
+    font-size: inherit;
+}
+
+.modal.is-visible {
+    visibility: visible;
+    opacity: 1;
+}
+
+.modal-dialog {
+    position: relative;
+    max-width: 800px;
+    max-height: 80vh;
+    border-radius: 5px;
+    background: var(--background-primary);
+    overflow: auto;
+    cursor: default;
+    color: var(--secondary);
+}
+
+.modal-dialog > * {
+    padding: 1rem;
+}
+
+.modal-header,
+.modal-footer {
+    background: var(--background-secondary);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-header .close-modal {
+    font-size: 1.5rem;
+}
+
+.modal p strong {
+    color: var(--primary);
+}
+
+.modal p {
+    color: var(--secondary);
+}
+
+.modal p + p {
+    margin-top: 1rem;
+}

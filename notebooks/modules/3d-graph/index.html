@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Editor</title>
+    <link href="style_sheet.css" rel="stylesheet" type="text/css"/>
+    <link href="toast.css" rel="stylesheet" type="text/css"/>
+    <link href="modal.css" rel="stylesheet" type="text/css"/>
+    <link href="favicon.ico" rel="shortcut icon" type="image/jpg"/>
+</head>
+<body onresize="set_size()">
+    <div id="graph-hud"></div>
+    <div id="graph-search">
+        <input id="graph-search-input" list="nodeslist" placeholder="search" type="text"/>
+    </div>
+    <div id="toast"></div>
+    <div class="modal" id="modal-help">
+        <div class="modal-dialog">
+            <header class="modal-header">
+                <strong>List of All Shortcuts:</strong>
+                <button aria-label="close modal" class="close-modal" data-close="modal-help">
+                    ✕
+                </button>
+            </header>
+            <section class="modal-content">
+                <p><strong>Ctrl + / :</strong> Toggle unconnected node visibility</p>
+                <p><strong>Ctrl + H :</strong> Open the shortcuts menu</p>
+                <p><strong>Esc :</strong> Close the menu</p>
+                <p><strong>L :</strong> Toggles the label of nodes</p>
+                <br/>
+                <header style="text-align: center">
+                    <strong>Searching shortcuts:</strong>
+                </header>
+                <br/>
+                <p>
+                    <strong>Ctrl + Enter :</strong> highlights node and cycles through colours (Not working)
+                </p>
+                <p>
+                    <strong>Ctrl + Shift + Enter :</strong> reset colour highlighting (Not working)
+                </p>
+                <p><strong>Enter :</strong> zoom in to selected node</p>
+            </section>
+        </div>
+    </div>
+    <datalist id="nodeslist"></datalist>
+    <div id="3d-graph">
+        <div style="position: relative">
+            <div class="scene-nav-info">
+                Left-click: rotate, Mouse-wheel/middle-click: zoom, Right-click: pan, Shift-Click on node: MoveAt node
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/d3@5.0.0/dist/d3.min.js"></script>
+    <script src="https://unpkg.com/three@0.160.1"></script>
+    <script src="https://unpkg.com/three-spritetext"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+    <script src="polaris.js"></script>
+    <script>
+        createGraph("graph.json");
+    </script>
+</body>
+</html>

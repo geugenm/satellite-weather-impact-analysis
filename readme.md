@@ -78,6 +78,20 @@ Primarily utilized major libraries for data processing and visualization:
 3. Render Researches
    Open the project in [Jupyter Notebook]((https://docs.jupyter.org/en/latest/)) to explore and visualize the analyses.
 
+
+To fetch more data use [satnogs-decoders](https://gitlab.com/librespacefoundation/satnogs/satnogs-decoders), example:
+```sh
+satnogs-decoders-master/contrib/manage/fetch_frames_from_network.py 40967 2018-10-26T00:00:00 2018-10-26T01:00:00 ./fox1a/
+
+decode_frame fox1a fox1a/data_XXXX
+```
+
+## Todo
+
+[ ] Analyze more data
+[ ] Enhance xgboost dependecy graph and model score
+
+
 ## Contributing
 
 Pull requests and issues are welcome. For major changes, please open an issue
@@ -85,4 +99,4 @@ first to discuss what you would like to change.
 
 ## License
 
-Released under [GNU GPL](/license) by [@geugenm](https://github.com/geugenm).
+Released under [GNU GPL](/license.md) by [@geugenm](https://github.com/geugenm).

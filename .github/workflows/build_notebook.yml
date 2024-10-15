@@ -26,22 +26,15 @@ jobs:
 
       - name: Create Output Directory
         run: |
-          mkdir -p output
+          cd notebooks && mkdir -p output
 
       - name: Run Jupyter Notebook
         run: |
-          papermill notebooks/solar_correlations.ipynb output/solar_correlations_output.ipynb
+          papermill solar_correlations.ipynb solar_correlations_output.ipynb
 
       - name: Convert Notebook to HTML
         run: |
           jupyter nbconvert --to html output/solar_correlations_output.ipynb --output-dir=output/
-          
-      - name: Create Server Start Documentation
-        run: |
-          echo "To start the server, run the following command:" > output/how_to_start.md
-          echo "```" >> output/how_to_start.md
-          echo "python -m http.server 8000 --bind 127.0.0.1 --directory ." >> output/how_to_start.md
-          echo "```" >> output/how_to_start.md
 
       - name: Upload Output Notebook Artifact
         uses: actions/upload-artifact@v4
