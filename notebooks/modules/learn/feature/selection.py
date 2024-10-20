@@ -1,6 +1,7 @@
 """
 Module for flattening feature importance distribution from xgboost.
 """
+
 from collections.abc import Iterable
 
 import numpy as np
@@ -8,6 +9,7 @@ import pandas as pd
 import xgboost as xgb
 from fets.pipeline import FeatureUnion2DF
 from sklearn.base import BaseEstimator, TransformerMixin
+
 # from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
@@ -18,8 +20,9 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
     augmentation (or distribution flattening).
 
     """
+
     def __init__(self, list_of_transformers):
-        """ The constructor will help parameterize all options of this
+        """The constructor will help parameterize all options of this
         transformer
 
             :param list_of_transformers: list of externally built transformers
@@ -43,37 +46,36 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
 
         # Initial XGBoost parameters
         self.default_xgb_params = {
-            'learning_rate': 0.1,
-            'gamma': 0,
-            'max_depth': 10,
-            'n_estimators': 100,
-            'base_score': 0.5,
-            'colsample_bylevel': 1,
-            'colsample_bytree': 1,
-            'max_delta_step': 0,
-            'min_child_weight': 1,
-            'missing': None,
-            'nthread': 100,
-            'objective': "reg:squarederror",
-            'reg_alpha': 0,
-            'reg_lambda': 1,
-            'scale_pos_weight': 1,
-            'seed': 0,
-            'verbosity': 1,
-            'subsample': 1,
-            'predictor': "gpu_predictor",
-            'tree_method': "auto"
+            "learning_rate": 0.1,
+            "gamma": 0,
+            "max_depth": 10,
+            "n_estimators": 100,
+            "base_score": 0.5,
+            "colsample_bylevel": 1,
+            "colsample_bytree": 1,
+            "max_delta_step": 0,
+            "min_child_weight": 1,
+            "missing": None,
+            "nthread": 100,
+            "objective": "reg:squarederror",
+            "reg_alpha": 0,
+            "reg_lambda": 1,
+            "scale_pos_weight": 1,
+            "seed": 0,
+            "verbosity": 1,
+            "subsample": 1,
+            "tree_method": "auto",
         }
 
         self.do_tuning = False
 
     def build_pipelines(self, list_of_transformers):
         """
-            Create series of pipelines of transformers to be called to augment
-            input datasets before searching for most important features.
+        Create series of pipelines of transformers to be called to augment
+        input datasets before searching for most important features.
 
-            :param list_of_transformers: List (of list) of scikit-learn
-            compatible transformers.
+        :param list_of_transformers: List (of list) of scikit-learn
+        compatible transformers.
         """
         self.pipelines = []
 
@@ -84,24 +86,28 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
             # Preparing the list of transformer for one iteration
             tmp_pipeline = []
             if isinstance(transformer, Iterable):
-                tmp_pipeline = [("T" + str(hash(k)), k) for k in transformer
-                                if issubclass(type(k), TransformerMixin)]
+                tmp_pipeline = [
+                    ("T" + str(hash(k)), k)
+                    for k in transformer
+                    if issubclass(type(k), TransformerMixin)
+                ]
             elif issubclass(type(transformer), TransformerMixin):
                 tmp_pipeline = [("T0", transformer)]
 
             # Creating the pipeline
             if tmp_pipeline:
                 self.pipelines.append(
-                    Pipeline([("union", FeatureUnion2DF(tmp_pipeline))]))
+                    Pipeline([("union", FeatureUnion2DF(tmp_pipeline))])
+                )
 
     @staticmethod
     def extract_feature_importance(columns, model):
-        """ Extract a sorted list of feature importances from an XGBoost model
+        """Extract a sorted list of feature importances from an XGBoost model
 
-            :param columns: Columns names in the same order than the input
-            dataset.
-            :param model: A trained model containing feature importances list
-            and trained trees.
+        :param columns: Columns names in the same order than the input
+        dataset.
+        :param model: A trained model containing feature importances list
+        and trained trees.
 
         """
         importances = list(zip(columns, model.feature_importances_))
@@ -110,15 +116,15 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def find_gap(importancy_list):
-        """ Find a drop in list of decreasing values and returns feature index
-            at found gap if the drop is more than 50% of the average and with
-            at least 5 and maximum of (avarage minus 1 standard deviation).
+        """Find a drop in list of decreasing values and returns feature index
+        at found gap if the drop is more than 50% of the average and with
+        at least 5 and maximum of (avarage minus 1 standard deviation).
 
-            :param importancy_list: List of featurename,importancy
-            in decreasing order.
-            :return: Return index of last feature before gap in the feature
-            distribuion. In case of flat distribution the maximum index fitting
-            average - standard deviation is returned.
+        :param importancy_list: List of featurename,importancy
+        in decreasing order.
+        :return: Return index of last feature before gap in the feature
+        distribuion. In case of flat distribution the maximum index fitting
+        average - standard deviation is returned.
 
         """
 
@@ -141,8 +147,7 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
                     dif = lst_val[idx - 1] - lst_val[idx]
                     lst_dif.append(dif)
                     average_dif = np.mean(lst_dif, dtype=np.float64)
-                    if (dif > (average_dif * 0.5) and idx > 5) or \
-                       (imp < upper_limit):
+                    if (dif > (average_dif * 0.5) and idx > 5) or (imp < upper_limit):
                         return lst_name.index(lst_name[idx - 1])
                 idx = idx + 1
             return idx
@@ -151,29 +156,30 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
             print("No list provided as importancy_list.")
 
     def filter_importances(self, list_of_fimp, method=None):
-        """ Return a list of best features based on their importance
+        """Return a list of best features based on their importance
 
-            **fimp** stands for Feature IMPortances.
-            Each feature importance is expressed as a tuple (name, value)
+        **fimp** stands for Feature IMPortances.
+        Each feature importance is expressed as a tuple (name, value)
 
-            :param list_of_fimp: List of list of feature importances.  Each
-            model would output a list of importances so this list is a list of
-            all model's list of features importances.
-            :param method: Method to filter best features, use the following
-            string:
-                - 'first_best' method: select best of each feature list
-                - 'all_best'   method: select best features over all models
-                - 'best_until_threshold' method: select best of each feature
-                list with regard to a threshold defined by find_gap
+        :param list_of_fimp: List of list of feature importances.  Each
+        model would output a list of importances so this list is a list of
+        all model's list of features importances.
+        :param method: Method to filter best features, use the following
+        string:
+            - 'first_best' method: select best of each feature list
+            - 'all_best'   method: select best features over all models
+            - 'best_until_threshold' method: select best of each feature
+            list with regard to a threshold defined by find_gap
 
-            :return: Return a list of tuples ("feature_name",
-            feature_importance) of the best features according to filtering
-            `method`
+        :return: Return a list of tuples ("feature_name",
+        feature_importance) of the best features according to filtering
+        `method`
         """
         all_chosen_features = []
 
-        if list_of_fimp is None \
-           or (isinstance(list_of_fimp, list) and not list_of_fimp):
+        if list_of_fimp is None or (
+            isinstance(list_of_fimp, list) and not list_of_fimp
+        ):
             return all_chosen_features
 
         if method is None:
@@ -192,18 +198,14 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
             for model_list in list_of_fimp:
                 if not model_list:
                     continue
-                model_list = sorted(model_list,
-                                    reverse=True,
-                                    key=lambda x: x[1])
+                model_list = sorted(model_list, reverse=True, key=lambda x: x[1])
                 all_chosen_features.append(model_list[0])
 
         if method == "best_until_threshold":
             for model_list in list_of_fimp:
-                model_list = sorted(model_list,
-                                    reverse=True,
-                                    key=lambda x: x[1])
+                model_list = sorted(model_list, reverse=True, key=lambda x: x[1])
                 last_significant_index = self.find_gap(model_list)
-                tmp_list = model_list[:(last_significant_index + 1)]
+                tmp_list = model_list[: (last_significant_index + 1)]
                 all_chosen_features.extend(tmp_list)
 
         all_chosen_features.sort(key=lambda x: x[1], reverse=True)
@@ -211,7 +213,7 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def importances_distribution_spread(importances):
-        """ Calculated absolute average distance from perfectly flat
+        """Calculated absolute average distance from perfectly flat
         distribution of importances.
 
             :param importances: list of tuples such as [(feature_name,
@@ -227,7 +229,7 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def anti_collision_renaming(dataset, col, pipeline_n):
-        """ Renaming column names to avoid collision during pipelines
+        """Renaming column names to avoid collision during pipelines
         transformations
 
             :param dataset: pd.Series or pd.DataFrame to be managed
@@ -246,11 +248,11 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
         return dataset
 
     def fit(self, input_x, input_y, method=None):
-        """ Fit models for every pipeline and extract best features
+        """Fit models for every pipeline and extract best features
 
-            :param input_x: dataset (usually a dataframe) of features/predictor
-            :param input_y: dataset (timseries or dataframe) of target(s) to
-            predict.
+        :param input_x: dataset (usually a dataframe) of features/predictor
+        :param input_y: dataset (timseries or dataframe) of target(s) to
+        predict.
 
         """
 
@@ -267,13 +269,11 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
             input_dataset = None
             for col in input_x.columns:
                 tmp_dataset = pipeline.transform(input_x[col])
-                tmp_dataset = self.anti_collision_renaming(
-                    tmp_dataset, col, pipeline_n)
+                tmp_dataset = self.anti_collision_renaming(tmp_dataset, col, pipeline_n)
                 if input_dataset is None:
                     input_dataset = pd.DataFrame(tmp_dataset)
                 else:
-                    input_dataset = pd.concat([input_dataset, tmp_dataset],
-                                              axis=1)
+                    input_dataset = pd.concat([input_dataset, tmp_dataset], axis=1)
 
             input_dataset = pd.concat([input_dataset, input_x], axis=1)
 
@@ -283,14 +283,13 @@ class FeatureImportanceOptimization(BaseEstimator, TransformerMixin):
 
             # Extract feature importances and keep them for further analysis
             list_of_fimp.append(
-                self.extract_feature_importance(input_dataset.columns,
-                                                self.models[-1]))
+                self.extract_feature_importance(input_dataset.columns, self.models[-1])
+            )
 
         self.best_features = self.filter_importances(list_of_fimp, method)
 
         return self
 
     def transform(self):
-        """ Unused function here. Interface requirement.
-        """
+        """Unused function here. Interface requirement."""
         return self

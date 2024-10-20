@@ -25,7 +25,6 @@ class CrossCorrelationConfigurator:
         "n_estimators": 80,
         "learning_rate": 0.1,
         "n_jobs": -1,
-        "predictor": "cpu_predictor",
         "tree_method": "auto",
         "max_depth": 8,
     }
@@ -164,22 +163,18 @@ class CrossCorrelationConfigurator:
                 # https://xgboost.readthedocs.io/en/latest/gpu/
                 if self._use_gridsearch:
                     model_params["tree_method"] = ["gpu_hist"]
-                    model_params["predictor"] = ["gpu_predictor"]
                     model_params["gpu_id"] = [gpu_ids[0]]
                 else:
                     model_params["tree_method"] = "gpu_hist"
-                    model_params["predictor"] = "gpu_predictor"
                     model_params["gpu_id"] = gpu_ids[0]
                 return model_params
 
         LOGGER.info(" ".join(["No GPU detected! Adding CPU parameters :)"]))
         if self._use_gridsearch:
             model_params["tree_method"] = ["approx"]
-            model_params["predictor"] = ["cpu_predictor"]
             model_params["n_jobs"] = [-1]
         else:
             model_params["tree_method"] = "approx"
-            model_params["predictor"] = "cpu_predictor"
             model_params["n_jobs"] = -1
 
         return model_params

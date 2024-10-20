@@ -7,21 +7,20 @@
   "dataset_cleaning_params": {
     "col_max_na_percentage": 100,
     "row_max_na_percentage": 100
-    },
+  },
   "model_cpu_params": {
     "objective": "reg:squarederror",
     "n_estimators": 81,
     "learning_rate": 0.1,
     "n_jobs": 1,
-    "predictor": "cpu_predictor",
     "tree_method": "auto",
     "max_depth": 8
-    },
+  },
   "model_params": {
     "objective": "reg:squarederror",
     "n_estimators": 80,
     "learning_rate": 0.1,
     "n_jobs": 1,
     "max_depth": 8
-    }
+  }
 }

@@ -142,27 +142,13 @@ class XCorr(BaseEstimator, TransformerMixin):
             self.mlf_logging()
             for column in parameters:
                 LOGGER.info(column)
-                try:
-                    self.models.append(
-                        self.method(
-                            X.drop([column], axis=1),
-                            X[column],
-                            self.model_params["current"],
-                        )
+                self.models.append(
+                    self.method(
+                        X.drop([column], axis=1),
+                        X[column],
+                        self.model_params["current"],
                     )
-                except Exception as err:  # pylint: disable-msg=broad-except
-                    if self.model_params["current"].get("predictor") == "gpu_predictor":
-                        LOGGER.info(
-                            " ".join(
-                                [
-                                    "Encountered error using GPU.",
-                                    "Trying with CPU parameters now!",
-                                ]
-                            )
-                        )
-                        self.model_params["current"] = self.model_params["cpu"]
-                    else:
-                        raise err
+                )
                 pbar.update()
 
     def transform(self):
@@ -272,7 +258,6 @@ class XCorr(BaseEstimator, TransformerMixin):
         )
         regr_m = XGBRegressor(
             random_state=random_state,
-            predictor="cpu_predictor",
             tree_method="auto",
             n_jobs=-1,
         )
