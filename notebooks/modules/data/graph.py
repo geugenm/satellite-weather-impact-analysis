@@ -33,15 +33,12 @@ class PolarisGraph(dict, JsonSerializable):
         dict.__init__(self)
         JsonSerializable.__init__(self)
 
-        self._nodes_key = kwargs.get("nodes", "nodes")
         self._links_key = kwargs.get("links", "links")
         self._target_key = kwargs.get("target", "target")
         self._source_key = kwargs.get("source", "source")
         self._value_key = kwargs.get("value", "value")
         self.metadata = PolarisMetadata(metadata)
         self.graph = {
-            "data_format_version": self.DATA_FORMAT_VERSION,
-            self._nodes_key: [],
             self._links_key: [],
         }
 
@@ -55,7 +52,6 @@ class PolarisGraph(dict, JsonSerializable):
         if heatmap is None:
             return
 
-        self._add_nodes(heatmap)
         self._add_links(heatmap, graph_link_threshold)
 
     def _add_links(self, heatmap, graph_link_threshold=DEFAULT_GRAPH_LINK_THRESHOLD):
@@ -78,11 +74,6 @@ class PolarisGraph(dict, JsonSerializable):
                             self._value_key: mdict[source][target],
                         }
                     )
-
-    def _add_nodes(self, heatmap):
-        """Add nodes as appropriate"""
-        for col in heatmap.columns:
-            self.graph[self._nodes_key].append({"id": col, "name": col, "group": 0})
 
     def __repr__(self):
         return self.to_json()
