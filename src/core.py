@@ -56,7 +56,6 @@ fluxtable = pd.read_csv(
     parse_dates=["fluxdate"],
 )
 
-# Объединение данных с использованием метода reduce для повышения читаемости
 from functools import reduce
 
 dataframes_to_merge = [
@@ -67,10 +66,9 @@ dataframes_to_merge = [
     fluxtable,
 ]
 
-# Убедимся, что все DataFrame имеют нужные колонки для объединения
 for i in range(len(dataframes_to_merge)):
     if i == 0:
-        continue  # Пропускаем первый DataFrame
+        continue
     left_on_col = time_column if i != 1 else "Obsdate"
     right_on_col = (
         "Obsdate"
