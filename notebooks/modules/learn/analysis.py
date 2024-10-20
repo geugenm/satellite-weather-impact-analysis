@@ -3,12 +3,12 @@ Module to launch different data analysis.
 """
 
 import logging
+import os
 
 from fets.math import TSIntegrale
 from mlflow import set_experiment
 
 from modules.data.graph import PolarisGraph
-from modules.data.readers import read_polaris_data
 from modules.dataset.metadata import PolarisMetadata
 from modules.learn.feature.extraction import (
     create_list_of_transformers,
@@ -53,12 +53,11 @@ def feature_extraction(input_file, param_col):
 
 # pylint: disable-msg=too-many-arguments
 def cross_correlate(
-    input_file=None,
+    input_dataframe=None,
     output_graph_file=None,
     xcorr_configuration_file=None,
     graph_link_threshold=0.1,
     use_gridsearch=False,
-    csv_sep=",",
     force_cpu=False,
     index_column="time",
     dropna=False,
@@ -91,16 +90,16 @@ def cross_correlate(
             If this is set to False, then it will just use regression.
             Defaults to False
         :type use_gridsearch: bool, optional
-        :param csv_sep: The character that separates the columns inside of
-            the CSV file, defaults to ','
-        :type csv_sep: str, optional
         :param force_cpu: Force CPU for cross corelation, defaults to False
         :type force_cpu: bool, optional
         :raises NoFramesInInputFile: If there are no frames in the converted
             dataframe
     """
     # Reading input file - index is considered on first column
-    metadata, dataframe = read_polaris_data(input_file, csv_sep)
+    metadata = PolarisMetadata(
+        {"satellite_name": os.path.splitext(os.path.basename(output_graph_file))[0]}
+    )
+    dataframe = input_dataframe
 
     if dataframe.empty:
         LOGGER.error("Empty set of frames -- nothing to learn from!")
