@@ -27,11 +27,19 @@ def read_satellite_data(path):
     all_files = glob.glob(f"{path}/*.csv")
     df = pd.concat((pd.read_csv(f) for f in all_files), ignore_index=True)
     df[time_column] = pd.to_datetime(df[time_column]).dt.normalize()
-    return (
-        df.groupby(time_column)
-        .mean()
-        .select_dtypes(include=["number", "bool", "datetime"])
-    )
+
+    df = df.select_dtypes(include=["number", "bool", "datetime"])
+    df.columns = [
+        col.replace(" ", "_")
+        .replace(",", "_")
+        .replace("<", "_")
+        .replace(">", "_")
+        .replace("[", "(")
+        .replace("]", ")")
+        for col in df.columns
+    ]
+
+    return df.groupby(time_column).mean()
 
 
 satellite_data = read_satellite_data(satellites_dir / satellite_name)
@@ -85,14 +93,7 @@ dynamics = reduce(
     dataframes_to_merge,
 )
 
-
-def save_to_csv(df, filename):
-    print(f"Starting full frame export: {filename}...")
-    df.to_csv(filename, index=False)
-    print(f"Exported full frame: {filename}")
-
-
-save_to_csv(dynamics.copy(), artifacts_dir / f"{satellite_name}_full.csv")
+dynamics.to_csv(artifacts_dir / f"{satellite_name}_full.csv", index=False)
 
 cross_correlate(
     input_dataframe=dynamics,
