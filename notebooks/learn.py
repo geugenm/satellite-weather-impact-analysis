@@ -1,26 +1,30 @@
 import pandas as pd
 from pathlib import Path
 import glob
-
 import os
 import json
+import threading
+import argparse
+
 
 from pyecharts import options as opts
 from pyecharts.charts import Graph
-
 from modules.learn.analysis import cross_correlate
 
+
+parser = argparse.ArgumentParser(description="Process satellite data.")
+parser.add_argument("satellite_name", type=str, help="Name of the satellite")
+args = parser.parse_args()
+
 time_column: str = "Time"
-satellite_name: str = "grifex"
+satellite_name: str = args.satellite_name
 
 artifacts_dir: Path = f"../artifacts/{satellite_name}"
 os.makedirs(artifacts_dir, exist_ok=True)
 
 satellites_dir: Path = "../data/satellites"
 solar_dir: Path = "../data/solar"
-
 model_cfg: Path = "../cfg/model.json"
-
 output_graph_file: Path = f"{artifacts_dir}/{satellite_name}_graph.json"
 
 
@@ -94,6 +98,19 @@ dynamics = pd.merge(
 ).drop(columns=["fluxdate"])
 
 
+def save_to_csv(df, filename):
+    print(f"Starting full frame export: {filename}...")
+    df.to_csv(filename, index=False)
+    print(f"Exported full frame: {filename}")
+
+
+thread = threading.Thread(
+    target=save_to_csv,
+    args=(dynamics.copy(), f"{artifacts_dir}/{satellite_name}_full.csv"),
+)
+
+thread.start()
+
 cross_correlate(
     input_dataframe=dynamics,
     output_graph_file=output_graph_file,
@@ -137,3 +154,5 @@ graph = (
 )
 
 graph.render(f"{artifacts_dir}/graph.html")
+
+thread.join()
