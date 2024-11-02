@@ -4,7 +4,7 @@ import subprocess
 parent_directory = "../data/satellites"
 
 
-def run_core_script(directory_name):
+def run_core_script(directory_name: str):
     print(f"Discovering {directory_name}...")
 
     command = ["python", "core.py", directory_name]
@@ -14,7 +14,8 @@ def run_core_script(directory_name):
         print(f"Successfully ran core.py with argument: {directory_name}")
     except subprocess.CalledProcessError as e:
         print(
-            f"Error occurred while running core.py with argument: {directory_name}. Error: {e}"
+            f"Error occurred while running core.py with argument: {
+                directory_name}. Error: {e}"
         )
 
 

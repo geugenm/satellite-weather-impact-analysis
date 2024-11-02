@@ -12,6 +12,10 @@ plotly
 pyecharts
 black
 seaborn
+fets
+xgboost
+enlighten
+GPUtil
 
 #ci/cd
 lxml==5.0.1

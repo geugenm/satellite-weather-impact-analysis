@@ -114,3 +114,7 @@ ipython_config.py
 # LaTeX build artifacts
 docs/latex/.build/
 docs/latex/*.{fdb_latexmk,aux,toc,blg,bbl,pdf,out,gz}
+
+# Project-specific
+artifacts
+data/satellites
