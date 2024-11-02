@@ -1,3 +1,4 @@
+from functools import reduce
 import pandas as pd
 from pathlib import Path
 import glob
@@ -17,7 +18,7 @@ satellite_name = args.satellite_name
 artifacts_dir = Path(f"../artifacts/{satellite_name}")
 artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-satellites_dir = Path("../data/satellites")
+satellites_dir = Path("../../satellites")
 solar_dir = Path("../data/solar")
 model_cfg = Path("../cfg/model.json")
 output_graph_file = artifacts_dir / f"{satellite_name}_graph.json"
@@ -64,7 +65,6 @@ fluxtable = pd.read_csv(
     parse_dates=["fluxdate"],
 )
 
-from functools import reduce
 
 dataframes_to_merge = [
     satellite_data,
@@ -111,7 +111,8 @@ nodes = {link["source"] for link in data["links"]}.union(
     link["target"] for link in data["links"]
 )
 links = [
-    {"source": link["source"], "target": link["target"], "value": link["value"]}
+    {"source": link["source"], "target": link["target"],
+        "value": link["value"]}
     for link in data["links"]
 ]
 

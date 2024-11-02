@@ -10,8 +10,8 @@ def run_core_script(directory_name: str):
     command = ["python", "core.py", directory_name]
 
     try:
-        subprocess.run(command, check=True)
-        print(f"Successfully ran core.py with argument: {directory_name}")
+        result = subprocess.run(command, check=True)
+        print(f"python core.py: {directory_name}, code: {result.stdout}")
     except subprocess.CalledProcessError as e:
         print(
             f"Error occurred while running core.py with argument: {
