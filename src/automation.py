@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-parent_directory = "../data/satellites"
+parent_directory = "../../satellites"
 
 
 def run_core_script(directory_name: str):
