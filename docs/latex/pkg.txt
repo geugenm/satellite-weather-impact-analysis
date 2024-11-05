@@ -12,3 +12,7 @@ latexindent
 etoolbox
 titling
 hyphen-russian
+babel-english
+preprint
+microtype
+luahbtex

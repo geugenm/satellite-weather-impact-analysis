@@ -10,7 +10,6 @@ Choose a TeX distribution that aligns with your operating system:
 
 * **TeX Live (Recommended):** Offers an extensive package collection and regular updates.
     ```bash
-    sudo dnf install texlive-full   # Comprehensive installation
     sudo dnf install texlive-babel-russian  # Russian language support 
     ```
 * **Other Distributions:** Explore options like TeXstudio or proTeXt based on your preferences.
@@ -61,12 +60,15 @@ sudo dnf install texlive-some-example-package
 * **LaTeX community forums and support:** https://tex.stackexchange.com/
 * **Package documentation and examples:** Refer to package websites or CTAN (https://ctan.org/).
 
-## 6. Simple way without db files in the root
+## 6. Running
 
 Just use:
 
 ```bash
-make all
+sudo dnf install $(sed 's/^/texlive-/' pkg.txt)
+cd src
+biber main
+lualatex main.tex
 ```
 
 ## 7. Advanced Techniques with Latexmk
