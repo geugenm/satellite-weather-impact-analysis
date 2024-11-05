@@ -10,7 +10,7 @@
 %-------------------------------------------------------------------------------
 %    Язык и кодировка
 %-------------------------------------------------------------------------------
-\RequirePackage[main=russian, english]{babel} 
+\RequirePackage[main=russian, english]{babel}
 
 %-------------------------------------------------------------------------------
 %    Шрифты и типографика
@@ -35,12 +35,12 @@ Extension=.ttf
 \RequirePackage{enumitem}
 \RequirePackage{subfig}
 \RequirePackage{hyperref}
-\RequirePackage{authblk} 
+\RequirePackage{authblk}
 \RequirePackage{amsmath}
 \RequirePackage{listings}
 \RequirePackage{textcomp}
 \RequirePackage{microtype}
-\RequirePackage{indentfirst} 
+\RequirePackage{indentfirst}
 \RequirePackage{setspace}
 % \RequirePackage{texdoc} % Для документации в IDE
 
@@ -107,9 +107,9 @@ Extension=.ttf
     {\normalfont\large\bfseries\centering}
     {}{0pt}{\large \centering}
   \titlespacing*{\chapter}{-40pt}{-50pt}{15pt}
-  
+
   \chapter{#1}
-  
+
   \titleformat{\chapter}[display]
     {\normalfont\large\bfseries\centering}
     {\chaptertitlename\ \thechapter}{0pt}{\large \centering}
@@ -163,7 +163,7 @@ Extension=.ttf
 %-------------------------------------------------------------------------------
 %    Настройка межстрочного интервала
 %-------------------------------------------------------------------------------
-\onehalfspacing 
+\onehalfspacing
 \setlength{\parindent}{1.25cm} % Абзацный отступ 1.25 см
 \linespread{1.5} % Межстрочный интервал 1.5
 
@@ -196,7 +196,7 @@ Extension=.ttf
         \begin{center}
             \textbf{\thetitle}
         \end{center}
-        
+
         \begin{center}
             {Курсовая работа}
         \end{center}
@@ -206,7 +206,7 @@ Extension=.ttf
         \hfill
         \parbox{17em}{
             Глеба Евгения Михайловича \newline
-            обучающегося 3 курса специальности \newline
+            обучающегося 4 курса специальности \newline
             «Аэрокосмические радиоэлектронные и информационные системы и технологии»
 
             \vspace{0.5cm}
