@@ -14,8 +14,7 @@ def run_core_script(directory_name: str):
         print(f"python core.py: {directory_name}, code: {result.stdout}")
     except subprocess.CalledProcessError as e:
         print(
-            f"Error occurred while running core.py with argument: {
-                directory_name}. Error: {e}"
+            f"Error occurred while running core.py with argument: {directory_name}. Error: {e}"
         )
 
 

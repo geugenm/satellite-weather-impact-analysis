@@ -2,11 +2,9 @@ from functools import reduce
 import pandas as pd
 from pathlib import Path
 import glob
-import json
 import argparse
-from pyecharts import options as opts
-from pyecharts.charts import Graph
 from modules.learn.analysis import cross_correlate
+from graph import create_dependency_graph
 
 
 def read_satellite_data(path, time_column="Time"):
@@ -32,53 +30,6 @@ def read_solar_data(file_path, date_column):
     df = pd.read_json(file_path)
     df[date_column] = pd.to_datetime(df[date_column])
     return df
-
-def create_dependency_graph(graph_coeffs_json: str, output_dir: Path) -> None:
-    """
-    Create a 2D dependency graph from a JSON file.
-
-    Args:
-        graph_coeffs_json (str): Path to the JSON file containing graph data.
-        output_dir (str): Directory where the generated graph HTML will be saved.
-    """
-    # Load JSON data from the specified file
-    with open(graph_coeffs_json) as file:
-        loaded_json = json.load(file)
-
-    data = loaded_json["graph"]
-
-    # Extract nodes and links from the graph data
-    nodes = {link["source"] for link in data["links"]}.union(
-        link["target"] for link in data["links"]
-    )
-
-    links = [
-        {"source": link["source"], "target": link["target"], "value": link["value"]}
-        for link in data["links"]
-    ]
-
-    # Create a list of nodes with their properties
-    node_list = [
-        {
-            "name": node,
-            "symbolSize": 20,
-            "value": f"{node} - {sum(1 for link in links if link['source'] == node or link['target'] == node)} bound(s)",
-        }
-        for node in nodes
-    ]
-
-    # Create and configure the graph
-    graph = (
-        Graph()
-        .add("", node_list, links, repulsion=8000)
-        .set_global_opts(
-            title_opts=opts.TitleOpts(title="2D Dependency Graph"),
-            tooltip_opts=opts.TooltipOpts(trigger="item", formatter="{b}: {c}"),
-        )
-    )
-
-    # Render the graph to an HTML file
-    graph.render(output_dir / "graph.html")
 
 
 def process_satellite_data(satellite_name):
@@ -144,7 +95,7 @@ def process_satellite_data(satellite_name):
         dropna=True,
     )
 
-    create_dependency_graph(output_graph_file ,artifacts_dir)
+    create_dependency_graph(output_graph_file, artifacts_dir)
 
 
 if __name__ == "__main__":
@@ -154,5 +105,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     process_satellite_data(args.satellite_name)
-
-
