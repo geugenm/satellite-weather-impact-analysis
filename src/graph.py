@@ -67,14 +67,10 @@ def create_dependency_graph(graph_coeffs_json: Path, output_dir: Path) -> None:
         .add("", node_list, colored_links, repulsion=8000)
         .set_global_opts(
             title_opts=opts.TitleOpts(title="2D Dependency Graph"),
-            tooltip_opts=opts.TooltipOpts(
-                trigger="item",
-                formatter=lambda params: f"{params['data']['source']} to {params['data']['target']}: {params['data']['value']}",
-            ),
             toolbox_opts=opts.ToolboxOpts(
                 feature={
                     "saveAsImage": {"title": "Save as Image"},
-                    "dataView": {"readOnly": False, "title": "Data View"},
+                    "dataView": {"readOnly": True, "title": "Data View"},
                     "restore": {"title": "Restore"},
                 },
                 pos_left="right",  # Positioning from the left
