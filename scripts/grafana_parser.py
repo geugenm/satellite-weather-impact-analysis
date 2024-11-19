@@ -20,10 +20,9 @@ from selenium.webdriver.support.wait import WebDriverWait
 logging.basicConfig(level=logging.INFO)
 
 
-def create_driver(browser_download_dir: str, headless: bool = True) -> webdriver:
+def create_driver(browser_download_dir: str) -> webdriver:
     options = Options()
-    if headless:
-        options.add_argument("--headless")
+    options.add_argument("--headless")
     options.set_preference("browser.download.folderList", 2)
     options.set_preference("browser.download.dir", browser_download_dir)
     options.set_preference(
@@ -34,7 +33,7 @@ def create_driver(browser_download_dir: str, headless: bool = True) -> webdriver
         driver = webdriver.Firefox(options=options)
         return driver
     except WebDriverException as e:
-        logging.exception(f"failed to create WebDriver: {e}")
+        logging.exception(f"failed to create webdriver: {e}")
         raise
 
 
@@ -130,8 +129,9 @@ def process_url(
 
 
 if __name__ == "__main__":
-    sat_urls: list = [
-        "https://dashboard.satnogs.org/d/anRdyz9Vk/cubebel-1?orgId=1&refresh=30s&from=now-6y&to=now"
+    sat_urls: list[str] = [
+        "https://dashboard.satnogs.org/d/qqOgteuSz/enso?orgId=1&refresh=1m",
+        "https://dashboard.satnogs.org/d/iXL8Q0lGk/grbalpha?orgId=1",
     ]
 
     for sat_url in sat_urls:

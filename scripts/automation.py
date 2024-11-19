@@ -4,7 +4,7 @@ from typing import List
 from concurrent.futures import ProcessPoolExecutor
 from src.analyzer import process_satellite_data
 
-parent_directory = "../../satellites"
+parent_directory = "../downloads"
 
 
 def analyze_entry(entry: str) -> None:

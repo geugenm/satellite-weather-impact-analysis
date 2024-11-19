@@ -1,4 +1,5 @@
 from functools import reduce
+
 import pandas as pd
 from pathlib import Path
 
@@ -9,7 +10,7 @@ import mlflow
 mlflow.set_tracking_uri("../artifacts/mlruns")
 
 from modules.learn.analysis import cross_correlate
-from graph import create_dependency_graph
+from src.graph import create_dependency_graph
 
 
 def read_satellite_data(path, time_column="Time"):
@@ -45,7 +46,7 @@ def process_satellite_data(satellite_name):
     artifacts_dir = Path(f"../artifacts/{satellite_name}")
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    satellites_dir = Path("../../satellites")
+    satellites_dir = Path("../downloads")
     solar_dir = Path("../data/solar")
     model_cfg = Path("../cfg/model.json")
     output_graph_file = artifacts_dir / f"{satellite_name}_graph.json"
@@ -54,42 +55,45 @@ def process_satellite_data(satellite_name):
 
     swpc_observed_ssn = read_solar_data(
         solar_dir / "swpc/swpc_observed_ssn.json", "Obsdate"
-    )
+    ).rename(columns={"Obsdate": time_column})
+
     swpc_observed_solar_cycle_indices = read_solar_data(
         solar_dir / "swpc/observed-solar-cycle-indices.json", "time-tag"
+    ).rename(columns={"time-tag": time_column})
+
+    swpc_dgd = pd.read_csv(solar_dir / "swpc/dgd.csv", parse_dates=["Date"]).rename(
+        columns={"Date": time_column}
     )
-    swpc_dgd = pd.read_csv(solar_dir / "swpc/dgd.csv", parse_dates=["Date"])
+
     fluxtable = pd.read_csv(
         solar_dir / "penticton/fluxtable.txt",
         delim_whitespace=True,
         parse_dates=["fluxdate"],
-    )
+    ).rename(columns={"fluxdate": time_column})
 
     dataframes_to_merge = [
-        satellite_data,
         swpc_observed_ssn,
         swpc_observed_solar_cycle_indices,
         swpc_dgd,
         fluxtable,
     ]
 
-    for i in range(len(dataframes_to_merge)):
-        if i == 0:
-            continue
-        left_on_col = time_column if i != 1 else "Obsdate"
-        right_on_col = (
-            "Obsdate"
-            if i == 1
-            else ("time-tag" if i == 2 else ("Date" if i == 3 else "fluxdate"))
-        )
+    solar_dynamics = dataframes_to_merge[0]
+    for df in dataframes_to_merge[1:]:
+        solar_dynamics = solar_dynamics.merge(df, how="left", on=time_column)
 
-        dataframes_to_merge[i] = dataframes_to_merge[i].rename(
-            columns={right_on_col: time_column}
-        )
+    filter_list: list[str] = [
+        time_column,  # do not forget!!!
+        "smoothed_f10.7",
+        "f10.7",
+        "observed_swpc_ssn",
+        "smoothed_ssn",
+        "fluxcarrington",
+        "Frederickburg K 0-3",
+    ]
 
-    dynamics = reduce(
-        lambda left, right: pd.merge(left, right, on=time_column, how="left"),
-        dataframes_to_merge,
+    dynamics = satellite_data.merge(
+        solar_dynamics.filter(items=filter_list), on=time_column, how="left"
     )
 
     dynamics.to_csv(artifacts_dir / f"{satellite_name}_full.csv", index=False)
