@@ -63,7 +63,7 @@ def create_dependency_graph(graph_coeffs_json: Path, output_dir: Path) -> None:
     ]
 
     graph = (
-        Graph()
+        Graph(init_opts=opts.InitOpts(width="100vw", height="100vh"))
         .add("", node_list, colored_links, repulsion=8000)
         .set_global_opts(
             title_opts=opts.TitleOpts(title="2D Dependency Graph"),
@@ -72,11 +72,14 @@ def create_dependency_graph(graph_coeffs_json: Path, output_dir: Path) -> None:
                     "saveAsImage": {"title": "Save as Image"},
                     "dataView": {"readOnly": True, "title": "Data View"},
                     "restore": {"title": "Restore"},
+                    "zoom": {},  # Enable zoom control
+                    "pan": {},  # Enable panning control
                 },
-                pos_left="right",  # Positioning from the left
-                pos_top="10%",  # Positioning from the top
+                pos_left="center",
+                pos_top="1%",
             ),
         )
     )
 
+    # Render the chart to an HTML file
     graph.render(output_dir / "graph.html")
