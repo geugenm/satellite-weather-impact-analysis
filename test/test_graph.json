@@ -1,0 +1,560 @@
+{
+    "metadata": {
+        "data_format_version": 1,
+        "satellite_name": "grb-alpha_graph"
+    },
+    "graph": {
+        "links": [
+            {
+                "source": "M1_X",
+                "target": "M2_X",
+                "value": 0.1578625738620758
+            },
+            {
+                "source": "M1_Y",
+                "target": "M1_Z",
+                "value": 0.24036948382854462
+            },
+            {
+                "source": "M1_Z",
+                "target": "M1_Y",
+                "value": 0.1329851746559143
+            },
+            {
+                "source": "M2_X",
+                "target": "M1_X",
+                "value": 0.15241555869579315
+            },
+            {
+                "source": "M2_Y",
+                "target": "M2_Z",
+                "value": 0.9609466195106506
+            },
+            {
+                "source": "M2_Z",
+                "target": "M2_X",
+                "value": 0.7173941731452942
+            },
+            {
+                "source": "M2_Z",
+                "target": "M2_Y",
+                "value": 0.9909638166427612
+            },
+            {
+                "source": "M2_Z",
+                "target": "47959.obc_mpu_temp",
+                "value": 0.9564757943153381
+            },
+            {
+                "source": "47959.gps_temp",
+                "target": "47959.obc_temp",
+                "value": 0.7977369427680969
+            },
+            {
+                "source": "47959.gps_rst_cnt",
+                "target": "47959.gps_temp",
+                "value": 0.17504848539829254
+            },
+            {
+                "source": "uptime_total",
+                "target": "47959.digipeater_tx_count",
+                "value": 0.3820067346096039
+            },
+            {
+                "source": "uptime_total",
+                "target": "47959.mcu_10mv",
+                "value": 0.7003988027572632
+            },
+            {
+                "source": "uptime_total",
+                "target": "47959.obc_free_mem",
+                "value": 0.8047318458557129
+            },
+            {
+                "source": "uptime_total",
+                "target": "47959.obc_uptime_total",
+                "value": 0.13557207584381104
+            },
+            {
+                "source": "uptime_total",
+                "target": "smoothed_f10.7",
+                "value": 0.25344735383987427
+            },
+            {
+                "source": "uptime_total",
+                "target": "fluxjulian",
+                "value": 0.13765902817249298
+            },
+            {
+                "source": "uptime_total",
+                "target": "fluxcarrington",
+                "value": 0.13464558124542236
+            },
+            {
+                "source": "47959.digipeater_tx_count",
+                "target": "M1_X",
+                "value": 0.10066033154726028
+            },
+            {
+                "source": "47959.digipeater_tx_count",
+                "target": "M1_Z",
+                "value": 0.12840762734413147
+            },
+            {
+                "source": "47959.digipeater_tx_count",
+                "target": "47959.obc_packet_rec_cnt",
+                "value": 0.18838974833488464
+            },
+            {
+                "source": "47959.digipeater_rx_count",
+                "target": "47959.digipeater_tx_count",
+                "value": 0.14567051827907562
+            },
+            {
+                "source": "47959.digipeater_rx_count",
+                "target": "47959.obc_rst_cnt",
+                "value": 0.26962554454803467
+            },
+            {
+                "source": "47959.digipeater_rx_count",
+                "target": "47959.rf_packets_received",
+                "value": 0.3185589611530304
+            },
+            {
+                "source": "47959.obc_packet_rec_cnt",
+                "target": "uptime_total",
+                "value": 0.2959845960140228
+            },
+            {
+                "source": "47959.obc_packet_rec_cnt",
+                "target": "47959.obc_uptime_total",
+                "value": 0.5073330998420715
+            },
+            {
+                "source": "47959.obc_packet_rec_cnt",
+                "target": "reset_count",
+                "value": 0.9289044141769409
+            },
+            {
+                "source": "47959.obc_packet_rec_cnt",
+                "target": "fluxjulian",
+                "value": 0.17507173120975494
+            },
+            {
+                "source": "47959.obc_packet_rec_cnt",
+                "target": "fluxcarrington",
+                "value": 0.2076166868209839
+            },
+            {
+                "source": "47959.obc_rst_cnt",
+                "target": "47959.digipeater_rx_count",
+                "value": 0.7734325528144836
+            },
+            {
+                "source": "47959.obc_rst_cnt",
+                "target": "47959.obc_packet_rec_cnt",
+                "value": 0.3539407551288605
+            },
+            {
+                "source": "47959.obc_rst_cnt",
+                "target": "fluxjulian",
+                "value": 0.4464818239212036
+            },
+            {
+                "source": "47959.obc_rst_cnt",
+                "target": "fluxcarrington",
+                "value": 0.4759541451931
+            },
+            {
+                "source": "47959.obc_uptime_rst",
+                "target": "uptime_since_last",
+                "value": 0.2923460900783539
+            },
+            {
+                "source": "47959.temp_pa_ntc",
+                "target": "47959.temp_cpu",
+                "value": 0.9614449143409729
+            },
+            {
+                "source": "47959.mcu_10mv",
+                "target": "47959.temp_pa_ntc",
+                "value": 0.32566285133361816
+            },
+            {
+                "source": "47959.rf_packets_received",
+                "target": "47959.gps_rst_cnt",
+                "value": 0.7700100541114807
+            },
+            {
+                "source": "47959.obc_free_mem",
+                "target": "47959.obc_timestamp",
+                "value": 0.1412726640701294
+            },
+            {
+                "source": "47959.obc_timestamp",
+                "target": "47959.obc_uptime_rst",
+                "value": 0.2885923683643341
+            },
+            {
+                "source": "47959.obc_timestamp",
+                "target": "fluxadjflux",
+                "value": 0.3217661380767822
+            },
+            {
+                "source": "47959.obc_timestamp",
+                "target": "fluxursi",
+                "value": 0.25453415513038635
+            },
+            {
+                "source": "47959.obc_uptime_total",
+                "target": "uptime_total",
+                "value": 0.12834185361862183
+            },
+            {
+                "source": "47959.obc_uptime_total",
+                "target": "47959.obc_packet_rec_cnt",
+                "value": 0.13012222945690155
+            },
+            {
+                "source": "47959.obc_temp",
+                "target": "47959.gps_temp",
+                "value": 0.6846206188201904
+            },
+            {
+                "source": "47959.temp_cpu",
+                "target": "47959.temp_pa_ntc",
+                "value": 0.6482360363006592
+            },
+            {
+                "source": "uptime_since_last",
+                "target": "47959.obc_uptime_rst",
+                "value": 0.49577194452285767
+            },
+            {
+                "source": "ssn",
+                "target": "observed_swpc_ssn",
+                "value": 0.9112326502799988
+            },
+            {
+                "source": "ssn",
+                "target": "smoothed_swpc_ssn",
+                "value": 0.14782249927520752
+            },
+            {
+                "source": "ssn",
+                "target": "f10.7",
+                "value": 0.6015834808349609
+            },
+            {
+                "source": "smoothed_ssn",
+                "target": "47959.digipeater_tx_count",
+                "value": 0.12004140019416809
+            },
+            {
+                "source": "smoothed_ssn",
+                "target": "47959.obc_uptime_total",
+                "value": 0.14650428295135498
+            },
+            {
+                "source": "smoothed_ssn",
+                "target": "uptime_since_last",
+                "value": 0.3121069073677063
+            },
+            {
+                "source": "smoothed_ssn",
+                "target": "smoothed_swpc_ssn",
+                "value": 0.7167481780052185
+            },
+            {
+                "source": "smoothed_ssn",
+                "target": "smoothed_f10.7",
+                "value": 0.7109056711196899
+            },
+            {
+                "source": "observed_swpc_ssn",
+                "target": "ssn",
+                "value": 0.8885169625282288
+            },
+            {
+                "source": "observed_swpc_ssn",
+                "target": "f10.7",
+                "value": 0.3084082007408142
+            },
+            {
+                "source": "smoothed_swpc_ssn",
+                "target": "smoothed_ssn",
+                "value": 0.7892746925354004
+            },
+            {
+                "source": "Fredericksburg A",
+                "target": "Fredericksburg K 9-12",
+                "value": 0.12612222135066986
+            },
+            {
+                "source": "Fredericksburg A",
+                "target": "Planetary A",
+                "value": 0.22834327816963196
+            },
+            {
+                "source": "Fredericksburg K 0-3",
+                "target": "Planetary K 0-3",
+                "value": 0.6919491291046143
+            },
+            {
+                "source": "Fredericksburg K 3-6",
+                "target": "Planetary K 3-6",
+                "value": 0.6974917054176331
+            },
+            {
+                "source": "Fredericksburg K 6-9",
+                "target": "Planetary K 6-9",
+                "value": 0.7426158785820007
+            },
+            {
+                "source": "Fredericksburg K 9-12",
+                "target": "Fredericksburg A",
+                "value": 0.5400965809822083
+            },
+            {
+                "source": "Fredericksburg K 9-12",
+                "target": "Fredericksburg K 12-15",
+                "value": 0.12639714777469635
+            },
+            {
+                "source": "Fredericksburg K 9-12",
+                "target": "Planetary K 9-12",
+                "value": 0.5506239533424377
+            },
+            {
+                "source": "Fredericksburg K 12-15",
+                "target": "Fredericksburg K 9-12",
+                "value": 0.10437725484371185
+            },
+            {
+                "source": "Fredericksburg K 12-15",
+                "target": "Fredericksburg K 15-18",
+                "value": 0.1338820457458496
+            },
+            {
+                "source": "Fredericksburg K 12-15",
+                "target": "Fredericksburg K 18-21",
+                "value": 0.1913197934627533
+            },
+            {
+                "source": "Fredericksburg K 12-15",
+                "target": "Planetary K 12-15",
+                "value": 0.22305110096931458
+            },
+            {
+                "source": "Fredericksburg K 15-18",
+                "target": "Fredericksburg K 12-15",
+                "value": 0.22734449803829193
+            },
+            {
+                "source": "Fredericksburg K 15-18",
+                "target": "Planetary K 15-18",
+                "value": 0.11054170876741409
+            },
+            {
+                "source": "Fredericksburg K 18-21",
+                "target": "Planetary K 18-21",
+                "value": 0.14862319827079773
+            },
+            {
+                "source": "Fredericksburg K 21-24",
+                "target": "Planetary K 21-24",
+                "value": 0.6639326810836792
+            },
+            {
+                "source": "College A",
+                "target": "College K 12-15",
+                "value": 0.33189061284065247
+            },
+            {
+                "source": "College A",
+                "target": "Planetary A",
+                "value": 0.41388052701950073
+            },
+            {
+                "source": "College K 9-12",
+                "target": "Planetary K 9-12",
+                "value": 0.10737971216440201
+            },
+            {
+                "source": "College K 12-15",
+                "target": "Fredericksburg A",
+                "value": 0.13345369696617126
+            },
+            {
+                "source": "College K 12-15",
+                "target": "Planetary K 12-15",
+                "value": 0.47549673914909363
+            },
+            {
+                "source": "College K 15-18",
+                "target": "Planetary K 15-18",
+                "value": 0.6124911904335022
+            },
+            {
+                "source": "College K 18-21",
+                "target": "Planetary K 18-21",
+                "value": 0.6026099324226379
+            },
+            {
+                "source": "College K 21-24",
+                "target": "Planetary K 21-24",
+                "value": 0.11899270862340927
+            },
+            {
+                "source": "Planetary A",
+                "target": "Fredericksburg A",
+                "value": 0.1802680343389511
+            },
+            {
+                "source": "Planetary A",
+                "target": "College A",
+                "value": 0.6054249405860901
+            },
+            {
+                "source": "Planetary K 0-3",
+                "target": "Fredericksburg K 0-3",
+                "value": 0.5605122447013855
+            },
+            {
+                "source": "Planetary K 0-3",
+                "target": "College K 0-3",
+                "value": 0.47384142875671387
+            },
+            {
+                "source": "Planetary K 3-6",
+                "target": "Fredericksburg K 3-6",
+                "value": 0.5871127247810364
+            },
+            {
+                "source": "Planetary K 3-6",
+                "target": "College K 3-6",
+                "value": 0.5666415095329285
+            },
+            {
+                "source": "Planetary K 6-9",
+                "target": "Fredericksburg K 6-9",
+                "value": 0.6225979924201965
+            },
+            {
+                "source": "Planetary K 6-9",
+                "target": "College K 6-9",
+                "value": 0.5687406063079834
+            },
+            {
+                "source": "Planetary K 9-12",
+                "target": "Fredericksburg K 9-12",
+                "value": 0.3699369728565216
+            },
+            {
+                "source": "Planetary K 9-12",
+                "target": "College K 9-12",
+                "value": 0.5275689363479614
+            },
+            {
+                "source": "Planetary K 12-15",
+                "target": "Fredericksburg K 12-15",
+                "value": 0.24882492423057556
+            },
+            {
+                "source": "Planetary K 12-15",
+                "target": "College K 12-15",
+                "value": 0.277569055557251
+            },
+            {
+                "source": "Planetary K 15-18",
+                "target": "Fredericksburg K 15-18",
+                "value": 0.26170605421066284
+            },
+            {
+                "source": "Planetary K 15-18",
+                "target": "College K 15-18",
+                "value": 0.5528451800346375
+            },
+            {
+                "source": "Planetary K 18-21",
+                "target": "Fredericksburg K 18-21",
+                "value": 0.25176313519477844
+            },
+            {
+                "source": "Planetary K 18-21",
+                "target": "College K 18-21",
+                "value": 0.5044741034507751
+            },
+            {
+                "source": "Planetary K 21-24",
+                "target": "Fredericksburg K 21-24",
+                "value": 0.5749994516372681
+            },
+            {
+                "source": "Planetary K 21-24",
+                "target": "College K 21-24",
+                "value": 0.4684382677078247
+            },
+            {
+                "source": "fluxjulian",
+                "target": "uptime_total",
+                "value": 0.14022621512413025
+            },
+            {
+                "source": "fluxjulian",
+                "target": "47959.obc_packet_rec_cnt",
+                "value": 0.2014951854944229
+            },
+            {
+                "source": "fluxjulian",
+                "target": "47959.obc_rst_cnt",
+                "value": 0.6897686123847961
+            },
+            {
+                "source": "fluxjulian",
+                "target": "47959.mcu_10mv",
+                "value": 0.2574920952320099
+            },
+            {
+                "source": "fluxjulian",
+                "target": "47959.rf_packets_received",
+                "value": 0.3126074969768524
+            },
+            {
+                "source": "fluxjulian",
+                "target": "47959.obc_timestamp",
+                "value": 0.1807921975851059
+            },
+            {
+                "source": "fluxcarrington",
+                "target": "uptime_total",
+                "value": 0.21857446432113647
+            },
+            {
+                "source": "fluxadjflux",
+                "target": "swpc_ssn",
+                "value": 0.501125156879425
+            },
+            {
+                "source": "fluxadjflux",
+                "target": "fluxobsflux",
+                "value": 0.3848975896835327
+            },
+            {
+                "source": "fluxadjflux",
+                "target": "fluxursi",
+                "value": 0.6638640761375427
+            },
+            {
+                "source": "fluxursi",
+                "target": "fluxobsflux",
+                "value": 0.506229817867279
+            },
+            {
+                "source": "fluxursi",
+                "target": "fluxadjflux",
+                "value": 0.6065397262573242
+            }
+        ]
+    }
+}
