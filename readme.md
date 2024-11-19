@@ -50,34 +50,35 @@
   </ol>
 </details>
 
-### Built With
-
-Primarily utilized major libraries for data processing and visualization:
-
-* ![jupyter](https://img.shields.io/badge/jupyter-white?style=for-the-badge&logo=jupyter)
-* ![pandas](https://img.shields.io/badge/pandas-darkgreen?style=for-the-badge&logo=pandas)
-* ![plotly](https://img.shields.io/badge/plotly-darkblue?style=for-the-badge&logo=plotly)
-* ![scipy](https://img.shields.io/badge/scipy-darkblue?style=for-the-badge&logo=scipy)
-
 ### Prerequisites
 
-* python 3.12+
+* python 3.11+
   ```sh
   python --version
+  ```
+
+* poetry
+  ```sh
+  poetry --version
   ```
 
 ### Installation
 
 1. Clone the repo
-   ```sh
+   ```shell
    git clone https://github.com/geugenm/satellite-weather-impact-analysis.git
    ```
 2. Install pip requirements
-   ```sh
+   ```shell
    poetry install
    ```
-3. Render Researches
-   Open the project in [Jupyter Notebook]((https://docs.jupyter.org/en/latest/)) to explore and visualize the analyses.
+
+3. Run script
+   ```shell
+   cd src && python analyzer.py <path_to_satellite_data_csvs_taken_from_satnogs_dashboard>
+   ```
+
+### Additional instruments on decoding and obtaining satellite data
 
 To fetch more data use [satnogs-decoders](https://gitlab.com/librespacefoundation/satnogs/satnogs-decoders), example:
 

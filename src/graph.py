@@ -17,7 +17,6 @@ EDGE_LENGTH = 40
 
 GRAPH_DIMENSIONS = {"width": "100vw", "height": "100vh"}
 
-# Color generation configuration
 COLOR_CONFIG = {
     "alpha": 0.9,
     "red_max": 255,

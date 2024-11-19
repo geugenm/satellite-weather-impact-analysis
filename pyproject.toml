@@ -27,6 +27,8 @@ xgboost = "*"
 enlighten = "*"
 GPUtil = "*"
 mlflow = "*"
+selenium = "*"
+tqdm = "*"
 
 [build-system]
 requires = ["poetry-core"]
