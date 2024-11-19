@@ -4,11 +4,29 @@ version = "0.1.0"
 description = ""
 authors = ["e_gleba <i@egleba.ru>"]
 readme = "readme.md"
-packages = [{include = "satellite_weather_impact_analysis"}]
+packages = [{ include = "satellite_weather_impact_analysis" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-
+python-dateutil = "*"
+setuptools = "*"
+scikit-learn = "*"
+pandas = "*"
+numpy = "*"
+matplotlib = "*"
+scipy = "*"
+jupyter = "*"
+graphviz = "*"
+statsmodels = "*"
+plotly = "*"
+pyecharts = "*"
+black = "*"
+seaborn = "*"
+fets = "*"
+xgboost = "*"
+enlighten = "*"
+GPUtil = "*"
+mlflow = "*"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,6 +1,3 @@
-"""This module holds the JsonSerializable class
-"""
-
 import json
 
 from modules.common import constants

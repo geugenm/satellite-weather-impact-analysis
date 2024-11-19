@@ -19,7 +19,7 @@
     <img src="img/logo.png" alt="Logo" width="80" height="80">
   </a>
 
-  <h3 align="center">satellite-weather-impact-analysis</h3>
+<h3 align="center">satellite-weather-impact-analysis</h3>
 
   <p align="center">
     This repository includes the code for a study that examines the effects of space weather on operational satellite systems. The analysis involves comparing solar data with active satellite data to uncover correlations between the two.
@@ -53,6 +53,7 @@
 ### Built With
 
 Primarily utilized major libraries for data processing and visualization:
+
 * ![jupyter](https://img.shields.io/badge/jupyter-white?style=for-the-badge&logo=jupyter)
 * ![pandas](https://img.shields.io/badge/pandas-darkgreen?style=for-the-badge&logo=pandas)
 * ![plotly](https://img.shields.io/badge/plotly-darkblue?style=for-the-badge&logo=plotly)
@@ -73,13 +74,13 @@ Primarily utilized major libraries for data processing and visualization:
    ```
 2. Install pip requirements
    ```sh
-   pip install -r requirements.txt
+   poetry install
    ```
 3. Render Researches
    Open the project in [Jupyter Notebook]((https://docs.jupyter.org/en/latest/)) to explore and visualize the analyses.
 
-
 To fetch more data use [satnogs-decoders](https://gitlab.com/librespacefoundation/satnogs/satnogs-decoders), example:
+
 ```sh
 satnogs-decoders-master/contrib/manage/fetch_frames_from_network.py 40967 2018-10-26T00:00:00 2018-10-26T01:00:00 ./fox1a/
 
@@ -90,7 +91,6 @@ decode_frame fox1a fox1a/data_XXXX
 
 [ ] Analyze more data
 [ ] Enhance xgboost dependecy graph and model score
-
 
 ## Contributing
 

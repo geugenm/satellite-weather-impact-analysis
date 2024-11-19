@@ -1,7 +1,3 @@
-"""
-Polaris Graph class
-"""
-
 import json
 
 import numpy as np
@@ -12,8 +8,6 @@ from modules.dataset.metadata import PolarisMetadata
 
 
 class PolarisGraph(dict, JsonSerializable):
-    """Class for Polaris Graphs"""
-
     DEFAULT_GRAPH_LINK_THRESHOLD = 0.1
 
     # The original format looked like this:

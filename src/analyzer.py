@@ -1,8 +1,13 @@
 from functools import reduce
 import pandas as pd
 from pathlib import Path
+
 import glob
 import argparse
+import mlflow
+
+mlflow.set_tracking_uri("../artifacts/mlruns")
+
 from modules.learn.analysis import cross_correlate
 from graph import create_dependency_graph
 
@@ -20,6 +25,8 @@ def read_satellite_data(path, time_column="Time"):
         .replace(">", "_")
         .replace("[", "(")
         .replace("]", ")")
+        .replace("+", "_")
+        .replace("#", "_")
         for col in df.columns
     ]
 

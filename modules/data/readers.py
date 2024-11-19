@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class PolarisUnknownFileFormatError(Exception):
-    """Raised when we don't know how to read the file format"""
+    pass
 
 
 def read_polaris_data(path, csv_sep=","):

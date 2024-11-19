@@ -3,40 +3,78 @@ from pyecharts.charts import Graph
 import json
 from pathlib import Path
 from typing import List, Dict, Any
+import numpy as np
+
+
+NODE_BASE_SIZE = 10
+NODE_SIZE_MULTIPLIER = 2
+EDGE_WIDTH = 2
+EDGE_CURVENESS = 0.3
+REPULSION_FORCE = 1200  # Increased repulsion for better spacing
+GRAVITY = 0.2
+FRICTION = 0.5
+EDGE_LENGTH = 40
+
+GRAPH_DIMENSIONS = {"width": "100vw", "height": "100vh"}
+
+# Color generation configuration
+COLOR_CONFIG = {
+    "alpha": 0.9,
+    "red_max": 255,
+    "green_base": 128,
+    "green_offset": 50,
+    "blue_base": 200,
+    "blue_offset": 30,
+}
 
 
 def color_from_value(value: float, min_value: float, max_value: float) -> str:
     """Generate a color based on the value normalized between min and max."""
-    normalized_value = max(0, min(1, (value - min_value) / (max_value - min_value)))
-    red = int(normalized_value * 255)
-    green = int((1 - normalized_value) * 128 + normalized_value * 50)
-    blue = int((1 - normalized_value) * 200 + normalized_value * 30)
-    return f"rgba({red}, {green}, {blue}, 0.9)"
+    normalized_value = np.clip((value - min_value) / (max_value - min_value), 0, 1)
+    red = int(normalized_value * COLOR_CONFIG["red_max"])
+    green = int(
+        np.clip(
+            (1 - normalized_value) * COLOR_CONFIG["green_base"]
+            + normalized_value * COLOR_CONFIG["green_offset"],
+            0,
+            255,
+        )
+    )
+    blue = int(
+        np.clip(
+            (1 - normalized_value) * COLOR_CONFIG["blue_base"]
+            + normalized_value * COLOR_CONFIG["blue_offset"],
+            0,
+            255,
+        )
+    )
+
+    return f"rgba({red}, {green}, {blue}, {COLOR_CONFIG['alpha']})"
 
 
-def load_graph_data(graph_coeffs_json: Path) -> Dict[str, Any]:
-    """Load graph data from a JSON file."""
-    with graph_coeffs_json.open() as file:
-        return json.load(file)
+def load_graph_data(graph_coeffs_json: Path) -> dict:
+    try:
+        with graph_coeffs_json.open() as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        raise ValueError(f"Error loading graph data: {e}")
 
 
-def create_nodes_and_links(
-    data: Dict[str, Any]
-) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def create_nodes_and_links(data: Dict[str, Any]) -> (List[str], List[Dict[str, Any]]):
     """Create nodes and links from the graph data."""
     nodes = {link["source"] for link in data["links"]}.union(
         link["target"] for link in data["links"]
     )
-    links = []
 
-    for link in data["links"]:
-        try:
-            value = float(link["value"])
-            links.append(
-                {"source": link["source"], "target": link["target"], "value": value}
-            )
-        except (ValueError, TypeError):
-            print(f"Invalid value for link: {link}")
+    links = [
+        {
+            "source": link["source"],
+            "target": link["target"],
+            "value": float(link["value"]),
+        }
+        for link in data["links"]
+        if isinstance(link.get("value"), (int, float))
+    ]
 
     if not links:
         raise ValueError("No valid links found with numeric values.")
@@ -44,32 +82,21 @@ def create_nodes_and_links(
     return list(nodes), links
 
 
-def create_dependency_graph(graph_coeffs_json: Path, output_dir: Path) -> None:
-    """Create and render a dependency graph from JSON data."""
-    loaded_json = load_graph_data(graph_coeffs_json)
-    nodes, links = create_nodes_and_links(loaded_json["graph"])
-
-    min_value = min(link["value"] for link in links)
-    max_value = max(link["value"] for link in links)
-
-    connection_count = {node: 0 for node in nodes}
-    for link in links:
-        connection_count[link["source"]] += 1
-        connection_count[link["target"]] += 1
-
-    node_list = [
+def create_node_list(
+    nodes: List[str], connection_count: Dict[str, int]
+) -> List[Dict[str, Any]]:
+    """Create a list of node dictionaries for the graph."""
+    return [
         {
             "name": node,
-            "symbolSize": 10 + connection_count[node] * 2,
-            "category": sum(
-                1 for link in links if link["source"] == node or link["target"] == node
-            ),
+            "symbolSize": NODE_BASE_SIZE
+            + connection_count[node] * NODE_SIZE_MULTIPLIER,
             "label": {
                 "show": True,
-                "formatter": "{b}",  # Show node name
-                "color": "#FFFFFF",  # White color for better visibility
+                "formatter": "{b}",
+                "color": "#FFFFFF",
                 "fontSize": 12,
-                "backgroundColor": "#000000",  # Black background for contrast
+                "backgroundColor": "#000000",
                 "borderRadius": 5,
                 "padding": [5, 10],
             },
@@ -78,36 +105,64 @@ def create_dependency_graph(graph_coeffs_json: Path, output_dir: Path) -> None:
         for node in nodes
     ]
 
-    curved_edges = [
+
+def create_edge_list(
+    links: List[Dict[str, Any]], min_value: float, max_value: float
+) -> List[Dict[str, Any]]:
+    """Create a list of edge dictionaries for the graph."""
+    return [
         {
             "source": link["source"],
             "target": link["target"],
             "value": link["value"],
             "lineStyle": {
                 "color": color_from_value(link["value"], min_value, max_value),
-                "width": 2,
-                "curveness": 0.3,
+                "width": EDGE_WIDTH,
+                "curveness": EDGE_CURVENESS,
             },
-            # No edge labels shown
-            "label": {"show": False},  # Hide edge labels
+            "label": {"show": False},
         }
         for link in links
     ]
 
+
+def create_dependency_graph(graph_coeffs_json: Path, output_dir: Path) -> None:
+    loaded_json = load_graph_data(graph_coeffs_json)
+
+    nodes, links = create_nodes_and_links(loaded_json["graph"])
+
+    min_value = min(link["value"] for link in links)
+    max_value = max(link["value"] for link in links)
+
+    connection_count = {
+        node: sum(
+            1 for link in links if link["source"] == node or link["target"] == node
+        )
+        for node in nodes
+    }
+
+    node_list = create_node_list(nodes, connection_count)
+    edge_list = create_edge_list(links, min_value, max_value)
+
     graph = (
-        Graph(init_opts=opts.InitOpts(width="100vw", height="100vh"))
+        Graph(
+            init_opts=opts.InitOpts(
+                width=GRAPH_DIMENSIONS["width"], height=GRAPH_DIMENSIONS["height"]
+            )
+        )
         .add(
-            "",
+            "result",
             node_list,
-            curved_edges,
-            categories=[
-                {"name": str(i)}
-                for i in range(max(node["category"] for node in node_list) + 1)
-            ],
-            repulsion=8000,
+            edge_list,
+            gravity=GRAVITY,
+            friction=FRICTION,
+            edge_length=EDGE_LENGTH,
+            is_rotate_label=True,
+            is_draggable=True,
+            repulsion=REPULSION_FORCE,
             is_focusnode=True,
             layout="force",
-            label_opts=opts.LabelOpts(is_show=False),  # Hide node labels (if needed)
+            label_opts=opts.LabelOpts(is_show=False),
             linestyle_opts=opts.LineStyleOpts(curve=0.2),
         )
         .set_global_opts(
@@ -126,41 +181,12 @@ def create_dependency_graph(graph_coeffs_json: Path, output_dir: Path) -> None:
                 feature={
                     "saveAsImage": {"title": "Save screenshot"},
                     "dataView": {"readOnly": True, "title": "Data View"},
-                    "restore": {"title": "Restore"},
-                    "zoom": {},
-                    "pan": {},
-                    "lineWidth": {
-                        "title": "Line Width",
-                        "type": ["number"],
-                        "minValue": 1,
-                        "maxValue": 10,
-                    },
-                    "nodeSize": {
-                        "title": "Node Size",
-                        "type": ["number"],
-                        "minValue": 10,
-                        "maxValue": 100,
-                    },
+                    "restore": {"title": "Regenerate"},
                 },
                 pos_left="center",
                 pos_top="3%",
-            ),
-            legend_opts=opts.LegendOpts(pos_right="5%"),
-            visualmap_opts=opts.VisualMapOpts(
-                type_="continuous",
-                min_=min_value,
-                max_=max_value,
-                range_color=["#000000", "#7F7F7F", "#FFFFFF"],
-                textstyle_opts=opts.TextStyleOpts(color="#333", font_size=12),
-                orient="horizontal",
-                pos_bottom="bottom",
-                pos_left="center",
             ),
         )
     )
 
     graph.render(output_dir / "graph.html")
-
-
-# Example usage:
-# create_dependency_graph(Path("path/to/graph_coeffs.json"), Path("path/to/output/dir"))

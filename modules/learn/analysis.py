@@ -1,7 +1,3 @@
-"""
-Module to launch different data analysis.
-"""
-
 import logging
 import os
 
@@ -23,7 +19,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class NoFramesInInputFile(Exception):
-    """Raised when frames dataframe is empty"""
+    pass
 
 
 def feature_extraction(input_file, param_col):

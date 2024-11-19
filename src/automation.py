@@ -1,29 +1,35 @@
 import os
-import subprocess
+import time
+from typing import List
+from concurrent.futures import ProcessPoolExecutor
+from src.analyzer import process_satellite_data
 
 parent_directory = "../../satellites"
 
 
-def run_core_script(directory_name: str):
-    print(f"Discovering {directory_name}...")
-
-    command = ["python", "core.py", directory_name]
-
-    try:
-        result = subprocess.run(command, check=True)
-        print(f"python core.py: {directory_name}, code: {result.stdout}")
-    except subprocess.CalledProcessError as e:
-        print(
-            f"Error occurred while running core.py with argument: {directory_name}. Error: {e}"
-        )
+def analyze_entry(entry: str) -> None:
+    start_time = time.time()
+    full_path = os.path.join(parent_directory, entry)
+    if os.path.isdir(full_path):
+        print(f"Analyzing '{entry}'...")
+        process_satellite_data(entry)
+        elapsed_time = time.time() - start_time
+        print(f"Finished analyzing '{entry}'. Time taken: {elapsed_time:.2f} seconds")
 
 
 def main():
-    for entry in os.listdir(parent_directory):
-        full_path = os.path.join(parent_directory, entry)
+    start_total_time = time.time()
+    entries: List[str] = [
+        entry
+        for entry in os.listdir(parent_directory)
+        if os.path.isdir(os.path.join(parent_directory, entry))
+    ]
 
-        if os.path.isdir(full_path):
-            run_core_script(entry)
+    with ProcessPoolExecutor() as executor:
+        executor.map(analyze_entry, entries)
+
+    total_elapsed_time = time.time() - start_total_time
+    print(f"Total execution time: {total_elapsed_time:.2f} seconds")
 
 
 if __name__ == "__main__":
