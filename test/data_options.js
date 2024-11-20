@@ -20,8 +20,7 @@ clickElementByXPath(data_options_xpath);
 
 demoSleep();
 
-var xpath = '//*[@id="react-select-3-input"]';
-// Select the input element using its ID or any other selector
+var xpath = '//*[starts-with(@id, "react-select-") and substring(@id, string-length(@id) - string-length("-input") + 1) = "-input"]';
 var element = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 
 if (element) {
@@ -53,7 +52,7 @@ if (element) {
 
 demoSleep();
 
-var xpath2 = '//*[@id="react-select-3-option-0"]';
+var xpath2 = '//*[starts-with(@id, "react-select-") and substring(@id, string-length(@id) - string-length("-option-0") + 1) = "-option-0"]';
 // Select the input element using its ID or any other selector
 var element2 = document.evaluate(xpath2, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 
