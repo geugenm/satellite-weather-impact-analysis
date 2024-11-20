@@ -10,7 +10,7 @@ async function wait_for_element(xpath) {
 
         setTimeout(() => {
             clearInterval(interval);
-            reject(new Error("Element not found within timeout"));
+            reject(new Error(`element '${xpath}' not found: timeout`));
         }, 10000); // 10 seconds timeout
     });
 }
@@ -20,7 +20,7 @@ function click_element_by_xpath(xpath) {
     if (element) {
         element.click();
     } else {
-        console.error("Element not found for XPath: " + xpath);
+        console.error(`failed to click on element '${xpath}': no such element`);
     }
 }
 
@@ -31,9 +31,8 @@ function dispatch_events(element) {
             const event = new Event(event_type, { bubbles: true, cancelable: true });
             element.dispatchEvent(event);
         });
-        console.log("Triggered events on the input element successfully.");
     } else {
-        console.error("Element not found.");
+        console.error(`failed to dispatch events on '${element}': no such element`);
     }
 }
 

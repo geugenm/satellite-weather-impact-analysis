@@ -57,10 +57,6 @@ def process_satellite_data(satellite_name):
         solar_dir / "swpc/swpc_observed_ssn.json", "Obsdate"
     ).rename(columns={"Obsdate": time_column})
 
-    swpc_observed_solar_cycle_indices = read_solar_data(
-        solar_dir / "swpc/observed-solar-cycle-indices.json", "time-tag"
-    ).rename(columns={"time-tag": time_column})
-
     swpc_dgd = pd.read_csv(solar_dir / "swpc/dgd.csv", parse_dates=["Date"]).rename(
         columns={"Date": time_column}
     )
