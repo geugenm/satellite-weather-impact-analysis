@@ -17,12 +17,16 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 def create_driver(browser_download_dir: str) -> webdriver:
     options = Options()
-    options.add_argument("--headless")
+    # options.add_argument("--headless")
     options.set_preference("browser.download.folderList", 2)
     options.set_preference("browser.download.dir", browser_download_dir)
     options.set_preference(
@@ -56,17 +60,14 @@ def get_existing_panels(driver: webdriver) -> List[Tuple[int, str]]:
     return existing_panels
 
 
-def click_on_download_button_on_panel(driver: webdriver) -> None:
-    div_selector = 'div[class^="drawer drawer-right drawer-open css-"]'
-    button_selector = 'button[class^="css-"][class$="-button"]'
-
+def click_on_download_button_on_panel(driver: webdriver):
     try:
-        div = driver.find_element(By.CSS_SELECTOR, div_selector)
-        button = div.find_element(By.CSS_SELECTOR, button_selector)
-        button.click()
-        logging.info("download button clicked successfully.")
-    except NoSuchElementException as e:
-        logging.exception(f"download button not found: {e}")
+        with open("scripts/download_from_grafana_panel.js") as file:
+            js_code = file.read()
+
+        print("Executing js downloading script...")
+        driver.execute_script(js_code)
+        time.sleep(20)
     except Exception as e:
         logging.exception(e)
 
@@ -82,25 +83,24 @@ def scroll_to_element(driver: webdriver, css_selector: str) -> None:
 
 
 def process_url(
-    driver: webdriver, url: str, period_from: str = "now", period_to: str = "1y"
+    driver: webdriver, url: str, period_from: str = "now", period_to: str = "9y"
 ) -> None:
-    try:
-        driver.get(url)
-    except Exception as e:
-        logging.exception(f"failed to load '{url}': {e}")
-
-    logging.info("Waiting for page load. Press Ctrl+C to quit...")
-    time.sleep(10)
-
-    logging.info("obtaining panels...")
-    panels_ids_list: list = get_existing_panels(driver)
-
     satellite_page: str = (
-        f"{url}?orgId=1&from={period_from}-{period_to}&to=now&inspect="
+        f"{url}?orgId=1&from={period_from}-{period_to}&to={period_from}"
     )
 
+    try:
+        driver.get(satellite_page)
+    except Exception as e:
+        logging.exception(e)
+
+    logging.info("Waiting for page load. Press Ctrl+C to quit...")
+    time.sleep(5)
+
+    panels_ids_list: list = get_existing_panels(driver)
+
     for panel_id, panel_name in panels_ids_list:
-        new_url: str = f"{satellite_page}{panel_id}"
+        new_url: str = f"{satellite_page}&inspect={panel_id}"
 
         try:
             driver.get(new_url)
@@ -130,8 +130,7 @@ def process_url(
 
 if __name__ == "__main__":
     sat_urls: list[str] = [
-        "https://dashboard.satnogs.org/d/qqOgteuSz/enso?orgId=1&refresh=1m",
-        "https://dashboard.satnogs.org/d/iXL8Q0lGk/grbalpha?orgId=1",
+        "https://dashboard.satnogs.org/d/eWnadSeik/irazu?orgId=1&from=now-9y&to=now",
     ]
 
     for sat_url in sat_urls:

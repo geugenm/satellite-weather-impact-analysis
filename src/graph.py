@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 import numpy as np
 
-
+# Constants
 NODE_BASE_SIZE = 10
 NODE_SIZE_MULTIPLIER = 2
 EDGE_WIDTH = 2
@@ -28,7 +28,6 @@ COLOR_CONFIG = {
 
 
 def color_from_value(value: float, min_value: float, max_value: float) -> str:
-    """Generate a color based on the value normalized between min and max."""
     normalized_value = np.clip((value - min_value) / (max_value - min_value), 0, 1)
     red = int(normalized_value * COLOR_CONFIG["red_max"])
     green = int(
@@ -47,7 +46,6 @@ def color_from_value(value: float, min_value: float, max_value: float) -> str:
             255,
         )
     )
-
     return f"rgba({red}, {green}, {blue}, {COLOR_CONFIG['alpha']})"
 
 
@@ -60,7 +58,6 @@ def load_graph_data(graph_coeffs_json: Path) -> dict:
 
 
 def create_nodes_and_links(data: Dict[str, Any]) -> (List[str], List[Dict[str, Any]]):
-    """Create nodes and links from the graph data."""
     nodes = {link["source"] for link in data["links"]}.union(
         link["target"] for link in data["links"]
     )
@@ -82,9 +79,8 @@ def create_nodes_and_links(data: Dict[str, Any]) -> (List[str], List[Dict[str, A
 
 
 def create_node_list(
-    nodes: List[str], connection_count: Dict[str, int]
+    nodes: List[str], connection_count: Dict[str, int], descriptions: Dict[str, str]
 ) -> List[Dict[str, Any]]:
-    """Create a list of node dictionaries for the graph."""
     return [
         {
             "name": node,
@@ -99,7 +95,9 @@ def create_node_list(
                 "borderRadius": 5,
                 "padding": [5, 10],
             },
-            "tooltip": {"formatter": f"{node}: {connection_count[node]} connection(s)"},
+            "tooltip": {
+                "formatter": f"{node}: {connection_count[node]} connection(s)<br/>{descriptions.get(node, 'No description available')}"
+            },
         }
         for node in nodes
     ]
@@ -108,7 +106,6 @@ def create_node_list(
 def create_edge_list(
     links: List[Dict[str, Any]], min_value: float, max_value: float
 ) -> List[Dict[str, Any]]:
-    """Create a list of edge dictionaries for the graph."""
     return [
         {
             "source": link["source"],
@@ -125,7 +122,9 @@ def create_edge_list(
     ]
 
 
-def create_dependency_graph(graph_coeffs_json: Path, output_dir: Path) -> None:
+def create_dependency_graph(
+    graph_coeffs_json: Path, output_dir: Path, descriptions: Dict[str, str]
+) -> None:
     loaded_json = load_graph_data(graph_coeffs_json)
 
     nodes, links = create_nodes_and_links(loaded_json["graph"])
@@ -140,7 +139,8 @@ def create_dependency_graph(graph_coeffs_json: Path, output_dir: Path) -> None:
         for node in nodes
     }
 
-    node_list = create_node_list(nodes, connection_count)
+    # Pass descriptions to create_node_list
+    node_list = create_node_list(nodes, connection_count, descriptions)
     edge_list = create_edge_list(links, min_value, max_value)
 
     graph = (
