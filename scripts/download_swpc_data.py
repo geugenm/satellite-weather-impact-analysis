@@ -1,31 +1,22 @@
-import requests
+import os
 from pathlib import Path
+import requests
 import pandas as pd
 
-# fixme: download csv instead of .php data
-urls = [
-    "https://services.swpc.noaa.gov/json/solar-cycle/swpc_observed_ssn.json",  # JSON file
-    "https://www.sidc.be/SILSO/INFO/sndtotcsv.php",  # Daily total sunspot number CSV
-    "https://www.sidc.be/SILSO/INFO/sndhemcsv.php",  # Daily hemispheric sunspot number CSV
-    "https://spaceweather.gc.ca/solar_flux_data/daily_flux_values/fluxtable.txt",  # Daily flux values
+URLS = [
+    "https://services.swpc.noaa.gov/json/solar-cycle/swpc_observed_ssn.json",
+    "https://www.sidc.be/SILSO/INFO/sndtotcsv.php",
+    "https://www.sidc.be/SILSO/INFO/sndhemcsv.php",
+    "https://spaceweather.gc.ca/solar_flux_data/daily_flux_values/fluxtable.txt",
 ]
 
-# fixme: format is incorrect
-# Daily hemispheric sunspot number (1992-now):
-# sndhemcsv.php (CSV format)
-# Contents: year, month, day, decimal year, SNvalue(tot), SNvalue(N), SNvalue(S), SNerror(tot), SNerror(N), SNerror(S), Nb observations
-# Comment: The yearly files are replaced by a single file. Total numbers are included next to the North and South numbers.
+TARGET_DIR = Path("../downloads/sun").absolute()
+TARGET_DIR.mkdir(parents=True, exist_ok=True)
 
-# Daily total sunspot number (1818-now):
-# sndtotcsv.php (CSV format)
-# Contents: year, month, day, decimal year, SNvalue , SNerror, Nb observations
 
-target_dir = Path("downloads").absolute()
-target_dir.mkdir(parents=True, exist_ok=True)
-
-for url in urls:
+def download_and_process(url: str) -> None:
     file_name = url.split("/")[-1]
-    file_path = target_dir / file_name
+    file_path = TARGET_DIR / file_name
 
     try:
         response = requests.get(url)
@@ -37,46 +28,67 @@ for url in urls:
         print(f"Downloaded file to: {file_path}")
 
         if file_name == "sndtotcsv.php":
-            df_total = pd.read_csv(file_path, delimiter=";", header=None)
-            df_total.columns = [
-                "year",
-                "month",
-                "day",
-                "decimal_year",
-                "SNvalue",
-                "SNerror",
-                "Nb_observations",
-                "???",
-            ]
-            print(df_total.head())
-
-            total_csv_path = target_dir / "daily_total_sunspot_number.csv"
-            df_total.to_csv(total_csv_path, index=False)
-            print(f"Saved processed data to: {total_csv_path}")
+            convert_to_csv(
+                file_path,
+                [
+                    "year",
+                    "month",
+                    "day",
+                    "decimal_year",
+                    "SNvalue",
+                    "SNerror",
+                    "Nb_observations",
+                ],
+                "daily_total_sunspot_number.csv",
+            )
 
         elif file_name == "sndhemcsv.php":
-            df_hemispheric = pd.read_csv(file_path, delimiter=";", header=None)
-            df_hemispheric.columns = [
-                "year",
-                "month",
-                "day",
-                "decimal_year",
-                "SNvalue_tot",
-                "SNvalue_N",
-                "tot??",
-                "SNvalue_S",
-                "tot??",
-                "SNerror_tot",
-                "SNerror_N",
-                "tot??",
-                "SNerror_S",
-                "Nb_observations",
-            ]
-            print(df_hemispheric.head())
-
-            hemispheric_csv_path = target_dir / "daily_hemispheric_sunspot_number.csv"
-            df_hemispheric.to_csv(hemispheric_csv_path, index=False)
-            print(f"Saved processed data to: {hemispheric_csv_path}")
+            convert_to_csv(
+                file_path,
+                [
+                    "year",
+                    "month",
+                    "day",
+                    "decimal_year",
+                    "SNvalue_tot",
+                    "SNvalue_N",
+                    "SNvalue_S",
+                    "SNerror_tot",
+                    "SNerror_N",
+                    "SNerror_S",
+                    "Nb_observations",
+                ],
+                "daily_hemispheric_sunspot_number.csv",
+            )
 
     except requests.RequestException as e:
         print(f"Failed to download {url}: {e}")
+
+
+def convert_to_csv(file_path: Path, column_names: list[str], output_file: str) -> None:
+    df = pd.read_csv(file_path, delimiter=";", header=None)
+
+    if len(column_names) < df.shape[1]:
+        df = df.iloc[:, : len(column_names)]
+        print(f"Dropped excess columns. New shape: {df.columns}")
+
+    df.columns = column_names
+
+    df.drop(columns=["decimal_year"], inplace=True)
+
+    df["Time"] = pd.to_datetime(df[["year", "month", "day"]])
+
+    df.drop(columns=["year", "month", "day"], inplace=True)
+
+    df = df[["Time"] + [col for col in df.columns if col != "date"]]
+
+    output_path = TARGET_DIR / output_file
+    df.to_csv(output_path, index=False)
+    print(f"Saved processed data to: {output_path}")
+
+    os.remove(file_path)
+
+
+if __name__ == "__main__":
+    for url in URLS:
+        download_and_process(url)

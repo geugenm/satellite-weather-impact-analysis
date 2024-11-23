@@ -29,6 +29,6 @@ for filename in download_dir.glob("*.txt"):
 
 merged_df = pd.concat(dataframes, ignore_index=False)
 
-merged_df.to_csv(download_dir / "dgd.csv")
+merged_df.to_csv(download_dir / "../dgd.csv")
 
-print(f"Saved final dataframe to '{download_dir}/dgd.csv'")
+print(f"Saved final dataframe to '{download_dir}/../dgd.csv'")

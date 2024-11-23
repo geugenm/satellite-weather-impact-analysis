@@ -1,5 +1,3 @@
-from functools import reduce
-
 import pandas as pd
 from pathlib import Path
 
@@ -43,54 +41,55 @@ def read_solar_data(file_path, date_column):
 def process_satellite_data(satellite_name):
     time_column = "Time"
 
-    artifacts_dir = Path(f"../artifacts/{satellite_name}")
+    artifacts_dir = Path(f"../artifacts/{satellite_name}").absolute()
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    satellites_dir = Path("../downloads")
-    solar_dir = Path("../data/solar")
-    model_cfg = Path("../cfg/model.json")
+    satellites_dir = Path("../downloads/sat").absolute()
+
+    solar_dir = Path("../downloads/sun").absolute()
+
+    model_cfg = Path("../cfg/model.json").absolute()
+
     output_graph_file = artifacts_dir / f"{satellite_name}_graph.json"
 
     satellite_data = read_satellite_data(satellites_dir / satellite_name)
 
     swpc_observed_ssn = read_solar_data(
-        solar_dir / "swpc/swpc_observed_ssn.json", "Obsdate"
+        solar_dir / "swpc_observed_ssn.json", "Obsdate"
     ).rename(columns={"Obsdate": time_column})
 
-    swpc_dgd = pd.read_csv(solar_dir / "swpc/dgd.csv", parse_dates=["Date"]).rename(
+    swpc_dgd = pd.read_csv(solar_dir / "dgd.csv", parse_dates=["Date"]).rename(
         columns={"Date": time_column}
     )
 
     fluxtable = pd.read_csv(
-        solar_dir / "penticton/fluxtable.txt",
+        solar_dir / "fluxtable.txt",
         delim_whitespace=True,
         parse_dates=["fluxdate"],
     ).rename(columns={"fluxdate": time_column})
 
+    daily_total_sunspot_number = pd.read_csv(
+        solar_dir / "daily_total_sunspot_number.csv",
+        parse_dates=["Time"],
+    )
+
+    daily_hemispheric_sunspot_number = pd.read_csv(
+        solar_dir / "daily_hemispheric_sunspot_number.csv",
+        parse_dates=["Time"],
+    )
+
     dataframes_to_merge = [
+        satellite_data,
+        daily_total_sunspot_number,
+        daily_hemispheric_sunspot_number,
         swpc_observed_ssn,
-        swpc_observed_solar_cycle_indices,
         swpc_dgd,
         fluxtable,
     ]
 
-    solar_dynamics = dataframes_to_merge[0]
-    for df in dataframes_to_merge[1:]:
-        solar_dynamics = solar_dynamics.merge(df, how="left", on=time_column)
-
-    filter_list: list[str] = [
-        time_column,  # do not forget!!!
-        "smoothed_f10.7",
-        "f10.7",
-        "observed_swpc_ssn",
-        "smoothed_ssn",
-        "fluxcarrington",
-        "Frederickburg K 0-3",
-    ]
-
-    dynamics = satellite_data.merge(
-        solar_dynamics.filter(items=filter_list), on=time_column, how="left"
-    )
+    dynamics = satellite_data
+    for df in dataframes_to_merge:
+        dynamics = dynamics.merge(df, how="left", on=time_column)
 
     dynamics.to_csv(artifacts_dir / f"{satellite_name}_full.csv", index=False)
 
