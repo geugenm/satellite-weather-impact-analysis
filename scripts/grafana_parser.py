@@ -72,16 +72,6 @@ def click_on_download_button_on_panel(driver: webdriver):
         logging.exception(e)
 
 
-def scroll_to_element(driver: webdriver, css_selector: str) -> None:
-    try:
-        element = driver.find_element(By.ID, css_selector)
-        driver.execute_script("arguments[0].scrollIntoView();", element)
-    except NoSuchElementException as e:
-        logging.exception(f"element '{css_selector}' not found: {e}")
-    except Exception as e:
-        logging.exception(e)
-
-
 def process_url(
     driver: webdriver, url: str, period_from: str = "now", period_to: str = "9y"
 ) -> None:
@@ -90,41 +80,52 @@ def process_url(
     )
 
     try:
+        logging.debug(f"Waiting for page load: '{satellite_page}'")
         driver.get(satellite_page)
+        time.sleep(20)
     except Exception as e:
         logging.exception(e)
-
-    logging.info("Waiting for page load. Press Ctrl+C to quit...")
-    time.sleep(5)
+        return
 
     panels_ids_list: list = get_existing_panels(driver)
 
     for panel_id, panel_name in panels_ids_list:
         new_url: str = f"{satellite_page}&inspect={panel_id}"
 
+        wait_timeout: int = 20
+
         try:
             driver.get(new_url)
-        except Exception as e:
-            logging.exception(e)
 
-        wait_timeout: int = 10
-        try:
             WebDriverWait(driver, wait_timeout).until(
                 EC.presence_of_element_located((By.ID, f"panel-{panel_id}"))
             )
 
             WebDriverWait(driver, wait_timeout).until(
                 EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, 'button[class^="css-"][class$="-button"]')
+                    (
+                        By.XPATH,
+                        "/html/body/div/div/div[2]/div/div[2]/div[1]/div[1]/button",
+                    )
                 )
             )
+
+            WebDriverWait(driver, wait_timeout).until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        "/html/body/div/div/div[2]/div/div[2]/div[1]/div[2]/div[1]/div/div/div/div[1]",
+                    )
+                )
+            )
+
         except TimeoutException as e:
             logging.exception(f"failed to load '{panel_name}': {e}")
             continue
+        except Exception as e:
+            logging.exception(e)
 
-        scroll_to_element(driver, f"panel-{panel_id}")
-
-        logging.info(f"Panel '{panel_name}' data preparing to download...")
+        logging.info(f"downloading '{panel_name}' data...")
         click_on_download_button_on_panel(driver)
 
 

@@ -80,8 +80,6 @@ def convert_to_csv(file_path: Path, column_names: list[str], output_file: str) -
 
     df.drop(columns=["year", "month", "day"], inplace=True)
 
-    df = df[["Time"] + [col for col in df.columns if col != "date"]]
-
     output_path = TARGET_DIR / output_file
     df.to_csv(output_path, index=False)
     print(f"Saved processed data to: {output_path}")
