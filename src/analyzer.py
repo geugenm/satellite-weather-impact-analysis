@@ -1,9 +1,8 @@
-import pandas as pd
-from pathlib import Path
-import glob
 import argparse
-import mlflow
+from pathlib import Path
 
+import mlflow
+import pandas as pd
 from src.polaris.learn.analysis import cross_correlate
 from src.graph import create_dependency_graph
 
@@ -20,129 +19,103 @@ OUTPUT_GRAPH_SUFFIX = "_graph.json"
 mlflow.set_tracking_uri(TRACKING_URI)
 
 
+def clean_column_names(columns: list[str]) -> list[str]:
+    """Clean column names by replacing unwanted characters."""
+    return [
+        col.translate(
+            str.maketrans(
+                {
+                    " ": "_",
+                    ",": "_",
+                    "<": "_",
+                    ">": "_",
+                    "[": "_",
+                    "]": "_",
+                    "(": "_",
+                    ")": "_",
+                    "+": "_",
+                    "#": "_",
+                }
+            )
+        )
+        for col in columns
+    ]
+
+
 def get_columns_and_sources(path: Path) -> dict[str, str]:
-    all_files = glob.glob(f"{path}/*.csv")
-
-    columns_to_source_map: dict[str, str] = {}
-
-    for file_path in all_files:
+    """Map columns to their source files."""
+    columns_to_source_map = {}
+    for file_path in Path(path).glob("*.csv"):
         df = pd.read_csv(file_path)
-
-        df.columns = [
-            col.replace(" ", "_")
-            .replace(",", "_")
-            .replace("<", "_")
-            .replace(">", "_")
-            .replace("[", "_")
-            .replace("]", "_")
-            .replace("(", "_")
-            .replace(")", "_")
-            .replace("+", "_")
-            .replace("#", "_")
-            for col in df.columns
-        ]
-
+        df.columns = clean_column_names(df.columns)
         for column_name in df.columns:
-            if column_name not in columns_to_source_map:
-                columns_to_source_map[column_name] = Path(file_path).name
-
+            columns_to_source_map.setdefault(column_name, file_path.name)
     return columns_to_source_map
 
 
-def read_satellite_data(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
-    all_files = glob.glob(f"{path}/*.csv")
-    df = pd.concat((pd.read_csv(f) for f in all_files), ignore_index=True)
-    df[time_column] = pd.to_datetime(df[time_column]).dt.normalize()
-
-    df = df.select_dtypes(include=["number", "bool", "datetime"])
-    df.columns = [
-        col.replace(" ", "_")
-        .replace(",", "_")
-        .replace("<", "_")
-        .replace(">", "_")
-        .replace("[", "_")
-        .replace("]", "_")
-        .replace("(", "_")
-        .replace(")", "_")
-        .replace("+", "_")
-        .replace("#", "_")
-        for col in df.columns
-    ]
-
-    return df.groupby(time_column).mean()
+def read_csv_files(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
+    """Read and merge all CSV files in a directory, keeping numerical, boolean, and datetime columns."""
+    dataframes = [pd.read_csv(file) for file in Path(path).glob("*.csv")]
+    combined_df = pd.concat(dataframes, ignore_index=True)
+    combined_df[time_column] = pd.to_datetime(combined_df[time_column]).dt.normalize()
+    combined_df = combined_df.select_dtypes(include=["number", "bool", "datetime"])
+    combined_df.columns = clean_column_names(combined_df.columns)
+    return combined_df.groupby(time_column).mean()
 
 
-def read_solar_data(file_path: Path, date_column: str):
+def read_solar_data(file_path: Path, date_column: str) -> pd.DataFrame:
+    """Read solar data from a JSON file and normalize the date column."""
     df = pd.read_json(file_path)
     df[date_column] = pd.to_datetime(df[date_column])
     return df
 
 
-def parse_solar_data(solar_dir: Path):
-    swpc_observed_ssn = read_solar_data(
-        solar_dir / "swpc_observed_ssn.json", OBS_DATE_COLUMN
-    ).rename(columns={OBS_DATE_COLUMN: TIME_COLUMN})
-
-    swpc_dgd = pd.read_csv(solar_dir / "dgd.csv", parse_dates=["Date"]).rename(
-        columns={"Date": TIME_COLUMN}
-    )
-
-    fluxtable = pd.read_csv(
-        solar_dir / "fluxtable.txt",
-        delim_whitespace=True,
-        parse_dates=["fluxdate"],
-    ).rename(columns={"fluxdate": TIME_COLUMN})
-
-    daily_total_sunspot_number = pd.read_csv(
-        solar_dir / "daily_total_sunspot_number.csv",
-        parse_dates=[TIME_COLUMN],
-    )
-
-    daily_hemispheric_sunspot_number = pd.read_csv(
-        solar_dir / "daily_hemispheric_sunspot_number.csv",
-        parse_dates=[TIME_COLUMN],
-    )
-
+def parse_solar_data(solar_dir: Path) -> list[pd.DataFrame]:
+    """Parse various solar data files."""
     return [
-        swpc_observed_ssn,
-        swpc_dgd,
-        fluxtable,
-        daily_total_sunspot_number,
-        daily_hemispheric_sunspot_number,
+        read_solar_data(solar_dir / "swpc_observed_ssn.json", OBS_DATE_COLUMN).rename(
+            columns={OBS_DATE_COLUMN: TIME_COLUMN}
+        ),
+        pd.read_csv(solar_dir / "dgd.csv", parse_dates=["Date"]).rename(
+            columns={"Date": TIME_COLUMN}
+        ),
+        pd.read_csv(
+            solar_dir / "fluxtable.txt", delim_whitespace=True, parse_dates=["fluxdate"]
+        ).rename(columns={"fluxdate": TIME_COLUMN}),
+        pd.read_csv(
+            solar_dir / "daily_total_sunspot_number.csv", parse_dates=[TIME_COLUMN]
+        ),
+        pd.read_csv(
+            solar_dir / "daily_hemispheric_sunspot_number.csv",
+            parse_dates=[TIME_COLUMN],
+        ),
     ]
 
 
 def merge_dataframes(
     initial_frame: pd.DataFrame, dataframes_to_merge: list[pd.DataFrame]
-):
+) -> pd.DataFrame:
+    """Merge a list of dataframes into the initial dataframe on the TIME_COLUMN."""
     for df in dataframes_to_merge:
         initial_frame = initial_frame.merge(df, how="left", on=TIME_COLUMN)
     return initial_frame
 
 
-def process_satellite_data(satellite_name: str):
+def process_satellite_data(satellite_name: str) -> None:
+    """Process satellite data and generate a dependency graph."""
     mlflow.set_experiment(f"{satellite_name}_graph")
-
-    artifacts_dir = Path(f"{ARTIFACTS_DIR}/{satellite_name}").absolute()
+    artifacts_dir = (ARTIFACTS_DIR / satellite_name).absolute()
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-
-    satellites_dir = Path(SATELLITES_DIR).absolute()
-    solar_dir = Path(SOLAR_DIR).absolute()
-    model_cfg = Path(MODEL_CFG_PATH).absolute()
-
-    output_graph_file = artifacts_dir / f"{satellite_name}{OUTPUT_GRAPH_SUFFIX}"
 
     mlflow.start_run(run_name="build_graph")
 
-    satellite_data = read_satellite_data(satellites_dir / satellite_name)
-
-    solar_dataframes = parse_solar_data(solar_dir)
-
-    solar_dataframes_filtered = merge_dataframes(
+    satellite_data = read_csv_files(SATELLITES_DIR / satellite_name)
+    solar_dataframes = parse_solar_data(SOLAR_DIR)
+    filtered_solar_data = merge_dataframes(
         solar_dataframes[0], solar_dataframes[1:]
     ).filter(
         items=[
-            "Time",
+            TIME_COLUMN,
             "fluxcarrington",
             "swpc_ssn",
             "Frederickburg K 0-3",
@@ -150,37 +123,35 @@ def process_satellite_data(satellite_name: str):
             "SNvalue_tot",
         ]
     )
+    dynamics = merge_dataframes(satellite_data, [filtered_solar_data])
+    dynamics_file = artifacts_dir / f"{satellite_name}.csv"
+    dynamics.to_csv(dynamics_file, index=False)
+    mlflow.log_artifact(str(dynamics_file))
 
-    dynamics = merge_dataframes(satellite_data, [solar_dataframes_filtered])
-
-    dynamics.to_csv(artifacts_dir / f"{satellite_name}", index=False)
-
-    mlflow.log_artifact(str(artifacts_dir / f"{satellite_name}"))
-
+    graph_file = artifacts_dir / f"{satellite_name}{OUTPUT_GRAPH_SUFFIX}"
     cross_correlate(
         input_dataframe=dynamics,
-        output_graph_file=output_graph_file,
+        output_graph_file=graph_file,
         index_column=TIME_COLUMN,
-        xcorr_configuration_file=model_cfg,
+        xcorr_configuration_file=MODEL_CFG_PATH,
         dropna=True,
     )
+    mlflow.log_artifact(str(graph_file))
 
-    mlflow.log_artifact(str(output_graph_file))
-
-    create_dependency_graph(
-        output_graph_file,
-        artifacts_dir,
-        get_columns_and_sources(satellites_dir / "cross_correlate"),
+    graph = create_dependency_graph(
+        graph_file,
+        get_columns_and_sources(SATELLITES_DIR / satellite_name),
     )
+    output_path = str(artifacts_dir / "graph.html")
+    graph.render(output_path)
+    print(f"Graph rendered successfully at {output_path}")
 
-    mlflow.log_artifact(str(artifacts_dir / "graph.html"))
+    mlflow.log_artifact(output_path)
     mlflow.end_run()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process satellite data.")
     parser.add_argument("satellite_name", type=str, help="Name of the satellite")
-
     args = parser.parse_args()
-
     process_satellite_data(args.satellite_name)

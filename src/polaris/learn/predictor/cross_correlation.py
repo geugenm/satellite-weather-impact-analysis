@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 
 import enlighten
 import numpy as np
@@ -21,16 +21,13 @@ from src.polaris.feature.cleaner import Cleaner
 
 import mlflow.xgboost
 
-mlflow.xgboost.autolog()
+mlflow.xgboost.autolog(model_format="json")
 
-LOGGER = logging.getLogger(__name__)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 np.seterr(divide="ignore", invalid="ignore")
 
 
 class XCorr(BaseEstimator, TransformerMixin):
-    """Cross Correlation predictor class."""
-
     def __init__(
         self, dataset_metadata: Dict[str, Any], cross_correlation_params: Any
     ) -> None:
@@ -103,34 +100,37 @@ class XCorr(BaseEstimator, TransformerMixin):
         if not isinstance(X, pd.DataFrame):
             raise TypeError("Input data should be a DataFrame")
 
-        if not self.models:
-            manager = enlighten.get_manager()
-            LOGGER.info("Clearing Data. Removing unnecessary columns")
+        if self.models:
+            logging.warning("Models are already trained. Skipping re-training.")
+            return
 
-            # Clean the dataset
-            X = self._feature_cleaner.drop_constant_values(X)
-            X = self._feature_cleaner.drop_non_numeric_values(X)
-            X = self._feature_cleaner.handle_missing_values(X)
+        logging.info("Clearing Data. Removing unnecessary columns")
 
-            # Reset importance map and build parameters
-            self.reset_importance_map(X.columns)
-            parameters = self.__build_parameters(X)
+        X = self._feature_cleaner.drop_constant_values(X)
+        X = self._feature_cleaner.drop_non_numeric_values(X)
+        X = self._feature_cleaner.handle_missing_values(X)
 
-            pbar = manager.counter(
-                total=len(parameters), desc="Columns", unit="columns"
-            )
+        logging.info("Starting training with %d columns in the dataset.", X.shape[1])
 
-            with start_run(run_name="cross_correlate", nested=True):
-                self.mlf_logging()
-                for column in parameters:
-                    LOGGER.info(column)
-                    model_instance = self.method(
-                        X.drop([column], axis=1),
-                        X[column],
-                        self.model_params["current"],
-                    )
-                    self.models.append(model_instance)
-                    pbar.update()
+        self.reset_importance_map(X.columns)
+        parameters = self.__build_parameters(X)
+
+        manager = enlighten.get_manager()
+        progress_bar = manager.counter(
+            total=len(parameters), desc="Columns", unit="columns"
+        )
+
+        with start_run(run_name="cross_correlate", nested=True):
+            self.mlf_logging()
+            for column in parameters:
+                logging.info(column)
+                model_instance = self.method(
+                    X.drop([column], axis=1),
+                    X[column],
+                    self.model_params["current"],
+                )
+                self.models.append(model_instance)
+                progress_bar.update()
 
     def transform(self) -> None:
         """Unused method in this predictor."""
@@ -176,11 +176,11 @@ class XCorr(BaseEstimator, TransformerMixin):
             rmse = np.sqrt(mean_squared_error(target_test, target_series_predict))
             log_metric(str(target_series.name) + "_rmse", rmse)
 
-            LOGGER.info("Making predictions for : %s", target_series.name)
-            LOGGER.info("Root Mean Square Error : %s", str(rmse))
+            logging.info("Making predictions for : %s", target_series.name)
+            logging.info("Root Mean Square Error : %s", str(rmse))
 
         except Exception as e:
-            LOGGER.error(
+            logging.error(
                 "Cannot find RMS Error for %s due to error: %s",
                 target_series.name,
                 str(e),
@@ -221,7 +221,7 @@ class XCorr(BaseEstimator, TransformerMixin):
         """
 
         if not isinstance(df_in, pd.DataFrame):
-            LOGGER.error(
+            logging.error(
                 "Expected %s got %s for df_in in gridsearch",
                 pd.DataFrame.__name__,
                 type(df_in).__name__,
@@ -251,7 +251,7 @@ class XCorr(BaseEstimator, TransformerMixin):
 
         log_param(str(target_series.name) + "_best_estimator", gs_regr.best_params_)
 
-        LOGGER.info(
+        logging.info(
             "%s best estimator : %s", target_series.name, str(gs_regr.best_estimator_)
         )
 
@@ -290,7 +290,7 @@ class XCorr(BaseEstimator, TransformerMixin):
         if not self.xcorr_params["feature_columns"]:
             return list(X.columns)
 
-        LOGGER.info(
+        logging.info(
             "Removing features from the parameters : %s",
             str(self.xcorr_params["feature_columns"]),
         )
