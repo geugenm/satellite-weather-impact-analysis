@@ -7,8 +7,8 @@ import warnings
 
 import GPUtil
 
-from modules.feature.cleaner_configurator import CleanerConfigurator
-from modules.learn.predictor.cross_correlation_parameters import (
+from src.polaris.feature.cleaner_configurator import CleanerConfigurator
+from src.polaris.learn.predictor.cross_correlation_parameters import (
     CrossCorrelationParameters,
 )
 
@@ -157,7 +157,8 @@ class CrossCorrelationConfigurator:
                 gpu_ids = []
 
             if gpu_ids != []:
-                LOGGER.info(" ".join(["GPU detected! Adding GPU parameters :)"]))
+                LOGGER.info(
+                    " ".join(["GPU detected! Adding GPU parameters :)"]))
 
                 # For the params chosen, refer:
                 # https://xgboost.readthedocs.io/en/latest/gpu/
@@ -217,7 +218,7 @@ class CrossCorrelationConfigurator:
             number between 0.0 and 1.0
         :type test_size: float
         :param gridsearch_scoring: Scoring function for grid search.
-            See scikit-learn.org/stable/modules/model_evaluation.html
+            See scikit-learn.org/stable/src.polarismodel_evaluation.html
             for predefined values
         :type gridsearch_scoring: str
         :param gridsearch_n_splits: Number of folds for the K-Folds
@@ -239,7 +240,8 @@ class CrossCorrelationConfigurator:
         self._cross_correlation_parameters.gridsearch_scoring = gridsearch_scoring
         self._cross_correlation_parameters.gridsearch_n_splits = gridsearch_n_splits
         if not isinstance(model_params, dict):
-            raise TypeError("Expected {} got {}".format(dict, type(model_params)))
+            raise TypeError("Expected {} got {}".format(
+                dict, type(model_params)))
 
         if use_gridsearch:
             for param in model_params.keys():
@@ -252,7 +254,8 @@ class CrossCorrelationConfigurator:
         model_params = self._set_cpu_parameters(model_params)
         self._cross_correlation_parameters.model_params = model_params
         self._cross_correlation_parameters.model_cpu_params = model_cpu_params
-        feature_cleaner_configurator = CleanerConfigurator(dataset_cleaning_params)
+        feature_cleaner_configurator = CleanerConfigurator(
+            dataset_cleaning_params)
         self._cross_correlation_parameters.dataset_cleaning_params = (
             feature_cleaner_configurator.get_configuration()
         )

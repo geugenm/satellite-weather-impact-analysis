@@ -10,7 +10,7 @@
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from modules.learn.feature.selection import FeatureImportanceOptimization
+from src.polaris.learn.feature.selection import FeatureImportanceOptimization
 
 
 def create_list_of_transformers(input_lags, transformer_class):
@@ -77,7 +77,8 @@ def extract_best_features(
     data_features = None
     if features_file is not None:
         data_features = pd.read_csv(features_file, index_col=[0])
-        data_features.index = pd.to_datetime(data_features.index, unit=time_unit)
+        data_features.index = pd.to_datetime(
+            data_features.index, unit=time_unit)
 
     # Joining all features related data
     if data_features is None:

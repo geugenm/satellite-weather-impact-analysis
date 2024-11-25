@@ -5,10 +5,10 @@ import json
 
 import pandas as pd
 
-from modules.common import constants
-from modules.common.json_serializable import JsonSerializable
-from modules.dataset.frame import PolarisFrame
-from modules.dataset.metadata import PolarisMetadata
+from src.polaris.common import constants
+from src.polaris.common.json_serializable import JsonSerializable
+from src.polaris.dataset.frame import PolarisFrame
+from src.polaris.dataset.metadata import PolarisMetadata
 
 
 class PolarisDataset(dict, JsonSerializable):

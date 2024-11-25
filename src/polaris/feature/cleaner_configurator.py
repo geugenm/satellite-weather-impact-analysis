@@ -4,7 +4,7 @@
 import logging
 import warnings
 
-from modules.feature.cleaner_parameters import CleanerParameters
+from src.polaris.feature.cleaner_parameters import CleanerParameters
 
 LOGGER = logging.getLogger(__name__)
 warnings.simplefilter(action="ignore", category=FutureWarning)

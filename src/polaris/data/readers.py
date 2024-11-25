@@ -11,8 +11,8 @@ import os
 
 import pandas as pd
 
-from modules.dataset.dataset import PolarisDataset
-from modules.dataset.metadata import PolarisMetadata
+from src.polarisdataset.dataset import PolarisDataset
+from src.polarisdataset.metadata import PolarisMetadata
 
 LOGGER = logging.getLogger(__name__)
 

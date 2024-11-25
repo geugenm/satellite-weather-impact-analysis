@@ -1,7 +1,7 @@
 """This module holds the PolarisFrame class.
 """
 
-from modules.common.json_serializable import JsonSerializable
+from src.polaris.common.json_serializable import JsonSerializable
 
 
 class PolarisFrame(dict, JsonSerializable):

@@ -1,6 +1,6 @@
 import json
 
-from modules.common import constants
+from src.polaris.common import constants
 
 
 class JsonSerializable:

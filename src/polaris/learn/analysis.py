@@ -4,14 +4,14 @@ import os
 from fets.math import TSIntegrale
 from mlflow import set_experiment
 
-from modules.data.graph import PolarisGraph
-from modules.dataset.metadata import PolarisMetadata
-from modules.learn.feature.extraction import (
+from src.polaris.data.graph import PolarisGraph
+from src.polaris.dataset.metadata import PolarisMetadata
+from src.polaris.learn.feature.extraction import (
     create_list_of_transformers,
     extract_best_features,
 )
-from modules.learn.predictor.cross_correlation import XCorr
-from modules.learn.predictor.cross_correlation_configurator import (
+from src.polaris.learn.predictor.cross_correlation import XCorr
+from src.polaris.learn.predictor.cross_correlation_configurator import (
     CrossCorrelationConfigurator,
 )
 
@@ -93,7 +93,8 @@ def cross_correlate(
     """
     # Reading input file - index is considered on first column
     metadata = PolarisMetadata(
-        {"satellite_name": os.path.splitext(os.path.basename(output_graph_file))[0]}
+        {"satellite_name": os.path.splitext(
+            os.path.basename(output_graph_file))[0]}
     )
     dataframe = input_dataframe
 
@@ -117,7 +118,8 @@ def cross_correlate(
         output_graph_file = "/tmp/polaris_graph_" + xcorr.regressor + ".json"
 
     graph = PolarisGraph(
-        metadata=PolarisMetadata({"satellite_name": metadata["satellite_name"]})
+        metadata=PolarisMetadata(
+            {"satellite_name": metadata["satellite_name"]})
     )
     graph.from_heatmap(xcorr.importances_map, graph_link_threshold)
     with open(output_graph_file, "w") as graph_file:

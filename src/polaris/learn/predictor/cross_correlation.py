@@ -17,7 +17,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import GridSearchCV, KFold, train_test_split
 from xgboost import XGBRegressor
 
-from modules.feature.cleaner import Cleaner
+from src.polaris.feature.cleaner import Cleaner
 
 LOGGER = logging.getLogger(__name__)
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -169,7 +169,8 @@ class XCorr(BaseEstimator, TransformerMixin):
         target_series_predict = regr_m.predict(df_in_test)
 
         try:
-            rmse = np.sqrt(mean_squared_error(target_test, target_series_predict))
+            rmse = np.sqrt(mean_squared_error(
+                target_test, target_series_predict))
             log_metric(str(target_series.name) + "_rmse", rmse)
 
             LOGGER.info("Making predictions for : %s", target_series.name)
@@ -232,7 +233,8 @@ class XCorr(BaseEstimator, TransformerMixin):
             random_state=random_state,
         )
 
-        regr_m = XGBRegressor(random_state=random_state, tree_method="auto", n_jobs=-1)
+        regr_m = XGBRegressor(random_state=random_state,
+                              tree_method="auto", n_jobs=-1)
 
         gs_regr = GridSearchCV(
             estimator=regr_m,
@@ -245,10 +247,12 @@ class XCorr(BaseEstimator, TransformerMixin):
 
         gs_regr.fit(df_in, target_series)
 
-        log_param(str(target_series.name) + "_best_estimator", gs_regr.best_params_)
+        log_param(str(target_series.name) +
+                  "_best_estimator", gs_regr.best_params_)
 
         LOGGER.info(
-            "%s best estimator : %s", target_series.name, str(gs_regr.best_estimator_)
+            "%s best estimator : %s", target_series.name, str(
+                gs_regr.best_estimator_)
         )
 
         return self.regression(df_in, target_series, gs_regr.best_params_)
@@ -268,7 +272,8 @@ class XCorr(BaseEstimator, TransformerMixin):
 
     def gridsearch_mlf_logging(self) -> None:
         """Log parameters used for grid search in MLflow."""
-        log_param("Gridsearch scoring", self.xcorr_params["gridsearch_scoring"])
+        log_param("Gridsearch scoring",
+                  self.xcorr_params["gridsearch_scoring"])
         log_param("Gridsearch parameters", str(self.model_params))
         self.common_mlf_logging()
 

@@ -2,9 +2,9 @@ import json
 
 import numpy as np
 
-from modules.common import constants
-from modules.common.json_serializable import JsonSerializable
-from modules.dataset.metadata import PolarisMetadata
+from src.polaris.common import constants
+from src.polaris.common.json_serializable import JsonSerializable
+from src.polaris.dataset.metadata import PolarisMetadata
 
 
 class PolarisGraph(dict, JsonSerializable):

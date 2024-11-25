@@ -1,12 +1,10 @@
-from typing import Dict
-
 import pandas as pd
 from pathlib import Path
 import glob
 import argparse
 import mlflow
 
-from modules.learn.analysis import cross_correlate
+from src.polaris.learn.analysis import cross_correlate
 from src.graph import create_dependency_graph
 
 ARTIFACTS_DIR = Path("../artifacts")
@@ -23,7 +21,7 @@ FULL_DATA_SUFFIX = "_full.csv"
 mlflow.set_tracking_uri(TRACKING_URI)
 
 
-def get_columns_and_sources(path: Path) -> Dict[str, str]:
+def get_columns_and_sources(path: Path) -> dict[str, str]:
     all_files = glob.glob(f"{path}/*.csv")
 
     columns_to_source_map = {}
@@ -125,7 +123,8 @@ def process_satellite_data(satellite_name):
     solar_dir = Path(SOLAR_DIR).absolute()
     model_cfg = Path(MODEL_CFG_PATH).absolute()
 
-    output_graph_file = artifacts_dir / f"{satellite_name}{OUTPUT_GRAPH_SUFFIX}"
+    output_graph_file = artifacts_dir / \
+        f"{satellite_name}{OUTPUT_GRAPH_SUFFIX}"
 
     satellite_data = read_satellite_data(satellites_dir / satellite_name)
 
@@ -146,7 +145,8 @@ def process_satellite_data(satellite_name):
 
     dynamics = merge_dataframes(satellite_data, [solar_dataframes_filtered])
 
-    dynamics.to_csv(artifacts_dir / f"{satellite_name}{FULL_DATA_SUFFIX}", index=False)
+    dynamics.to_csv(
+        artifacts_dir / f"{satellite_name}{FULL_DATA_SUFFIX}", index=False)
 
     cross_correlate(
         input_dataframe=dynamics,
@@ -165,7 +165,8 @@ def process_satellite_data(satellite_name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process satellite data.")
-    parser.add_argument("satellite_name", type=str, help="Name of the satellite")
+    parser.add_argument("satellite_name", type=str,
+                        help="Name of the satellite")
 
     args = parser.parse_args()
 
