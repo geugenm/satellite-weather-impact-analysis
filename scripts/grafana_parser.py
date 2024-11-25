@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
         parsed_url = urlparse(clear_url)
         dir_name = os.path.basename(parsed_url.path)
-        download_location = Path("downloads").absolute() / Path(dir_name)
+        download_location = Path("downloads/sat").absolute() / Path(dir_name)
 
         firefox_driver = create_driver(str(download_location))
 

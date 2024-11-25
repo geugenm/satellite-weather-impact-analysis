@@ -1,7 +1,6 @@
 import os
 import time
 import logging
-from typing import List
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from src.analyzer import process_satellite_data
@@ -33,7 +32,7 @@ def analyze_entry(entry: str) -> None:
 def main() -> None:
     start_total_time = time.time()
 
-    entries: List[str] = [
+    entries: list[str] = [
         entry
         for entry in os.listdir(parent_directory)
         if os.path.isdir(os.path.join(parent_directory, entry))

@@ -1,4 +1,4 @@
-# Must have patched by ext/vinvelivaanilai_new_dgd_support.patch installed on python 3.8 vinvelivaanilai
+# Must have patched by patch/vinvelivaanilai_new_dgd_support.patch installed on python 3.8 vinvelivaanilai
 # https://gitlab.com/librespacefoundation/polaris/vinvelivaanilai
 
 from vinvelivaanilai.space_weather.sw_file_fetch import fetch_indices
@@ -29,6 +29,6 @@ for filename in download_dir.glob("*.txt"):
 
 merged_df = pd.concat(dataframes, ignore_index=False)
 
-merged_df.to_csv(download_dir / "../dgd.csv")
+merged_df.to_csv(download_dir / "../sun/dgd.csv")
 
-print(f"Saved final dataframe to '{download_dir}/../dgd.csv'")
+print(f"Saved final dataframe to '{download_dir}/../sun/dgd.csv'")

@@ -19,3 +19,4 @@ GPUtil
 mlflow
 selenium
 tqdm
+pyright

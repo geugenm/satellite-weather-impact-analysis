@@ -2,7 +2,6 @@ from pyecharts import options as opts
 from pyecharts.charts import Graph
 import json
 from pathlib import Path
-from typing import List, Dict, Any
 import numpy as np
 
 # Constants
@@ -57,7 +56,7 @@ def load_graph_data(graph_coeffs_json: Path) -> dict:
         raise ValueError(f"Error loading graph data: {e}")
 
 
-def create_nodes_and_links(data: Dict[str, Any]) -> (List[str], List[Dict[str, Any]]):
+def create_nodes_and_links(data: dict[str, any]) -> (list[str], list[dict[str, any]]):
     nodes = {link["source"] for link in data["links"]}.union(
         link["target"] for link in data["links"]
     )
@@ -79,8 +78,8 @@ def create_nodes_and_links(data: Dict[str, Any]) -> (List[str], List[Dict[str, A
 
 
 def create_node_list(
-    nodes: List[str], connection_count: Dict[str, int], descriptions: Dict[str, str]
-) -> List[Dict[str, Any]]:
+    nodes: list[str], connection_count: dict[str, int], descriptions: dict[str, str]
+) -> list[dict[str, any]]:
     return [
         {
             "name": node,
@@ -104,8 +103,8 @@ def create_node_list(
 
 
 def create_edge_list(
-    links: List[Dict[str, Any]], min_value: float, max_value: float
-) -> List[Dict[str, Any]]:
+    links: list[dict[str, any]], min_value: float, max_value: float
+) -> list[dict[str, any]]:
     return [
         {
             "source": link["source"],
@@ -123,7 +122,7 @@ def create_edge_list(
 
 
 def create_dependency_graph(
-    graph_coeffs_json: Path, output_dir: Path, descriptions: Dict[str, str]
+    graph_coeffs_json: Path, output_dir: Path, descriptions: dict[str, str]
 ) -> None:
     loaded_json = load_graph_data(graph_coeffs_json)
 

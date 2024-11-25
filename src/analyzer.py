@@ -16,7 +16,6 @@ MODEL_CFG_PATH = Path("../cfg/model.json")
 TIME_COLUMN = "Time"
 OBS_DATE_COLUMN = "Obsdate"
 OUTPUT_GRAPH_SUFFIX = "_graph.json"
-FULL_DATA_SUFFIX = "_full.csv"
 
 mlflow.set_tracking_uri(TRACKING_URI)
 
@@ -24,7 +23,7 @@ mlflow.set_tracking_uri(TRACKING_URI)
 def get_columns_and_sources(path: Path) -> dict[str, str]:
     all_files = glob.glob(f"{path}/*.csv")
 
-    columns_to_source_map = {}
+    columns_to_source_map: dict[str, str] = {}
 
     for file_path in all_files:
         df = pd.read_csv(file_path)
@@ -34,8 +33,10 @@ def get_columns_and_sources(path: Path) -> dict[str, str]:
             .replace(",", "_")
             .replace("<", "_")
             .replace(">", "_")
-            .replace("[", "(")
-            .replace("]", ")")
+            .replace("[", "_")
+            .replace("]", "_")
+            .replace("(", "_")
+            .replace(")", "_")
             .replace("+", "_")
             .replace("#", "_")
             for col in df.columns
@@ -48,7 +49,7 @@ def get_columns_and_sources(path: Path) -> dict[str, str]:
     return columns_to_source_map
 
 
-def read_satellite_data(path: Path, time_column: str = TIME_COLUMN):
+def read_satellite_data(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
     all_files = glob.glob(f"{path}/*.csv")
     df = pd.concat((pd.read_csv(f) for f in all_files), ignore_index=True)
     df[time_column] = pd.to_datetime(df[time_column]).dt.normalize()
@@ -59,8 +60,10 @@ def read_satellite_data(path: Path, time_column: str = TIME_COLUMN):
         .replace(",", "_")
         .replace("<", "_")
         .replace(">", "_")
-        .replace("[", "(")
-        .replace("]", ")")
+        .replace("[", "_")
+        .replace("]", "_")
+        .replace("(", "_")
+        .replace(")", "_")
         .replace("+", "_")
         .replace("#", "_")
         for col in df.columns
@@ -69,13 +72,13 @@ def read_satellite_data(path: Path, time_column: str = TIME_COLUMN):
     return df.groupby(time_column).mean()
 
 
-def read_solar_data(file_path, date_column):
+def read_solar_data(file_path: Path, date_column: str):
     df = pd.read_json(file_path)
     df[date_column] = pd.to_datetime(df[date_column])
     return df
 
 
-def parse_solar_data(solar_dir):
+def parse_solar_data(solar_dir: Path):
     swpc_observed_ssn = read_solar_data(
         solar_dir / "swpc_observed_ssn.json", OBS_DATE_COLUMN
     ).rename(columns={OBS_DATE_COLUMN: TIME_COLUMN})
@@ -109,13 +112,17 @@ def parse_solar_data(solar_dir):
     ]
 
 
-def merge_dataframes(initial_frame, dataframes_to_merge):
+def merge_dataframes(
+    initial_frame: pd.DataFrame, dataframes_to_merge: list[pd.DataFrame]
+):
     for df in dataframes_to_merge:
         initial_frame = initial_frame.merge(df, how="left", on=TIME_COLUMN)
     return initial_frame
 
 
-def process_satellite_data(satellite_name):
+def process_satellite_data(satellite_name: str):
+    mlflow.set_experiment(f"{satellite_name}_graph")
+
     artifacts_dir = Path(f"{ARTIFACTS_DIR}/{satellite_name}").absolute()
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
@@ -123,8 +130,9 @@ def process_satellite_data(satellite_name):
     solar_dir = Path(SOLAR_DIR).absolute()
     model_cfg = Path(MODEL_CFG_PATH).absolute()
 
-    output_graph_file = artifacts_dir / \
-        f"{satellite_name}{OUTPUT_GRAPH_SUFFIX}"
+    output_graph_file = artifacts_dir / f"{satellite_name}{OUTPUT_GRAPH_SUFFIX}"
+
+    mlflow.start_run(run_name="build_graph")
 
     satellite_data = read_satellite_data(satellites_dir / satellite_name)
 
@@ -145,8 +153,9 @@ def process_satellite_data(satellite_name):
 
     dynamics = merge_dataframes(satellite_data, [solar_dataframes_filtered])
 
-    dynamics.to_csv(
-        artifacts_dir / f"{satellite_name}{FULL_DATA_SUFFIX}", index=False)
+    dynamics.to_csv(artifacts_dir / f"{satellite_name}", index=False)
+
+    mlflow.log_artifact(str(artifacts_dir / f"{satellite_name}"))
 
     cross_correlate(
         input_dataframe=dynamics,
@@ -156,17 +165,21 @@ def process_satellite_data(satellite_name):
         dropna=True,
     )
 
+    mlflow.log_artifact(str(output_graph_file))
+
     create_dependency_graph(
         output_graph_file,
         artifacts_dir,
-        get_columns_and_sources(satellites_dir / satellite_name),
+        get_columns_and_sources(satellites_dir / "cross_correlate"),
     )
+
+    mlflow.log_artifact(str(artifacts_dir / "graph.html"))
+    mlflow.end_run()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process satellite data.")
-    parser.add_argument("satellite_name", type=str,
-                        help="Name of the satellite")
+    parser.add_argument("satellite_name", type=str, help="Name of the satellite")
 
     args = parser.parse_args()
 
