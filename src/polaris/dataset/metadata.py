@@ -1,16 +1,10 @@
-"""This module holds the PolarisMetadata class.
-"""
-
 from src.polaris.common.json_serializable import JsonSerializable
 
 
 class PolarisMetadata(dict, JsonSerializable):
-    """Class for Polaris metadata"""
-
     DATA_FORMAT_VERSION = 1
 
     def __init__(self, *initial_data, **kwargs):
-        """Initialize a PolarisMetadata object"""
         dict.__init__(self)
         JsonSerializable.__init__(self)
         self["data_format_version"] = self.DATA_FORMAT_VERSION

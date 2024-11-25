@@ -1,6 +1,3 @@
-"""This module holds the PolarisDataset class
-"""
-
 import json
 
 import pandas as pd
@@ -12,8 +9,6 @@ from src.polaris.dataset.metadata import PolarisMetadata
 
 
 class PolarisDataset(dict, JsonSerializable):
-    """Class for dataset frames"""
-
     def __init__(self, metadata=None, frames=None):
         """Initialize a PolarisDataset object
 

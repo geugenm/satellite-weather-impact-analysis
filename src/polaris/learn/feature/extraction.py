@@ -27,13 +27,17 @@ def create_list_of_transformers(input_lags, transformer_class):
 
 
 def extract_best_features(
-    data_file, transformers, features_file=None, target_column=None, time_unit=None
+    data_file: str,
+    transformers,
+    features_file: str = None,
+    target_column: str = None,
+    time_unit: str = None,
 ):
     """Utility to extract best features out of a set of set of transformers.
     It is a progressive (iterative) features extraction that would select
     the best features created out of each set of transformers.
 
-    :param datafile: File/Stream path to input data.
+    :param data_file: File/Stream path to input data.
     index column defaults to [0]
 
     :param transformers: List of list of transformers. Iterable of
@@ -64,34 +68,17 @@ def extract_best_features(
     if time_unit is not None:
         data.index = pd.to_datetime(data.index, unit=time_unit)
 
-    # Selecting target data and preparing the predictors
-    data_target = None
-    if target_column is not None:
-        data_target = data[target_column]
-        data = data.drop(target_column, axis=1)
-    else:
-        data_target = data[data.columns[0]]
-        data = data.drop(data.columns[0], axis=1)
+    target = data.pop(target_column) if target_column else data.iloc[:, 0]
 
-    # Loading an additional files of features
-    data_features = None
-    if features_file is not None:
-        data_features = pd.read_csv(features_file, index_col=[0])
-        data_features.index = pd.to_datetime(
-            data_features.index, unit=time_unit)
+    # Load additional feature data if provided
+    features = pd.read_csv(features_file, index_col=0) if features_file else None
+    if features is not None:
+        features.index = pd.to_datetime(features.index, unit=time_unit)
+        data = pd.concat([data, features], axis=1)
 
-    # Joining all features related data
-    if data_features is None:
-        data_features = data
-    else:
-        data_features = pd.concat([data, data_features], axis=1)
-
-    # Preparing pipeline for extractiong of best features
+    # Initialize feature importance selector and pipeline
     selector = FeatureImportanceOptimization(transformers)
-    pipeline = Pipeline([("FeatureImportances", selector)])
+    pipeline = Pipeline([("FeatureImportances", selector)], memory=None)
 
-    # Running the pipeline
-    # NB: the method for best features selection is the default one.
-    features_importances = pipeline.fit(data_features, data_target)
-
-    return features_importances
+    # Fit pipeline and return feature importances
+    return pipeline.fit(data, target)
