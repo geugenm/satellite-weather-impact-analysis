@@ -71,7 +71,6 @@ class XCorr(BaseEstimator, TransformerMixin):
         )
         self.model_params = {
             "current": cross_correlation_params.model_params,
-            "cpu": cross_correlation_params.model_cpu_params,
             "regressor_name": cross_correlation_params.regressor_name,
         }
 
@@ -204,7 +203,7 @@ class XCorr(BaseEstimator, TransformerMixin):
 
     def regression_mlf_logging(self) -> None:
         self.common_mlf_logging()
-        log_params(self.model_params)
+        log_param("regressor_name", self.model_params["regressor_name"])
 
     def __build_parameters(self, x_dataframe: pd.DataFrame) -> list[str]:
         feature_columns = self.xcorr_params["feature_columns"]

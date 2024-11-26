@@ -6,7 +6,6 @@ class CrossCorrelationParameters:
         self._gridsearch_scoring: str = "accuracy"
         self._gridsearch_n_splits: int = 5
         self._model_params: dict = {}
-        self._model_cpu_params: dict = {}
         self._dataset_cleaning_params: object = (
             None  # Assuming CleanerParameters or similar class
         )
@@ -59,14 +58,6 @@ class CrossCorrelationParameters:
     @model_params.setter
     def model_params(self, value: dict) -> None:
         self._model_params = value
-
-    @property
-    def model_cpu_params(self) -> dict:
-        return self._model_cpu_params
-
-    @model_cpu_params.setter
-    def model_cpu_params(self, value: dict) -> None:
-        self._model_cpu_params = value
 
     @property
     def dataset_cleaning_params(self) -> object:
