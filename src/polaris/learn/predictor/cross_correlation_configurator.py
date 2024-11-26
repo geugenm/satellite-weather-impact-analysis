@@ -15,11 +15,9 @@ class CrossCorrelationConfigurator:
     def __init__(
         self,
         xcorr_configuration_file: str = None,
-        use_gridsearch: bool = False,
         force_cpu: bool = False,
     ):
         self._xcorr_configuration_file = xcorr_configuration_file
-        self._use_gridsearch = use_gridsearch
         self._force_cpu = force_cpu
         self._cross_correlation_parameters = CrossCorrelationParameters()
 
@@ -63,19 +61,13 @@ class CrossCorrelationConfigurator:
 
     def _set_custom_configuration(
         self,
-        use_gridsearch: bool,
         random_state: int,
         test_size: float,
-        gridsearch_scoring: str,
-        gridsearch_n_splits: int,
         model_params: Dict[str, Any],
         dataset_cleaning_params: CleanerParameters,
     ):
-        self._cross_correlation_parameters.use_gridsearch = use_gridsearch
         self._cross_correlation_parameters.random_state = random_state
         self._cross_correlation_parameters.test_size = test_size
-        self._cross_correlation_parameters.gridsearch_scoring = gridsearch_scoring
-        self._cross_correlation_parameters.gridsearch_n_splits = gridsearch_n_splits
         self._cross_correlation_parameters.model_params = self._set_cpu_parameters(
             model_params
         )

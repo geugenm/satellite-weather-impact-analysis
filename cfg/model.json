@@ -1,9 +1,6 @@
 {
-    "use_gridsearch": false,
     "random_state": 43,
     "test_size": 0.25,
-    "gridsearch_scoring": "neg_mean_squared_error",
-    "gridsearch_n_splits": 6,
     "dataset_cleaning_params": {
         "col_max_na_percentage": 100,
         "row_max_na_percentage": 100

@@ -11,7 +11,7 @@ from sklearn.ensemble import (
     RandomForestRegressor,
 )
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import train_test_split, KFold, GridSearchCV
+from sklearn.model_selection import train_test_split
 import mlflow.xgboost
 from xgboost import XGBRegressor
 
@@ -36,34 +36,17 @@ class XCorr(BaseEstimator, TransformerMixin):
         )
 
         log_params(cross_correlation_params.model_params)
-        log_params(
-            {
-                "use_gridsearch": cross_correlation_params.use_gridsearch,
-                "gridsearch_scoring": cross_correlation_params.gridsearch_scoring,
-                "gridsearch_n_splits": cross_correlation_params.gridsearch_n_splits,
-            }
-        )
 
         # Parameters
         self.xcorr_params = {
             "random_state": cross_correlation_params.random_state,
             "test_size": cross_correlation_params.test_size,
-            "gridsearch_scoring": cross_correlation_params.gridsearch_scoring,
-            "gridsearch_n_splits": cross_correlation_params.gridsearch_n_splits,
             "feature_columns": dataset_metadata.get("analysis", {}).get(
                 "feature_columns", []
             ),
         }
-        self.method = (
-            self.gridsearch
-            if cross_correlation_params.use_gridsearch
-            else self.regression
-        )
-        self.mlf_logging = (
-            self.gridsearch_mlf_logging
-            if cross_correlation_params.use_gridsearch
-            else self.regression_mlf_logging
-        )
+        self.method = self.regression
+        self.mlf_logging = self.regression_mlf_logging
 
         # Default regressor is XGBoost
         cross_correlation_params.regressor_name = (
@@ -149,40 +132,6 @@ class XCorr(BaseEstimator, TransformerMixin):
 
         return regressor
 
-    def gridsearch(
-        self,
-        df_in: pd.DataFrame,
-        target_series: pd.Series,
-        model_params: dict[str, any],
-    ) -> XGBRegressor:
-        kfolds = KFold(
-            n_splits=self.xcorr_params["gridsearch_n_splits"],
-            shuffle=True,
-            random_state=self.xcorr_params["random_state"],
-        )
-
-        regr_m = XGBRegressor(
-            random_state=self.xcorr_params["random_state"],
-            tree_method="auto",
-            n_jobs=-1,
-        )
-        gs_regr = GridSearchCV(
-            estimator=regr_m,
-            param_grid=model_params,
-            cv=kfolds,
-            scoring=self.xcorr_params["gridsearch_scoring"],
-            n_jobs=-1,
-            verbose=1,
-        )
-
-        gs_regr.fit(df_in, target_series)
-        log_param(f"{target_series.name}_best_estimator", gs_regr.best_params_)
-        logging.info(
-            f"Best estimator for {target_series.name}: {gs_regr.best_estimator_}"
-        )
-
-        return self.regression(df_in, target_series, gs_regr.best_params_)
-
     def reset_importance_map(self, columns: pd.Index) -> None:
         if self.importances_map is None:
             self.importances_map = pd.DataFrame(columns=columns)
@@ -191,15 +140,6 @@ class XCorr(BaseEstimator, TransformerMixin):
         log_params(
             {"Test size": self.xcorr_params["test_size"], "Model": "XGBRegressor"}
         )
-
-    def gridsearch_mlf_logging(self) -> None:
-        log_params(
-            {
-                "Gridsearch scoring": self.xcorr_params["gridsearch_scoring"],
-                "Gridsearch parameters": str(self.model_params),
-            }
-        )
-        self.common_mlf_logging()
 
     def regression_mlf_logging(self) -> None:
         self.common_mlf_logging()

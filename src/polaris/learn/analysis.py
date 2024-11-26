@@ -20,7 +20,6 @@ def cross_correlate(
     output_graph_file: str | None = None,
     xcorr_configuration_file: str | None = None,
     graph_link_threshold: float = 0.1,
-    use_gridsearch: bool = False,
     force_cpu: bool = False,
     index_column: str = "time",
     dropna: bool = False,
@@ -36,7 +35,6 @@ def cross_correlate(
 
     configurator = CrossCorrelationConfigurator(
         xcorr_configuration_file,
-        use_gridsearch,
         force_cpu,
     )
 
