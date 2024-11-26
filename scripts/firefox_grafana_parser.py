@@ -48,7 +48,8 @@ def get_existing_panels(driver: webdriver) -> List[Tuple[int, str]]:
         try:
             element = driver.find_element(By.ID, f"panel-{panel_id}")
             if "react-grid-item" in element.get_attribute("class"):
-                title_element = element.find_element(By.CLASS_NAME, "panel-title-text")
+                title_element = element.find_element(By.CLASS_NAME,
+                                                     "panel-title-text")
                 existing_panels.append((panel_id, title_element.text))
         except NoSuchElementException:
             pass
@@ -131,7 +132,7 @@ def process_url(
 
 if __name__ == "__main__":
     sat_urls: list[str] = [
-        "https://dashboard.satnogs.org/d/eWnadSeik/irazu?orgId=1&from=now-9y&to=now",
+        "https://dashboard.satnogs.org/d/qqOgteuSz/enso?orgId=1&refresh=1m&from=now-5y&to=now",
     ]
 
     for sat_url in sat_urls:

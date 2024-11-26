@@ -4,9 +4,7 @@ from pathlib import Path
 import mlflow
 import pandas as pd
 from mlflow.data.pandas_dataset import PandasDataset
-from requests.packages import target
 
-import src.polaris.learn.analysis
 from src.polaris.learn.analysis import cross_correlate
 from src.graph import create_dependency_graph
 
@@ -59,8 +57,10 @@ def get_columns_and_sources(path: Path) -> dict[str, str]:
 def read_csv_files(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
     dataframes = [pd.read_csv(file) for file in Path(path).glob("*.csv")]
     combined_df = pd.concat(dataframes, ignore_index=True)
-    combined_df[time_column] = pd.to_datetime(combined_df[time_column]).dt.normalize()
-    combined_df = combined_df.select_dtypes(include=["number", "bool", "datetime"])
+    combined_df[time_column] = pd.to_datetime(
+        combined_df[time_column]).dt.normalize()
+    combined_df = combined_df.select_dtypes(
+        include=["number", "bool", "datetime"])
     combined_df.columns = clean_column_names(combined_df.columns)
     return combined_df.groupby(time_column).mean()
 
@@ -73,7 +73,8 @@ def read_solar_data(file_path: Path, date_column: str) -> pd.DataFrame:
 
 def parse_solar_data(solar_dir: Path) -> list[pd.DataFrame]:
     return [
-        read_solar_data(solar_dir / "swpc_observed_ssn.json", OBS_DATE_COLUMN).rename(
+        read_solar_data(solar_dir / "swpc_observed_ssn.json",
+                        OBS_DATE_COLUMN).rename(
             columns={OBS_DATE_COLUMN: TIME_COLUMN}
         ),
         pd.read_csv(solar_dir / "dgd.csv", parse_dates=["Date"]).rename(
@@ -83,7 +84,8 @@ def parse_solar_data(solar_dir: Path) -> list[pd.DataFrame]:
             solar_dir / "fluxtable.txt", sep="\s+", parse_dates=["fluxdate"]
         ).rename(columns={"fluxdate": TIME_COLUMN}),
         pd.read_csv(
-            solar_dir / "daily_total_sunspot_number.csv", parse_dates=[TIME_COLUMN]
+            solar_dir / "daily_total_sunspot_number.csv",
+            parse_dates=[TIME_COLUMN]
         ),
         pd.read_csv(
             solar_dir / "daily_hemispheric_sunspot_number.csv",
@@ -158,6 +160,7 @@ def process_satellite_data(satellite_name: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process satellite data.")
-    parser.add_argument("satellite_name", type=str, help="Name of the satellite")
+    parser.add_argument("satellite_name", type=str,
+                        help="Name of the satellite")
     args = parser.parse_args()
     process_satellite_data(args.satellite_name)
