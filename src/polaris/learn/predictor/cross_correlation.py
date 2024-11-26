@@ -2,7 +2,6 @@ import logging
 import warnings
 from typing import Dict, Any, List, Optional
 
-import enlighten
 import numpy as np
 import pandas as pd
 from mlflow import log_metric, log_param, log_params, start_run
@@ -42,7 +41,6 @@ class XCorr(BaseEstimator, TransformerMixin):
             dataset_metadata, cross_correlation_params.dataset_cleaning_params
         )
 
-        # Initialize parameters
         self.xcorr_params = {
             "random_state": cross_correlation_params.random_state,
             "test_size": cross_correlation_params.test_size,
@@ -73,7 +71,6 @@ class XCorr(BaseEstimator, TransformerMixin):
 
     @property
     def regressor(self) -> str:
-        """Return the regressor name value as str."""
         return self.model_params["regressor_name"]
 
     @regressor.setter
@@ -82,7 +79,6 @@ class XCorr(BaseEstimator, TransformerMixin):
 
     @property
     def importances_map(self) -> Optional[pd.DataFrame]:
-        """Return the importances_map value as Pandas DataFrame."""
         return self._importances_map
 
     @importances_map.setter
@@ -115,26 +111,18 @@ class XCorr(BaseEstimator, TransformerMixin):
         self.reset_importance_map(X.columns)
         parameters = self.__build_parameters(X)
 
-        manager = enlighten.get_manager()
-        progress_bar = manager.counter(
-            total=len(parameters), desc="Columns", unit="columns"
-        )
-
-        with start_run(run_name="cross_correlate", nested=True):
-            self.mlf_logging()
-            for column in parameters:
-                logging.info(column)
-                model_instance = self.method(
-                    X.drop([column], axis=1),
-                    X[column],
-                    self.model_params["current"],
-                )
-                self.models.append(model_instance)
-                progress_bar.update()
+        self.mlf_logging()
+        for column in parameters:
+            logging.info(column)
+            model_instance = self.method(
+                X.drop([column], axis=1),
+                X[column],
+                self.model_params["current"],
+            )
+            self.models.append(model_instance)
 
     def transform(self) -> None:
-        """Unused method in this predictor."""
-        return None
+        raise NotImplementedError
 
     def regression(
         self,
@@ -167,7 +155,6 @@ class XCorr(BaseEstimator, TransformerMixin):
 
         regr_m = regressors_dict[self.regressor]
 
-        # Fit the model and make predictions
         regr_m.fit(df_in_train, target_train)
 
         target_series_predict = regr_m.predict(df_in_test)
@@ -176,12 +163,13 @@ class XCorr(BaseEstimator, TransformerMixin):
             rmse = np.sqrt(mean_squared_error(target_test, target_series_predict))
             log_metric(str(target_series.name) + "_rmse", rmse)
 
-            logging.info("Making predictions for : %s", target_series.name)
-            logging.info("Root Mean Square Error : %s", str(rmse))
+            logging.info(
+                "Root Mean Square Error for '%s' : %s", target_series.name, str(rmse)
+            )
 
         except Exception as e:
             logging.error(
-                "Cannot find RMS Error for %s due to error: %s",
+                "Cannot find RMS Error for '%s' due to error: %s",
                 target_series.name,
                 str(e),
             )
@@ -258,26 +246,23 @@ class XCorr(BaseEstimator, TransformerMixin):
         return self.regression(df_in, target_series, gs_regr.best_params_)
 
     def reset_importance_map(self, columns: pd.Index) -> None:
-        """Creating an empty importance map.
-
-        :param columns: List of column names for the importance map.
-        """
-        if self._importances_map is None:
-            self._importances_map = pd.DataFrame(data={}, columns=columns)
+        self._importances_map = self._importances_map or pd.DataFrame(columns=columns)
 
     def common_mlf_logging(self) -> None:
-        """Log common parameters used in MLflow."""
-        log_param("Test size", self.xcorr_params["test_size"])
-        log_param("Model", "XGBRegressor")
+        log_params(
+            {"Test size": self.xcorr_params["test_size"], "Model": "XGBRegressor"}
+        )
 
     def gridsearch_mlf_logging(self) -> None:
-        """Log parameters used for grid search in MLflow."""
-        log_param("Gridsearch scoring", self.xcorr_params["gridsearch_scoring"])
-        log_param("Gridsearch parameters", str(self.model_params))
+        log_params(
+            {
+                "Gridsearch scoring": self.xcorr_params["gridsearch_scoring"],
+                "Gridsearch parameters": str(self.model_params),
+            }
+        )
         self.common_mlf_logging()
 
     def regression_mlf_logging(self) -> None:
-        """Log parameters used for regression in MLflow."""
         self.common_mlf_logging()
         log_params(self.model_params)
 

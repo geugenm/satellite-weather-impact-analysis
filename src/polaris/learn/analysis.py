@@ -2,7 +2,6 @@ import logging
 import os
 
 from fets.math import TSIntegrale
-from mlflow import set_experiment
 
 from src.polaris.data.graph import PolarisGraph
 from src.polaris.dataset.metadata import PolarisMetadata
@@ -14,8 +13,6 @@ from src.polaris.learn.predictor.cross_correlation import XCorr
 from src.polaris.learn.predictor.cross_correlation_configurator import (
     CrossCorrelationConfigurator,
 )
-
-LOGGER = logging.getLogger(__name__)
 
 
 class NoFramesInInputFile(Exception):
@@ -62,9 +59,8 @@ def cross_correlate(
     Catch linear and non-linear correlations between all columns of the
     input data.
 
-        :param input_file: CSV or JSON file path that will be
-            converted to a dataframe
-        :type input_file: str
+        :param input_dataframe: pandas dataframe
+        :type input_dataframe: pd.DataFrame
         :param index_column: column to set as index of the dataframe
             and then drop it.
         :type index_column: str, optional
@@ -91,18 +87,11 @@ def cross_correlate(
         :raises NoFramesInInputFile: If there are no frames in the converted
             dataframe
     """
-    # Reading input file - index is considered on first column
-    metadata = PolarisMetadata(
-        {"satellite_name": os.path.splitext(
-            os.path.basename(output_graph_file))[0]}
-    )
     dataframe = input_dataframe
 
     if dataframe.empty:
-        LOGGER.error("Empty set of frames -- nothing to learn from!")
+        logging.error("Empty set of frames -- nothing to learn from!")
         raise NoFramesInInputFile
-
-    set_experiment(experiment_name=metadata["satellite_name"])
 
     xcorr_configurator = CrossCorrelationConfigurator(
         xcorr_configuration_file=xcorr_configuration_file,
@@ -110,40 +99,26 @@ def cross_correlate(
         force_cpu=force_cpu,
     )
 
-    # Creating and fitting cross-correlator
+    # Reading input file - index is considered on first column
+    metadata = PolarisMetadata(
+        {"satellite_name": os.path.splitext(os.path.basename(output_graph_file))[0]}
+    )
     xcorr = XCorr(metadata, xcorr_configurator.get_configuration())
     xcorr.fit(normalize_dataframe(dataframe, index_column, dropna))
 
     if output_graph_file is None:
         output_graph_file = "/tmp/polaris_graph_" + xcorr.regressor + ".json"
+        logging.info(
+            f"output_graph_file was not defined, saving graph to '{output_graph_file}'"
+        )
 
-    graph = PolarisGraph(
-        metadata=PolarisMetadata(
-            {"satellite_name": metadata["satellite_name"]})
-    )
+    graph = PolarisGraph(metadata)
     graph.from_heatmap(xcorr.importances_map, graph_link_threshold)
     with open(output_graph_file, "w") as graph_file:
         graph_file.write(graph.to_json())
 
 
 def normalize_dataframe(dataframe, index_column="time", dropna=False):
-    """
-    Apply dataframe modification so it's compatible
-    with the learn module. The index_column is first
-    set as the index of the dataframe. Then, we drop
-    the index_column.
-
-    :param dataframe: The pandas dataframe to normalize
-    :type dataframe: pd.DataFrame
-    :param index_column: column to set as index of the dataframe
-        and then drop it.
-    :type index_column: str, optional
-    :return: Pandas dataframe normalized
-    :rtype: pd.DataFrame
-    :param dropna: this function will perform a "drop NaN"
-        action that will remove rows with NaN values from the dataframe.
-    :type dropna: bool, optional
-    """
     if dropna:
         dataframe.dropna()
     dataframe.index = dataframe[index_column]
