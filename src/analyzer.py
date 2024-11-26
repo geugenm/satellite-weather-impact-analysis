@@ -3,6 +3,10 @@ from pathlib import Path
 
 import mlflow
 import pandas as pd
+from mlflow.data.pandas_dataset import PandasDataset
+from requests.packages import target
+
+import src.polaris.learn.analysis
 from src.polaris.learn.analysis import cross_correlate
 from src.graph import create_dependency_graph
 
@@ -76,7 +80,7 @@ def parse_solar_data(solar_dir: Path) -> list[pd.DataFrame]:
             columns={"Date": TIME_COLUMN}
         ),
         pd.read_csv(
-            solar_dir / "fluxtable.txt", delim_whitespace=True, parse_dates=["fluxdate"]
+            solar_dir / "fluxtable.txt", sep="\s+", parse_dates=["fluxdate"]
         ).rename(columns={"fluxdate": TIME_COLUMN}),
         pd.read_csv(
             solar_dir / "daily_total_sunspot_number.csv", parse_dates=[TIME_COLUMN]
@@ -119,17 +123,25 @@ def process_satellite_data(satellite_name: str) -> None:
     )
     dynamics = merge_dataframes(satellite_data, [filtered_solar_data])
     dynamics_file = artifacts_dir / f"{satellite_name}.csv"
+
+    mlflow.log_input(
+        mlflow.data.from_pandas(
+            dynamics,
+            name="Merged satellite and solar parameters",
+        )
+    )
     dynamics.to_csv(dynamics_file, index=False)
     mlflow.log_artifact(str(dynamics_file), artifact_path="graph")
 
     graph_file = artifacts_dir / f"{satellite_name}{OUTPUT_GRAPH_SUFFIX}"
     cross_correlate(
         input_dataframe=dynamics,
-        output_graph_file=graph_file,
+        output_graph_file=str(graph_file),
         index_column=TIME_COLUMN,
-        xcorr_configuration_file=MODEL_CFG_PATH,
+        xcorr_configuration_file=str(MODEL_CFG_PATH),
         dropna=True,
     )
+
     mlflow.log_artifact(str(graph_file), artifact_path="graph")
 
     graph = create_dependency_graph(

@@ -63,7 +63,6 @@ def load_graph_data(file_path: Path) -> dict:
 
 
 def create_nodes_and_links(graph_data: dict) -> tuple[list[str], list[dict[str, any]]]:
-    """Extract nodes and links from graph data."""
     links = [
         {
             "source": link["source"],
