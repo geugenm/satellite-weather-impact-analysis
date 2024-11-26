@@ -8,8 +8,6 @@ from src.polaris.learn.predictor.cross_correlation_parameters import (
     CrossCorrelationParameters,
 )
 
-logging.basicConfig(level=logging.INFO)
-
 
 class CrossCorrelationConfigurator:
     def __init__(
@@ -31,7 +29,8 @@ class CrossCorrelationConfigurator:
 
         return self._cross_correlation_parameters
 
-    def _set_cpu_parameters(self, model_params: Dict[str, Any]) -> Dict[str, Any]:
+    def _set_cpu_parameters(self, model_params: Dict[str, Any]) -> Dict[
+        str, Any]:
         if not self._force_cpu:
             try:
                 gpu_ids = GPUtil.getAvailable()
@@ -39,8 +38,8 @@ class CrossCorrelationConfigurator:
                     logging.info(f"GPU detected: {gpu_ids[0]}. Using GPU.")
                     return {
                         **model_params,
-                        "tree_method": "gpu_hist",
-                        "gpu_id": gpu_ids[0],
+                        # "tree_method": "gpu_hist",
+                        # "gpu_id": gpu_ids[0],
                     }
             except ValueError:
                 logging.warning(
@@ -72,7 +71,8 @@ class CrossCorrelationConfigurator:
             model_params
         )
 
-        feature_cleaner_configurator = CleanerConfigurator(dataset_cleaning_params)
+        feature_cleaner_configurator = CleanerConfigurator(
+            dataset_cleaning_params)
         self._cross_correlation_parameters.dataset_cleaning_params = (
             feature_cleaner_configurator.get_configuration()
         )

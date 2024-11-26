@@ -1,5 +1,6 @@
 python-dateutil
 setuptools
+requests
 scikit-learn
 pandas
 numpy
@@ -12,11 +13,10 @@ plotly
 pyecharts
 black
 seaborn
-fets
 xgboost
-enlighten
 GPUtil
 mlflow
 selenium
 tqdm
 pyright
+black

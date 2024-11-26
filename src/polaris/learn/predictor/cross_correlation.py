@@ -14,7 +14,6 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 import mlflow.xgboost
 from xgboost import XGBRegressor
-
 from src.polaris.feature.cleaner import Cleaner
 from src.polaris.learn.predictor.cross_correlation_parameters import (
     CrossCorrelationParameters,
@@ -36,8 +35,6 @@ class XCorr(BaseEstimator, TransformerMixin):
         )
 
         log_params(cross_correlation_params.model_params)
-
-        # Parameters
         self.xcorr_params = {
             "random_state": cross_correlation_params.random_state,
             "test_size": cross_correlation_params.test_size,
@@ -45,17 +42,11 @@ class XCorr(BaseEstimator, TransformerMixin):
                 "feature_columns", []
             ),
         }
-        self.method = self.regression
-        self.mlf_logging = self.regression_mlf_logging
-
-        # Default regressor is XGBoost
-        cross_correlation_params.regressor_name = (
-            cross_correlation_params.regressor_name or "XGBoosting"
-        )
         self.model_params = {
             "current": cross_correlation_params.model_params,
-            "regressor_name": cross_correlation_params.regressor_name,
+            "regressor_name": cross_correlation_params.regressor_name or "XGBoosting",
         }
+        self.method, self.mlf_logging = self.regression, self.regression_mlf_logging
 
     @property
     def regressor(self) -> str:
@@ -85,9 +76,7 @@ class XCorr(BaseEstimator, TransformerMixin):
 
         logging.info(f"Training with {x_dataframe.shape[1]} features.")
         self.reset_importance_map(x_dataframe.columns)
-
         parameters = self.__build_parameters(x_dataframe)
-        self.mlf_logging()
 
         for column in parameters:
             logging.info(f"Training model for {column}")
@@ -129,7 +118,6 @@ class XCorr(BaseEstimator, TransformerMixin):
         self._log_feature_importances(
             df_in, regressor.feature_importances_, str(target_series.name)
         )
-
         return regressor
 
     def reset_importance_map(self, columns: pd.Index) -> None:
@@ -138,7 +126,8 @@ class XCorr(BaseEstimator, TransformerMixin):
 
     def common_mlf_logging(self) -> None:
         log_params(
-            {"Test size": self.xcorr_params["test_size"], "Model": "XGBRegressor"}
+            {"Test size": self.xcorr_params["test_size"],
+             "Model": "XGBRegressor"}
         )
 
     def regression_mlf_logging(self) -> None:
@@ -147,11 +136,11 @@ class XCorr(BaseEstimator, TransformerMixin):
 
     def __build_parameters(self, x_dataframe: pd.DataFrame) -> list[str]:
         feature_columns = self.xcorr_params["feature_columns"]
-        if not feature_columns:
-            return list(x_dataframe.columns)
-
-        logging.info(f"Removing features: {feature_columns}")
-        return [col for col in x_dataframe.columns if col not in feature_columns]
+        if feature_columns:
+            logging.info(f"Removing features: {feature_columns}")
+            return [col for col in x_dataframe.columns if
+                    col not in feature_columns]
+        return list(x_dataframe.columns)
 
     @staticmethod
     def _log_rmse(
@@ -159,24 +148,17 @@ class XCorr(BaseEstimator, TransformerMixin):
     ) -> None:
         rmse = np.sqrt(mean_squared_error(target_test, target_predict))
         log_metric(f"{target_name}_rmse", rmse)
-        logging.info(f"Root Mean Square Error for '{target_name}': {rmse}")
+        logging.info(f"RMSE for '{target_name}': {rmse}")
 
     def _log_feature_importances(
-        self, df_in: pd.DataFrame, feature_importances: np.ndarray, target_name: str
+        self, df_in: pd.DataFrame, feature_importances: np.ndarray,
+        target_name: str
     ) -> None:
-        feature_importances_dict = {
-            col: importance
-            for col, importance in zip(df_in.columns, feature_importances)
-        }
-        feature_importances_dict[target_name] = (
-            0.0  # Set target feature importance to 0
+        imp_df = pd.DataFrame(
+            {**dict(zip(df_in.columns, feature_importances)), target_name: 0},
+            index=[target_name],
         )
+        imp_df.dropna(axis=1, how="all", inplace=True)
 
-        if self.importances_map is not None:
-            new_row = pd.DataFrame(index=[target_name], data=feature_importances_dict)
-
-            # Drop columns where all values are NA or empty before concatenating
-            new_row = new_row.dropna(axis=1, how="all")
-
-            if not new_row.empty:
-                self.importances_map = pd.concat([self.importances_map, new_row])
+        if not imp_df.empty and self.importances_map is not None:
+            self.importances_map = pd.concat([self.importances_map, imp_df])
