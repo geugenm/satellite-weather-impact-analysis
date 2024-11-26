@@ -1,6 +1,8 @@
 import logging
 import os
 
+import pandas as pd
+
 from src.polaris.data.graph import PolarisGraph, PolarisMetadata
 
 from src.polaris.learn.predictor.cross_correlation import XCorr
@@ -14,46 +16,43 @@ class NoFramesInInputFile(Exception):
 
 
 def cross_correlate(
-    input_dataframe=None,
-    output_graph_file=None,
-    xcorr_configuration_file=None,
-    graph_link_threshold=0.1,
-    use_gridsearch=False,
-    force_cpu=False,
-    index_column="time",
-    dropna=False,
-):
+    input_dataframe: pd.DataFrame,
+    output_graph_file: str | None = None,
+    xcorr_configuration_file: str | None = None,
+    graph_link_threshold: float = 0.1,
+    use_gridsearch: bool = False,
+    force_cpu: bool = False,
+    index_column: str = "time",
+    dropna: bool = False,
+) -> None:
     """
     Catch linear and non-linear correlations between all columns of the
     input data.
     """
-    dataframe = input_dataframe
 
-    if dataframe.empty:
-        logging.error("Empty set of frames -- nothing to learn from!")
+    if input_dataframe.empty:
+        logging.error("Input DataFrame is empty; nothing to correlate.")
         raise NoFramesInInputFile
 
-    xcorr_configurator = CrossCorrelationConfigurator(
-        xcorr_configuration_file=xcorr_configuration_file,
-        use_gridsearch=use_gridsearch,
-        force_cpu=force_cpu,
+    configurator = CrossCorrelationConfigurator(
+        xcorr_configuration_file,
+        use_gridsearch,
+        force_cpu,
     )
 
-    # Reading input file - index is considered on first column
     metadata = PolarisMetadata(
         {"satellite_name": os.path.splitext(os.path.basename(output_graph_file))[0]}
     )
-    xcorr = XCorr(metadata, xcorr_configurator.get_configuration())
-    xcorr.fit(normalize_dataframe(dataframe, index_column, dropna))
+    xcorr = XCorr(metadata, configurator.get_configuration())
+    xcorr.fit(normalize_dataframe(input_dataframe, index_column, dropna))
 
-    if output_graph_file is None:
-        output_graph_file = "/tmp/polaris_graph_" + xcorr.regressor + ".json"
-        logging.info(
-            f"output_graph_file was not defined, saving graph to '{output_graph_file}'"
-        )
+    output_graph_file = (
+        output_graph_file or f"/tmp/polaris_graph_{xcorr.regressor}.json"
+    )
 
     graph = PolarisGraph(satellite_name=metadata["satellite_name"])
     graph.from_heatmap(xcorr.importances_map, graph_link_threshold)
+
     with open(output_graph_file, "w") as graph_file:
         graph_file.write(graph.to_json())
 
@@ -61,7 +60,7 @@ def cross_correlate(
 def normalize_dataframe(dataframe, index_column="time", dropna=False):
     if dropna:
         dataframe.dropna()
-    dataframe.index = dataframe[index_column]
+    dataframe.set_index(index_column)
     dataframe.drop(index_column, axis=1, inplace=True)
 
     return dataframe

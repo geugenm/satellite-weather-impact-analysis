@@ -11,24 +11,40 @@ from sklearn.ensemble import (
     RandomForestRegressor,
 )
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import GridSearchCV, KFold, train_test_split
-from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split, KFold, GridSearchCV
 import mlflow.xgboost
+from xgboost import XGBRegressor
 
 from src.polaris.feature.cleaner import Cleaner
+from src.polaris.learn.predictor.cross_correlation_parameters import (
+    CrossCorrelationParameters,
+)
 
 mlflow.xgboost.autolog(model_format="json")
 
 
 class XCorr(BaseEstimator, TransformerMixin):
     def __init__(
-        self, dataset_metadata: dict[str, any], cross_correlation_params: any
+        self,
+        dataset_metadata: dict[str, any],
+        cross_correlation_params: CrossCorrelationParameters,
     ) -> None:
         self.models: list[any] = []
-        self._importances_map: Optional[pd.DataFrame] = None
+        self.importances_map: Optional[pd.DataFrame] = None
         self._feature_cleaner = Cleaner(
             dataset_metadata, cross_correlation_params.dataset_cleaning_params
         )
+
+        log_params(cross_correlation_params.model_params)
+        log_params(
+            {
+                "use_gridsearch": cross_correlation_params.use_gridsearch,
+                "gridsearch_scoring": cross_correlation_params.gridsearch_scoring,
+                "gridsearch_n_splits": cross_correlation_params.gridsearch_n_splits,
+            }
+        )
+
+        # Parameters
         self.xcorr_params = {
             "random_state": cross_correlation_params.random_state,
             "test_size": cross_correlation_params.test_size,
@@ -49,10 +65,10 @@ class XCorr(BaseEstimator, TransformerMixin):
             else self.regression_mlf_logging
         )
 
+        # Default regressor is XGBoost
         cross_correlation_params.regressor_name = (
             cross_correlation_params.regressor_name or "XGBoosting"
         )
-
         self.model_params = {
             "current": cross_correlation_params.model_params,
             "cpu": cross_correlation_params.model_cpu_params,
@@ -76,21 +92,16 @@ class XCorr(BaseEstimator, TransformerMixin):
         self._importances_map = importances_map
 
     def fit(self, x_dataframe: pd.DataFrame) -> None:
-        if not isinstance(x_dataframe, pd.DataFrame):
-            raise TypeError("Input data should be a DataFrame")
-
         if self.models:
-            logging.warning("Models are already trained. Skipping re-training.")
+            logging.warning("Models already trained. Skipping re-training.")
             return
 
-        logging.info("Clearing Data. Removing unnecessary columns")
+        logging.info("Cleaning data...")
         x_dataframe = self._feature_cleaner.drop_constant_values(x_dataframe)
         x_dataframe = self._feature_cleaner.drop_non_numeric_values(x_dataframe)
         x_dataframe = self._feature_cleaner.handle_missing_values(x_dataframe)
 
-        logging.info(
-            f"Starting training with {x_dataframe.shape[1]} columns in the dataset."
-        )
+        logging.info(f"Training with {x_dataframe.shape[1]} features.")
         self.reset_importance_map(x_dataframe.columns)
 
         parameters = self.__build_parameters(x_dataframe)
@@ -99,9 +110,9 @@ class XCorr(BaseEstimator, TransformerMixin):
         for column in parameters:
             logging.info(f"Training model for {column}")
             model_instance = self.method(
-                x_dataframe.drop([column], axis=1),
-                x_dataframe[column],
-                self.model_params["current"],
+                df_in=x_dataframe.drop([column], axis=1),
+                target_series=x_dataframe[column],
+                model_params=self.model_params["current"],
             )
             self.models.append(model_instance)
 
@@ -121,15 +132,14 @@ class XCorr(BaseEstimator, TransformerMixin):
             random_state=self.xcorr_params["random_state"],
         )
 
-        regressors_dict = {
+        model_dict = {
             "XGBoosting": XGBRegressor(**model_params),
             "RandomForest": RandomForestRegressor(),
             "AdaBoost": AdaBoostRegressor(),
             "ExtraTrees": ExtraTreesRegressor(),
             "GradientBoosting": GradientBoostingRegressor(),
         }
-
-        regressor = regressors_dict[self.regressor]
+        regressor = model_dict[self.regressor]
         regressor.fit(df_in_train, target_train)
         target_predict = regressor.predict(df_in_test)
 
@@ -141,7 +151,10 @@ class XCorr(BaseEstimator, TransformerMixin):
         return regressor
 
     def gridsearch(
-        self, df_in: pd.DataFrame, target_series: pd.Series, params: dict[str, any]
+        self,
+        df_in: pd.DataFrame,
+        target_series: pd.Series,
+        model_params: dict[str, any],
     ) -> XGBRegressor:
         kfolds = KFold(
             n_splits=self.xcorr_params["gridsearch_n_splits"],
@@ -156,7 +169,7 @@ class XCorr(BaseEstimator, TransformerMixin):
         )
         gs_regr = GridSearchCV(
             estimator=regr_m,
-            param_grid=params,
+            param_grid=model_params,
             cv=kfolds,
             scoring=self.xcorr_params["gridsearch_scoring"],
             n_jobs=-1,
@@ -165,13 +178,15 @@ class XCorr(BaseEstimator, TransformerMixin):
 
         gs_regr.fit(df_in, target_series)
         log_param(f"{target_series.name}_best_estimator", gs_regr.best_params_)
-        logging.info(f"{target_series.name} best estimator: {gs_regr.best_estimator_}")
+        logging.info(
+            f"Best estimator for {target_series.name}: {gs_regr.best_estimator_}"
+        )
 
         return self.regression(df_in, target_series, gs_regr.best_params_)
 
     def reset_importance_map(self, columns: pd.Index) -> None:
-        if self._importances_map is None:
-            self._importances_map = pd.DataFrame(columns=columns)
+        if self.importances_map is None:
+            self.importances_map = pd.DataFrame(columns=columns)
 
     def common_mlf_logging(self) -> None:
         log_params(
@@ -203,26 +218,26 @@ class XCorr(BaseEstimator, TransformerMixin):
     def _log_rmse(
         target_test: pd.Series, target_predict: np.ndarray, target_name: str
     ) -> None:
-        try:
-            rmse = np.sqrt(mean_squared_error(target_test, target_predict))
-            log_metric(f"{target_name}_rmse", rmse)
-            logging.info(f"Root Mean Square Error for '{target_name}': {rmse}")
-        except Exception as e:
-            logging.error(
-                f"Cannot calculate RMSE for '{target_name}' due to error: {e}"
-            )
+        rmse = np.sqrt(mean_squared_error(target_test, target_predict))
+        log_metric(f"{target_name}_rmse", rmse)
+        logging.info(f"Root Mean Square Error for '{target_name}': {rmse}")
 
     def _log_feature_importances(
         self, df_in: pd.DataFrame, feature_importances: np.ndarray, target_name: str
     ) -> None:
         feature_importances_dict = {
-            column: importance
-            for column, importance in zip(df_in.columns, feature_importances)
+            col: importance
+            for col, importance in zip(df_in.columns, feature_importances)
         }
         feature_importances_dict[target_name] = (
-            0.0  # Add target feature with 0 importance
+            0.0  # Set target feature importance to 0
         )
 
-        if self._importances_map is not None:
+        if self.importances_map is not None:
             new_row = pd.DataFrame(index=[target_name], data=feature_importances_dict)
-            self._importances_map = pd.concat([self._importances_map, new_row])
+
+            # Drop columns where all values are NA or empty before concatenating
+            new_row = new_row.dropna(axis=1, how="all")
+
+            if not new_row.empty:
+                self.importances_map = pd.concat([self.importances_map, new_row])
