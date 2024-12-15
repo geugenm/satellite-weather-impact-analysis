@@ -43,6 +43,44 @@ python --version
    pip install -r requirements.txt
    ```
 
+## Flow diagram (use mermaid previewer to see rendered)
+
+```mermaid
+flowchart TD
+    A[🚀 Start Process] --> B[📡 Download Satellite Data from SatNOGS Grafana]
+    B --> C[🛠️ Use Custom JS Parser to Extract Data]
+    C --> D[🌞 Download Solar Data from Multiple Sources]
+    
+    D --> E{🔗 Data Sources}
+    E -->|📊 SWPC Observed SSN JSON| F["services.swpc.noaa.gov/json/solar-cycle/swpc_observed_ssn.json"]
+    E -->|📈 SIDC Total CSV| G["www.sidc.be/SILSO/INFO/sndtotcsv.php"]
+    E -->|🌍 SIDC Hemispheric CSV| H["www.sidc.be/SILSO/INFO/sndhemcsv.php"]
+    E -->|🌌 Daily Flux Values| I["spaceweather.gc.ca/solar_flux_data/daily_flux_values/fluxtable.txt"]
+    
+    D --> J[📥 Download DGD Data Using Vilnevilialli GitLab Package]
+    
+    J --> K[🔄 Merging Data into One Unified DataFrame]
+    K --> L[🔍 Filter and Clean Data Based on Requirements]
+    
+    L --> M[🤖 Train XGBoost Polaris Machine Learning Model]
+    
+    M --> N[📊 Analyze Output Graphs of Data Relationships]
+    
+    N --> O[📈 Generate Correlation Graph to Visualize Dependencies]
+    
+    O --> P[🔬 Evaluate Model Performance in MLflow]
+    
+    P --> Q[🏁 End Process]
+
+    %% Additional Explanation Nodes
+    Q1[💡 How It Works: The process begins by downloading satellite data from SatNOGS, followed by solar data from various sources. The data is then merged and filtered for analysis.] 
+    P1[🔍 Model Evaluation: The trained model's performance is analyzed using MLflow to ensure accuracy and reliability.]
+
+    %% Connecting explanation nodes
+    Q --> Q1
+    P --> P1
+```
+
 ## Observed Solar Cycle Indices
 
 Data fields for recent solar indices of observed monthly mean values are provided in JSON format.
