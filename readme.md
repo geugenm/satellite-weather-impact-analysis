@@ -45,8 +45,6 @@ ASTRA is a high-performance analytical platform designed to uncover correlations
 
 ---
 
-<sub>Built with 🚀 by space enthusiasts</sub>
-
 </div>
 
 ## 🛠️ Getting Started
