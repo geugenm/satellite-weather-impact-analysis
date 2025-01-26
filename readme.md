@@ -1,4 +1,4 @@
-<h1 align="center">satellite-weather-impact-analysis</h1>
+# astra satellite-weather-impact-analysis
 
 <div align="center" style="text-align: center;">
   <div>
@@ -32,23 +32,6 @@
     <a href="https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 </div>
-
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents (click to reveal)</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-  </ol>
-</details>
 
 ![graph_preview](img/preview.png)
 
