@@ -108,4 +108,4 @@ first to discuss what you would like to change.
 
 ## License
 
-Released under [GNU GPL](/license.md) by [@geugenm](https://github.com/geugenm).
+Released under [MIT](license.md) by [@geugenm](https://github.com/geugenm).
