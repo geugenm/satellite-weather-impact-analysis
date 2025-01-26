@@ -49,71 +49,83 @@ ASTRA is a high-performance analytical platform designed to uncover correlations
 
 </div>
 
-### Prerequisites
+## 🛠️ Getting Started
 
-- python 3.13+
+### 🐍 Prerequisites
 
-    ```sh
-    python --version
-    ```
-
-### Installation
-
-1. Clone the repo
-
-    ```shell
-    git clone https://github.com/geugenm/satellite-weather-impact-analysis.git
-    ```
-
-2. To install development dependencies from pyproject.toml, use one of these commands:
+Python Version
 
 ```bash
-pip install -e ".[dev]"
+python --version
 ```
 
-or if you're using uv (which is faster):
+### ⚡ Quick Install
+
+1. **Clone Repository**
+
+```bash
+git clone https://github.com/geugenm/satellite-weather-impact-analysis.git
+cd satellite-weather-impact-analysis
+```
+
+2. **Install Dependencies**
+
+Choose your preferred package manager:
+
+**pip** (standard)
+
+```bash
+pip install -e ".[dev]"  # Unix/Windows
+pip install -e '.[dev]'  # Zsh
+```
+
+**uv** (high performance)
 
 ```bash
 uv pip install -e ".[dev]"
 ```
 
-For zsh users who might encounter quote issues, use:
-
-```bash
-pip install -e '.[dev]'
-```
-
-The -e flag makes it an "editable" install, which means changes in source files are immediately reflected without needing to reinstall.
-
-#### Alternative Package Managers
-
-**Poetry**:
+**poetry** (modern)
 
 ```bash
 poetry install --with dev
 ```
 
-**uv**:
+> The `-e` flag enables editable mode - source changes reflect immediately
+
+### 🛰️ Satellite Data Tools
+
+Using [satnogs-decoders](https://gitlab.com/librespacefoundation/satnogs/satnogs-decoders):
 
 ```bash
-uv pip install --editable ".[dev]"
-```
+# Fetch satellite frames
+satnogs-decoders-master/contrib/manage/fetch_frames_from_network.py \
+    40967 \
+    2018-10-26T00:00:00 \
+    2018-10-26T01:00:00 \
+    ./fox1a/
 
-### Additional instruments on decoding and obtaining satellite data
-
-To fetch more data use [satnogs-decoders](https://gitlab.com/librespacefoundation/satnogs/satnogs-decoders), example:
-
-```sh
-satnogs-decoders-master/contrib/manage/fetch_frames_from_network.py 40967 2018-10-26T00:00:00 2018-10-26T01:00:00 ./fox1a/
-
+# Decode frames
 decode_frame fox1a fox1a/data_XXXX
 ```
 
-## Contributing
+## 🤝 Contributing
 
-Pull requests and issues are welcome. For major changes, please open an issue
-first to discuss what you would like to change.
+We welcome contributions! For major changes:
 
-## License
+1. Fork the repository
+2. Create a feature branch
+3. Open an issue for discussion
+4. Submit a pull request
 
-Released under [MIT](license.md) by [@geugenm](https://github.com/geugenm).
+## 📜 License
+
+Released under [MIT](license.md) by [@geugenm](https://github.com/geugenm)
+
+<div align="center">
+
+---
+
+<sub>Built with 💫 by space enthusiasts</sub>
+
+</div>
