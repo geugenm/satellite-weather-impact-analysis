@@ -45,18 +45,17 @@ def clean_column_names(columns: list[str]) -> list[str]:
 
 
 def get_columns_and_sources(path: Path) -> dict[str, str]:
-    columns_to_source_map = {}
-    for file_path in Path(path).glob("*.csv"):
-        df = pd.read_csv(file_path)
-        df.columns = clean_column_names(df.columns)
-        for column_name in df.columns:
-            columns_to_source_map.setdefault(column_name, file_path.name)
-    return columns_to_source_map
+    return {
+        col: file.name
+        for file in path.glob("*.csv")
+        for col in clean_column_names(
+            pd.read_csv(file, usecols=lambda x: True).columns
+        )
+    }
 
 
 def read_csv_files(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
     dataframes = [pd.read_csv(file) for file in Path(path).glob("*.csv")]
-    print(path)
     combined_df = pd.concat(dataframes, ignore_index=True)
     combined_df[time_column] = pd.to_datetime(
         combined_df[time_column]
