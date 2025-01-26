@@ -1,24 +1,53 @@
-# astra satellite-weather-impact-analysis
-
 <div align="center">
 
-[![GitHub Issues](https://img.shields.io/github/issues/geugenm/satellite-weather-impact-analysis?style=for-the-badge)](https://github.com/geugenm/satellite-weather-impact-analysis/issues)
-![Python](https://img.shields.io/badge/python-3.12+-green?style=for-the-badge&logo=python&logoColor=yellow)
-![Latex](https://img.shields.io/badge/Latex-LuaTeX-green?style=for-the-badge&logo=latex)
-![License](https://img.shields.io/badge/License-GPU--GPL3.0-green?style=for-the-badge)
+# 🛰️ ASTRA: Satellite Weather Impact Analysis
+
+[![GitHub Issues](https://img.shields.io/github/issues/geugenm/satellite-weather-impact-analysis?style=for-the-badge&color=171b20&labelColor=171b20)](https://github.com/geugenm/satellite-weather-impact-analysis/issues)
+[![Python](https://img.shields.io/badge/python-3.12+-171b20?style=for-the-badge&logo=python&logoColor=38bdae&labelColor=171b20)](https://www.python.org/downloads/)
+[![Latex](https://img.shields.io/badge/LuaTeX-ready-171b20?style=for-the-badge&logo=latex&logoColor=38bdae&labelColor=171b20)](https://www.latex-project.org/)
+[![License](https://img.shields.io/badge/license-GPU_GPL_3.0-171b20?style=for-the-badge&labelColor=171b20&color=171b20)](LICENSE)
 
 [![Logo](img/logo.png)](https://github.com/geugenm/satellite-weather-impact-analysis)
 
-This repository includes the code for a study that examines the effects of space weather on operational satellite systems. The analysis involves comparing solar data with active satellite data to uncover correlations between the two.
-
-**[Explore the docs »](https://github.com/geugenm/satellite-weather-impact-analysis/docs)**
-
-[Report Bug](https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=bug&template=bug-report---.md) ·
-[Request Feature](https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=enhancement&template=feature-request---.md)
+> _Advanced Space-Time Research & Analysis Platform_
 
 </div>
 
-![graph_preview](img/preview.png)
+## 🚀 Overview
+
+ASTRA is a high-performance analytical platform designed to uncover correlations between space weather patterns and operational satellite systems. Using advanced statistical methods and machine learning techniques, we process vast amounts of solar and satellite telemetry data to identify critical patterns and dependencies.
+
+## ⚡ Key Features
+
+- **Real-time Analysis**: Process satellite telemetry data in real-time
+- **ML-powered Insights**: Advanced correlation detection using machine learning
+- **High Performance**: Optimized for large-scale data processing
+- **Scientific Visualization**: Beautiful interactive graphs and dashboards
+
+## 🛠️ Tech Stack
+
+- **Core**: Python 3.12+, NumPy, Pandas
+- **ML**: PyTorch, scikit-learn
+- **Visualization**: Plotly, D3.js
+- **Documentation**: LuaTeX, Sphinx
+
+## 📊 Preview
+
+![Analysis Preview](img/preview.png)
+
+<div align="center">
+
+## 🔗 Quick Links
+
+[📚 Documentation](docs) •
+[🐛 Report Bug](https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=bug&template=bug-report---.md) •
+[✨ Request Feature](https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=enhancement&template=feature-request---.md)
+
+---
+
+<sub>Built with 🚀 by space enthusiasts</sub>
+
+</div>
 
 ### Prerequisites
 
