@@ -3,92 +3,70 @@ import json
 import numpy as np
 from pyecharts import options as opts
 from pyecharts.charts import Graph
+from collections import Counter
 
-# Constants
-NODE_BASE_SIZE = 10
-NODE_SIZE_MULTIPLIER = 2
-EDGE_WIDTH = 2
-EDGE_CURVENESS = 0.3
-REPULSION_FORCE = 1200
-GRAVITY = 0.2
-FRICTION = 0.5
-EDGE_LENGTH = 40
-GRAPH_DIMENSIONS = {"width": "100vw", "height": "100vh"}
-
-COLOR_CONFIG = {
-    "alpha": 0.9,
-    "red_max": 255,
-    "green_base": 128,
-    "green_offset": 50,
-    "blue_base": 200,
-    "blue_offset": 30,
+# Constants as a frozen dataclass would be ideal in 3.13, but keeping as dict for compatibility
+GRAPH_CONFIG = {
+    "node": {"base_size": 10, "size_multiplier": 2},
+    "edge": {"width": 2, "curveness": 0.3},
+    "force": {"repulsion": 1200, "gravity": 0.2, "friction": 0.5, "length": 40},
+    "dimensions": {"width": "100vw", "height": "100vh"},
+    "color": {
+        "alpha": 0.9,
+        "red_max": 255,
+        "green": (128, 50),  # (base, offset)
+        "blue": (200, 30),  # (base, offset)
+    },
 }
 
 
-def normalize(value: float, min_value: float, max_value: float) -> float:
-    """Normalize a value between min_value and max_value."""
-    return np.clip((value - min_value) / (max_value - min_value), 0, 1)
-
-
-def color_from_value(value: float, min_value: float, max_value: float) -> str:
-    """Generate a color from a value based on its normalized position."""
-    normalized_value = normalize(value, min_value, max_value)
-    red = int(normalized_value * COLOR_CONFIG["red_max"])
+def color_from_value(value: float, min_val: float, max_val: float) -> str:
+    norm = np.clip((value - min_val) / (max_val - min_val), 0, 1)
+    red = int(norm * GRAPH_CONFIG["color"]["red_max"])
     green = int(
-        np.clip(
-            (1 - normalized_value) * COLOR_CONFIG["green_base"]
-            + normalized_value * COLOR_CONFIG["green_offset"],
-            0,
-            255,
-        )
+        (1 - norm) * GRAPH_CONFIG["color"]["green"][0]
+        + norm * GRAPH_CONFIG["color"]["green"][1]
     )
     blue = int(
-        np.clip(
-            (1 - normalized_value) * COLOR_CONFIG["blue_base"]
-            + normalized_value * COLOR_CONFIG["blue_offset"],
-            0,
-            255,
-        )
+        (1 - norm) * GRAPH_CONFIG["color"]["blue"][0]
+        + norm * GRAPH_CONFIG["color"]["blue"][1]
     )
-    return f"rgba({red}, {green}, {blue}, {COLOR_CONFIG['alpha']})"
+    return f"rgba({red},{green},{blue},{GRAPH_CONFIG['color']['alpha']})"
 
 
-def load_graph_data(file_path: Path) -> dict:
-    """Load graph data from a JSON file."""
-    try:
-        with file_path.open() as file:
-            return json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        raise ValueError(f"Error loading graph data from {file_path}: {e}")
+def create_dependency_graph(
+    graph_coeffs_json: Path, descriptions: dict
+) -> Graph:
+    # Load and process data
+    with graph_coeffs_json.open() as f:
+        links = [
+            {
+                "source": link["source"],
+                "target": link["target"],
+                "value": float(link["value"]),
+            }
+            for link in json.load(f)["graph"]["links"]
+            if isinstance(link.get("value"), (int, float))
+        ]
 
+    # Process nodes and values in a single pass
+    nodes = set()
+    values = []
+    for link in links:
+        nodes.update([link["source"], link["target"]])
+        values.append(link["value"])
 
-def create_nodes_and_links(graph_data: dict) -> tuple[list[str], list[dict[str, any]]]:
-    links = [
-        {
-            "source": link["source"],
-            "target": link["target"],
-            "value": float(link["value"]),
-        }
-        for link in graph_data["links"]
-        if isinstance(link.get("value"), (int, float))
-    ]
+    # Calculate connections using Counter
+    connections = Counter(
+        node for link in links for node in (link["source"], link["target"])
+    )
 
-    if not links:
-        raise ValueError("No valid links with numeric values found.")
-
-    nodes = {link["source"] for link in links} | {link["target"] for link in links}
-    return list(nodes), links
-
-
-def create_node_list(
-    nodes: list[str], connection_count: dict[str, int], descriptions: dict[str, str]
-) -> list[dict[str, any]]:
-    """Generate a list of node configurations."""
-    return [
+    # Create node configurations
+    node_list = [
         {
             "name": node,
-            "symbolSize": NODE_BASE_SIZE
-            + connection_count[node] * NODE_SIZE_MULTIPLIER,
+            "symbolSize": GRAPH_CONFIG["node"]["base_size"]
+            + connections[node] * GRAPH_CONFIG["node"]["size_multiplier"],
             "label": {
                 "show": True,
                 "formatter": "{b}",
@@ -99,67 +77,40 @@ def create_node_list(
                 "padding": [5, 10],
             },
             "tooltip": {
-                "formatter": f"{node}: {connection_count[node]} connection(s)<br/>{descriptions.get(node, 'No description available')}"
+                "formatter": f"{node}: {connections[node]} connection(s)<br/>{descriptions.get(node, 'No description')}"
             },
         }
         for node in nodes
     ]
 
-
-def create_edge_list(
-    links: list[dict[str, any]], min_value: float, max_value: float
-) -> list[dict[str, any]]:
-    """Generate a list of edge configurations."""
-    return [
+    # Create edge configurations
+    min_val, max_val = min(values), max(values)
+    edge_list = [
         {
             "source": link["source"],
             "target": link["target"],
             "value": link["value"],
             "lineStyle": {
-                "color": color_from_value(link["value"], min_value, max_value),
-                "width": EDGE_WIDTH,
-                "curveness": EDGE_CURVENESS,
+                "color": color_from_value(link["value"], min_val, max_val),
+                "width": GRAPH_CONFIG["edge"]["width"],
+                "curveness": GRAPH_CONFIG["edge"]["curveness"],
             },
             "label": {"show": False},
         }
         for link in links
     ]
 
-
-def calculate_connection_count(links: list[dict[str, any]]) -> dict[str, int]:
-    """Calculate the number of connections for each node."""
-    connection_count = {}
-    for link in links:
-        connection_count[link["source"]] = connection_count.get(link["source"], 0) + 1
-        connection_count[link["target"]] = connection_count.get(link["target"], 0) + 1
-    return connection_count
-
-
-def create_dependency_graph(
-    graph_coeffs_json: Path, descriptions: dict[str, str]
-) -> Graph:
-    """Generate a dependency graph visualization."""
-    graph_data = load_graph_data(graph_coeffs_json)
-
-    nodes, links = create_nodes_and_links(graph_data["graph"])
-    min_value, max_value = min(link["value"] for link in links), max(
-        link["value"] for link in links
-    )
-
-    connection_count = calculate_connection_count(links)
-    node_list = create_node_list(nodes, connection_count, descriptions)
-    edge_list = create_edge_list(links, min_value, max_value)
-
+    # Create and configure graph
     return (
-        Graph(init_opts=opts.InitOpts(**GRAPH_DIMENSIONS))
+        Graph(init_opts=opts.InitOpts(**GRAPH_CONFIG["dimensions"]))
         .add(
-            series_name="Dependencies",
-            nodes=node_list,
-            links=edge_list,
-            repulsion=REPULSION_FORCE,
-            gravity=GRAVITY,
-            friction=FRICTION,
-            edge_length=EDGE_LENGTH,
+            "Dependencies",
+            node_list,
+            edge_list,
+            repulsion=GRAPH_CONFIG["force"]["repulsion"],
+            gravity=GRAPH_CONFIG["force"]["gravity"],
+            friction=GRAPH_CONFIG["force"]["friction"],
+            edge_length=GRAPH_CONFIG["force"]["length"],
             is_draggable=True,
             layout="force",
             label_opts=opts.LabelOpts(is_show=False),
@@ -170,7 +121,10 @@ def create_dependency_graph(
                 pos_left="center",
                 pos_top="top",
                 title_textstyle_opts=opts.TextStyleOpts(
-                    font_family="Arial", font_size=20, font_weight="bold", color="#000"
+                    font_family="Arial",
+                    font_size=20,
+                    font_weight="bold",
+                    color="#000",
                 ),
             ),
             tooltip_opts=opts.TooltipOpts(trigger="item"),
@@ -179,7 +133,7 @@ def create_dependency_graph(
                     "saveAsImage": {"title": "Save as Image"},
                     "dataView": {"title": "View Data", "readOnly": True},
                     "restore": {"title": "Reset"},
-                },
+                }
             ),
         )
     )

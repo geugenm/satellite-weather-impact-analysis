@@ -10,7 +10,7 @@ def test_graph_path() -> Path:
 
 @pytest.fixture
 def artifacts_dir() -> Path:
-    artifacts: Path = Path("build/test")
+    artifacts: Path = Path("build")
     artifacts.mkdir(exist_ok=True)
     return artifacts
 
@@ -24,9 +24,9 @@ def test_dependency_graph_creation(
         test_graph_path,
         params,
     )
-    output_path = str(artifacts_dir / "graph.html")
+    output_path = str(artifacts_dir / "test_graph.html")
     graph.render(output_path)
 
-    expected_output: Path = artifacts_dir / "graph.html"
+    expected_output: Path = artifacts_dir / "test_graph.html"
     assert expected_output.exists(), "Graph output file was not created"
     assert expected_output.stat().st_size > 0, "Graph output file is empty"
