@@ -8,28 +8,34 @@ In the repository, the file [`astra/graph.py`](https://github.com/geugenm/satell
 
 1. **Cross-Correlation**
    The edges typically represent some measure derived from cross-correlation, such as:
-   \[
-   r*{X,Y}(\tau) \;=\; \frac{\sum*{t}\,\bigl(X(t)-\mu*X\bigr)\,\bigl(Y(t+\tau)-\mu_Y\bigr)}{\sqrt{\sum*{t}\,\bigl(X(t)-\mu*X\bigr)^2}\,\sqrt{\sum*{t}\,\bigl(Y(t+\tau)-\mu_Y\bigr)^2}}
-   \]
-   where \(X\) and \(Y\) are time-series for different parameters (telemetry vs. solar indices), \(\mu_X\) and \(\mu_Y\) are their respective means, and \(\tau\) is a possible time lag. The resulting correlation coefficient (or a statistic derived from it) is encoded in each edge’s `"value"` field.
+
+    ```
+    r_{X,Y}(\tau) = \frac{\sum_{t}(X(t)-\mu_X)(Y(t+\tau)-\mu_Y)}{\sqrt{\sum_{t}(X(t)-\mu_X)^2}\sqrt{\sum_{t}(Y(t+\tau)-\mu_Y)^2}}
+    ```
+
+    where X and Y are time-series for different parameters (telemetry vs. solar indices), μ_X and μ_Y are their respective means, and τ is a possible time lag. The resulting correlation coefficient (or a statistic derived from it) is encoded in each edge's `"value"` field.
 
 2. **Edge Weight and Color Mapping**
 
     - The code reads a numeric `"value"` for each link from the JSON.
-    - It normalizes these values between \(\text{min_value}\) and \(\text{max_value}\), then applies a color gradient to visually distinguish strong vs. weak (or positive vs. negative) relationships.
+    - It normalizes these values between min_value and max_value, then applies a color gradient to visually distinguish strong vs. weak (or positive vs. negative) relationships.
     - This color transition can often follow:
-      \[
-      \text{color}(v) \;=\; \alpha\cdot\text{red} \;+\; (1-\alpha)\cdot\text{blue} \;\;\text{for some normalized}\;\alpha
-      \]
-      or a similar gradient formula in RGB or HSL space.
+
+    ```
+    color(v) = \alpha \cdot red + (1-\alpha) \cdot blue
+    ```
+
+    for some normalized α, or a similar gradient formula in RGB or HSL space.
 
 3. **Node Significance**
     - Each node represents a particular parameter or measured signal (e.g., _satellite system telemetry_, _flux measurement_, _sunspot number_, etc.).
     - Node layout is determined by a force-directed algorithm, typically minimizing an energy function of repulsion and spring-like edge forces:
-      \[
-      E*{\text{total}} = \sum*{(i,j)\in E} k*e\|x_i - x_j\|^2 + \sum*{i}k_r \|x_i\|^2
-      \]
-      with \(x_i\) as the node coordinates, \(k_e\) as the edge “spring” constant, and \(k_r\) as a repulsion term. This means highly correlated (or strongly weighted) nodes gravitate closer together.
+
+    ```
+    E_{total} = \sum_{(i,j)\in E} k_e\|x_i - x_j\|^2 + \sum_{i}k_r \|x_i\|^2
+    ```
+
+    with x_i as the node coordinates, k_e as the edge "spring" constant, and k_r as a repulsion term. This means highly correlated (or strongly weighted) nodes gravitate closer together.
 
 ---
 
@@ -46,14 +52,14 @@ In the repository, the file [`astra/graph.py`](https://github.com/geugenm/satell
     - If the code supports negative correlations, certain color bands (e.g., red vs. blue) may signify direction or sign of correlation.
 
 3. **Tooltips**
-    - Hovering over a node or edge typically reveals the underlying numeric value or a short description. This is defined in the JSON structure’s link and node objects.
+    - Hovering over a node or edge typically reveals the underlying numeric value or a short description. This is defined in the JSON structure's link and node objects.
 
 ---
 
 ### Integration With Polaris
 
 - **Cross-correlation Data Source**:
-  The Polaris workflow (as described in the [Polaris repo](https://gitlab.com/librespacefoundation/polaris/polaris)) computes correlation or regression outputs (e.g., XGBoost-based coefficients). This data then funnels into `astra/graph.py` to construct the visualization.
+  The Polaris workflow computes correlation or regression outputs (e.g., XGBoost-based coefficients). This data then funnels into `astra/graph.py` to construct the visualization.
 - **Downstream Analysis**:
   Researchers inspect the force-directed graph to identify clusters of parameters that share strong correlations (e.g., discovering that certain satellite anomaly metrics align with heightened solar flare indices).
 
@@ -67,12 +73,12 @@ In the repository, the file [`astra/graph.py`](https://github.com/geugenm/satell
 1. **Collect Satellite & Solar Data**
     - Output includes correlation matrices or cross-correlation series.
 2. **Serialize to JSON**
-    - Each pair \((i, j)\) with correlation coefficient \(\rho\_{ij}\) is stored as a `"link"` in `graph.json`.
+    - Each pair (i, j) with correlation coefficient ρ_ij is stored as a `"link"` in `graph.json`.
 3. **Graph Building** (`create_dependency_graph`)
     - Reads JSON to create nodes for each parameter.
-    - Creates edges weighted by \(\rho\_{ij}\).
+    - Creates edges weighted by ρ_ij.
     - Applies a force-directed layout algorithm.
 4. **Visualization**
-    - Pyecharts or a similar library renders the graph, coloring edges by \(\rho\_{ij}\) scale.
+    - Pyecharts or a similar library renders the graph, coloring edges by ρ_ij scale.
 
 The final result is an interactive or static graph that pinpoints which parameters have the highest synergy or conflict, thereby guiding further engineering or scientific exploration.
