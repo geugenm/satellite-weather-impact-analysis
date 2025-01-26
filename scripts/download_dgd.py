@@ -1,28 +1,16 @@
-import os
-import pandas as pd
-import datetime
-import logging
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas as pd
+import datetime as dt
+import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
 from vinvelivaanilai.space_weather.sw_file_fetch import fetch_indices
 from vinvelivaanilai.space_weather.sw_extractor import extract_data_regex
 
-DOWNLOAD_DIR = Path(
-    "downloads/dgd"
-).absolute()  # Directory to download DGD data
-OUTPUT_DIR = Path(
-    "downloads/sun"
-).absolute()  # Directory to save processed data
-START_DATE = datetime.datetime(
-    year=2016, month=1, day=1
-)  # Start date for data fetching
-FINAL_DATE = datetime.datetime(
-    year=2024, month=11, day=21
-)  # End date for data fetching
-CSV_OUTPUT_FILE = "dgd.csv"  # Output CSV file name
-
-DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+DOWNLOAD_DIR = Path("downloads/dgd").absolute()
+OUTPUT_DIR = Path("downloads/sun").absolute()
+START_DATE = dt.datetime(2016, 1, 1)
+FINAL_DATE = dt.datetime(2025, 1, 26)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -30,43 +18,36 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _process_file(file: Path) -> pd.DataFrame:
+    logger.info(f"processing file: {file}")
+    return extract_data_regex("DGD", file)
+
+
 def download_and_process_data() -> None:
-    logger.info(f"Downloading DGD data to '{DOWNLOAD_DIR}'...")
-    os.chdir(DOWNLOAD_DIR)
-    fetch_indices("DGD", START_DATE, FINAL_DATE)
+    DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    dataframes = []
+    logger.info(f"downloading DGD data to '{DOWNLOAD_DIR}'...")
+    with Path.cwd() / DOWNLOAD_DIR as download_path:
+        os.chdir(download_path)
+        fetch_indices("DGD", START_DATE, FINAL_DATE)
 
-    with ThreadPoolExecutor() as executor:
-        futures = {
-            executor.submit(process_file, filename): filename
-            for filename in DOWNLOAD_DIR.glob("*.txt")
-        }
-
-        for future in as_completed(futures):
+        with ThreadPoolExecutor() as pool:
             try:
-                df = future.result()
-                dataframes.append(df)
+                dfs = list(pool.map(_process_file, download_path.glob("*.txt")))
+                if dfs:
+                    pd.concat(dfs).to_csv(OUTPUT_DIR / "dgd.csv", index=True)
+                    logger.info(f"saved dataframe to '{OUTPUT_DIR}/dgd.csv'")
+                else:
+                    logger.warning("no data frames to merge")
             except Exception as e:
-                logger.error(f"Error processing file {futures[future]}: {e}")
-
-    if dataframes:
-        merged_df = pd.concat(dataframes, ignore_index=False)
-        merged_df.to_csv(OUTPUT_DIR / CSV_OUTPUT_FILE, index=True)
-        logger.info(
-            f"Saved final dataframe to '{OUTPUT_DIR}/{CSV_OUTPUT_FILE}'"
-        )
-    else:
-        logger.warning("No data frames to merge.")
-
-
-def process_file(filename: Path) -> pd.DataFrame:
-    logger.info(f"Processing file: {filename}")
-    return extract_data_regex("DGD", filename)
+                logger.error(f"processing failed: {e}")
+                raise
 
 
 if __name__ == "__main__":
     try:
         download_and_process_data()
     except Exception as e:
-        logger.critical(f"An error occurred: {e}", exc_info=True)
+        logger.critical(f"fatal error: {e}", exc_info=True)
+        exit(1)
