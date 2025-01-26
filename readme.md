@@ -5,7 +5,7 @@
 [![GitHub Issues](https://img.shields.io/github/issues/geugenm/satellite-weather-impact-analysis?style=for-the-badge&color=171b20&labelColor=171b20)](https://github.com/geugenm/satellite-weather-impact-analysis/issues)
 [![Python](https://img.shields.io/badge/python-3.12+-171b20?style=for-the-badge&logo=python&logoColor=38bdae&labelColor=171b20)](https://www.python.org/downloads/)
 [![Latex](https://img.shields.io/badge/LuaTeX-ready-171b20?style=for-the-badge&logo=latex&logoColor=38bdae&labelColor=171b20)](https://www.latex-project.org/)
-[![License](https://img.shields.io/badge/license-GPU_GPL_3.0-171b20?style=for-the-badge&labelColor=171b20&color=171b20)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-171b20?style=for-the-badge&labelColor=171b20&color=171b20)](license.md)
 
 [![Logo](img/logo.png)](https://github.com/geugenm/satellite-weather-impact-analysis)
 
@@ -26,10 +26,10 @@ ASTRA is a high-performance analytical platform designed to uncover correlations
 
 ## 🛠️ Tech Stack
 
-- **Core**: Python 3.12+, NumPy, Pandas
-- **ML**: PyTorch, scikit-learn
-- **Visualization**: Plotly, D3.js
-- **Documentation**: LuaTeX, Sphinx
+- **Core**: Python 3.13+, NumPy, Pandas
+- **ML**: mlflow, xgboost, scikit-learn
+- **Visualization**: Plotly, pyecharts
+- **Documentation**: LuaTeX, markdown, mermaid
 
 ## 📊 Preview
 
