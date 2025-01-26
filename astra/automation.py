@@ -3,6 +3,7 @@ from time import perf_counter
 import logging
 from concurrent.futures import ProcessPoolExecutor
 from argparse import ArgumentParser
+from os import EX_SOFTWARE
 from astra.analyzer import process_satellite_data
 
 logging.basicConfig(
@@ -55,7 +56,7 @@ def main() -> None:
         process_directory(args.dir)
     except Exception as e:
         logging.error(str(e))
-        exit(1)
+        exit(EX_SOFTWARE)
 
 
 if __name__ == "__main__":

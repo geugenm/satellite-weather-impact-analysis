@@ -91,7 +91,7 @@ def create_dependency_graph(
             "target": link["target"],
             "value": link["value"],
             "lineStyle": {
-                "color": color_from_value(link["value"], min_val, max_val),
+                "color": _color_from_value(link["value"], min_val, max_val),
                 "width": GRAPH_CONFIG["edge"]["width"],
                 "curveness": GRAPH_CONFIG["edge"]["curveness"],
             },
