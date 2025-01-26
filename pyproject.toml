@@ -43,6 +43,7 @@ dependencies = [
     "requests>=2.26",
     "tqdm>=4.62",
     "GPUtil>=1.4",
+    "pynvml>=12.0",
     "selenium>=4.0",
 
     # Jupyter Support

@@ -20,7 +20,7 @@ GRAPH_CONFIG = {
 }
 
 
-def color_from_value(value: float, min_val: float, max_val: float) -> str:
+def _color_from_value(value: float, min_val: float, max_val: float) -> str:
     norm = np.clip((value - min_val) / (max_val - min_val), 0, 1)
     red = int(norm * GRAPH_CONFIG["color"]["red_max"])
     green = int(

@@ -7,8 +7,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from vinvelivaanilai.space_weather.sw_file_fetch import fetch_indices
 from vinvelivaanilai.space_weather.sw_extractor import extract_data_regex
 
-DOWNLOAD_DIR = Path("downloads/dgd").absolute()  # Directory to download DGD data
-OUTPUT_DIR = Path("downloads/sun").absolute()  # Directory to save processed data
+DOWNLOAD_DIR = Path(
+    "downloads/dgd"
+).absolute()  # Directory to download DGD data
+OUTPUT_DIR = Path(
+    "downloads/sun"
+).absolute()  # Directory to save processed data
 START_DATE = datetime.datetime(
     year=2016, month=1, day=1
 )  # Start date for data fetching
@@ -49,7 +53,9 @@ def download_and_process_data() -> None:
     if dataframes:
         merged_df = pd.concat(dataframes, ignore_index=False)
         merged_df.to_csv(OUTPUT_DIR / CSV_OUTPUT_FILE, index=True)
-        logger.info(f"Saved final dataframe to '{OUTPUT_DIR}/{CSV_OUTPUT_FILE}'")
+        logger.info(
+            f"Saved final dataframe to '{OUTPUT_DIR}/{CSV_OUTPUT_FILE}'"
+        )
     else:
         logger.warning("No data frames to merge.")
 

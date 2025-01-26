@@ -56,6 +56,7 @@ def get_columns_and_sources(path: Path) -> dict[str, str]:
 
 def read_csv_files(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
     dataframes = [pd.read_csv(file) for file in Path(path).glob("*.csv")]
+    print(path)
     combined_df = pd.concat(dataframes, ignore_index=True)
     combined_df[time_column] = pd.to_datetime(
         combined_df[time_column]
