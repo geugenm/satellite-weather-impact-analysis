@@ -22,35 +22,11 @@ mlflow.set_tracking_uri(TRACKING_URI)
 mlflow.enable_system_metrics_logging()
 
 
-def clean_column_names(columns: list[str]) -> list[str]:
-    return [
-        col.translate(
-            str.maketrans(
-                {
-                    " ": "_",
-                    ",": "_",
-                    "<": "_",
-                    ">": "_",
-                    "[": "_",
-                    "]": "_",
-                    "(": "_",
-                    ")": "_",
-                    "+": "_",
-                    "#": "_",
-                }
-            )
-        )
-        for col in columns
-    ]
-
-
 def get_columns_and_sources(path: Path) -> dict[str, str]:
     return {
-        col: file.name
+        col.translate(str.maketrans({c: "_" for c in " ,<>[]()#+"})): file.name
         for file in path.glob("*.csv")
-        for col in clean_column_names(
-            pd.read_csv(file, usecols=lambda x: True).columns
-        )
+        for col in pd.read_csv(file, usecols=lambda x: True).columns
     }
 
 
@@ -60,11 +36,16 @@ def read_csv_files(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
     combined_df[time_column] = pd.to_datetime(
         combined_df[time_column]
     ).dt.normalize()
-    combined_df = combined_df.select_dtypes(
-        include=["number", "bool", "datetime"]
+    return (
+        combined_df.select_dtypes(include=["number", "bool", "datetime"])
+        .rename(
+            columns=lambda col: col.translate(
+                str.maketrans({c: "_" for c in " ,<>[]()#+"})
+            )
+        )
+        .groupby(time_column)
+        .mean()
     )
-    combined_df.columns = clean_column_names(combined_df.columns)
-    return combined_df.groupby(time_column).mean()
 
 
 def read_solar_data(file_path: Path, date_column: str) -> pd.DataFrame:
