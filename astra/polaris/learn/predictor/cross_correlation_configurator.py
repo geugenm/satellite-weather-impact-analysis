@@ -2,9 +2,9 @@ import json
 import logging
 from typing import Any, Dict
 import GPUtil
-from src.polaris.feature.cleaner_configurator import CleanerConfigurator
-from src.polaris.feature.cleaner_parameters import CleanerParameters
-from src.polaris.learn.predictor.cross_correlation_parameters import (
+from astra.polaris.feature.cleaner_configurator import CleanerConfigurator
+from astra.polaris.feature.cleaner_parameters import CleanerParameters
+from astra.polaris.learn.predictor.cross_correlation_parameters import (
     CrossCorrelationParameters,
 )
 
@@ -29,8 +29,9 @@ class CrossCorrelationConfigurator:
 
         return self._cross_correlation_parameters
 
-    def _set_cpu_parameters(self, model_params: Dict[str, Any]) -> Dict[
-        str, Any]:
+    def _set_cpu_parameters(
+        self, model_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         if not self._force_cpu:
             try:
                 gpu_ids = GPUtil.getAvailable()
@@ -67,12 +68,13 @@ class CrossCorrelationConfigurator:
     ):
         self._cross_correlation_parameters.random_state = random_state
         self._cross_correlation_parameters.test_size = test_size
-        self._cross_correlation_parameters.model_params = self._set_cpu_parameters(
-            model_params
+        self._cross_correlation_parameters.model_params = (
+            self._set_cpu_parameters(model_params)
         )
 
         feature_cleaner_configurator = CleanerConfigurator(
-            dataset_cleaning_params)
+            dataset_cleaning_params
+        )
         self._cross_correlation_parameters.dataset_cleaning_params = (
             feature_cleaner_configurator.get_configuration()
         )

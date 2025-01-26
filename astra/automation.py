@@ -2,7 +2,7 @@ from pathlib import Path
 from time import perf_counter
 import logging
 from concurrent.futures import ProcessPoolExecutor
-from src.analyzer import process_satellite_data
+from astra.analyzer import process_satellite_data
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,7 +17,9 @@ def analyze_entry(entry: Path) -> None:
     try:
         logging.info(f"Analyzing '{entry.name}'...")
         process_satellite_data(entry.name)
-        logging.info(f"Finished '{entry.name}' in {perf_counter() - start_time:.2f}s")
+        logging.info(
+            f"Finished '{entry.name}' in {perf_counter() - start_time:.2f}s"
+        )
     except Exception as e:
         logging.error(f"Error analyzing '{entry.name}': {e}", exc_info=True)
 
@@ -51,7 +53,9 @@ def main() -> None:
     logging.info(f"Found {len(entries)} directories to analyze.")
     process_entries(entries)
 
-    logging.info(f"Total execution time: {perf_counter() - start_total_time:.2f}s")
+    logging.info(
+        f"Total execution time: {perf_counter() - start_total_time:.2f}s"
+    )
 
 
 if __name__ == "__main__":

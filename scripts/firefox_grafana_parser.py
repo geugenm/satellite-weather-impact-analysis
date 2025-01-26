@@ -26,7 +26,7 @@ logging.basicConfig(
 
 def create_driver(browser_download_dir: str) -> webdriver:
     options = Options()
-    # options.add_argument("--headless")
+    options.add_argument("--headless")
     options.set_preference("browser.download.folderList", 2)
     options.set_preference("browser.download.dir", browser_download_dir)
     options.set_preference(
@@ -48,8 +48,9 @@ def get_existing_panels(driver: webdriver) -> List[Tuple[int, str]]:
         try:
             element = driver.find_element(By.ID, f"panel-{panel_id}")
             if "react-grid-item" in element.get_attribute("class"):
-                title_element = element.find_element(By.CLASS_NAME,
-                                                     "panel-title-text")
+                title_element = element.find_element(
+                    By.CLASS_NAME, "panel-title-text"
+                )
                 existing_panels.append((panel_id, title_element.text))
         except NoSuchElementException:
             pass

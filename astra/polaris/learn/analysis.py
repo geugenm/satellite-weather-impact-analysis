@@ -3,10 +3,10 @@ import os
 
 import pandas as pd
 
-from src.polaris.data.graph import PolarisGraph, PolarisMetadata
+from astra.polaris.data.graph import PolarisGraph, PolarisMetadata
 
-from src.polaris.learn.predictor.cross_correlation import XCorr
-from src.polaris.learn.predictor.cross_correlation_configurator import (
+from astra.polaris.learn.predictor.cross_correlation import XCorr
+from astra.polaris.learn.predictor.cross_correlation_configurator import (
     CrossCorrelationConfigurator,
 )
 
@@ -39,7 +39,11 @@ def cross_correlate(
     )
 
     metadata = PolarisMetadata(
-        {"satellite_name": os.path.splitext(os.path.basename(output_graph_file))[0]}
+        {
+            "satellite_name": os.path.splitext(
+                os.path.basename(output_graph_file)
+            )[0]
+        }
     )
     xcorr = XCorr(metadata, configurator.get_configuration())
     xcorr.fit(normalize_dataframe(input_dataframe, index_column, dropna))
