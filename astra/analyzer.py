@@ -18,9 +18,6 @@ TIME_COLUMN = "Time"
 OBS_DATE_COLUMN = "Obsdate"
 OUTPUT_GRAPH_SUFFIX = "_graph.json"
 
-mlflow.set_tracking_uri(TRACKING_URI)
-mlflow.enable_system_metrics_logging()
-
 
 def get_columns_and_sources(path: Path) -> dict[str, str]:
     return {
@@ -49,9 +46,9 @@ def read_csv_files(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
 
 
 def read_solar_data(file_path: Path, date_column: str) -> pd.DataFrame:
-    df = pd.read_json(file_path)
-    df[date_column] = pd.to_datetime(df[date_column])
-    return df
+    return pd.read_json(file_path).assign(
+        **{date_column: lambda df: pd.to_datetime(df[date_column])}
+    )
 
 
 def parse_solar_data(solar_dir: Path) -> list[pd.DataFrame]:
@@ -59,20 +56,19 @@ def parse_solar_data(solar_dir: Path) -> list[pd.DataFrame]:
         read_solar_data(
             solar_dir / "swpc_observed_ssn.json", OBS_DATE_COLUMN
         ).rename(columns={OBS_DATE_COLUMN: TIME_COLUMN}),
-        pd.read_csv(solar_dir / "dgd.csv", parse_dates=["Date"]).rename(
-            columns={"Date": TIME_COLUMN}
-        ),
-        pd.read_csv(
-            solar_dir / "fluxtable.txt", sep="\s+", parse_dates=["fluxdate"]
-        ).rename(columns={"fluxdate": TIME_COLUMN}),
-        pd.read_csv(
-            solar_dir / "daily_total_sunspot_number.csv",
-            parse_dates=[TIME_COLUMN],
-        ),
-        pd.read_csv(
-            solar_dir / "daily_hemispheric_sunspot_number.csv",
-            parse_dates=[TIME_COLUMN],
-        ),
+        *[
+            pd.read_csv(
+                solar_dir / file,
+                parse_dates=[col],
+                sep="\\s+" if "fluxtable" in file else ",",
+            ).rename(columns={col: TIME_COLUMN})
+            for file, col in [
+                ("dgd.csv", "Date"),
+                ("fluxtable.txt", "fluxdate"),
+                ("daily_total_sunspot_number.csv", TIME_COLUMN),
+                ("daily_hemispheric_sunspot_number.csv", TIME_COLUMN),
+            ]
+        ],
     ]
 
 
@@ -85,7 +81,10 @@ def merge_dataframes(
 
 
 def process_satellite_data(satellite_name: str) -> None:
-    mlflow.set_experiment(f"{satellite_name}")
+    mlflow.set_tracking_uri(TRACKING_URI)
+    mlflow.enable_system_metrics_logging()
+
+    mlflow.set_experiment(satellite_name)
     artifacts_dir = (ARTIFACTS_DIR / satellite_name).absolute()
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
