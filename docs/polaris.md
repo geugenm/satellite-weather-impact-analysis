@@ -21,7 +21,7 @@ where:
 
 ## 🛠️ Pipeline Architecture
 
-```
+```mermaid
 graph TD
     A[Satellite Telemetry] --> B[Feature Engineering]
     C[Solar Parameters] --> B
@@ -98,7 +98,7 @@ The model builds a weighted directed graph \(G(V,E)\) where:
 
 ## 🔄 Optimization Loop
 
-```
+```mermaid
 stateDiagram-v2
     [*] --> FeatureSelection
     FeatureSelection --> ModelTraining
@@ -119,8 +119,4 @@ stateDiagram-v2
 | subsample        | [0.5, 1.0]  | Subsample ratio of training instances |
 | colsample_bytree | [0.5, 1.0]  | Subsample ratio of columns            |
 
-```
-
 The model focuses on discovering complex non-linear relationships between satellite telemetry and solar activity while maintaining robustness through regularization and cross-validation. The correlation graph provides insights into the strength and direction of these relationships.
-
-```
