@@ -10,23 +10,21 @@ def test_graph_path() -> Path:
 
 @pytest.fixture
 def artifacts_dir() -> Path:
-    artifacts: Path = Path("build")
-    artifacts.mkdir(exist_ok=True)
-    return artifacts
+    path = Path("build")
+    path.mkdir(exist_ok=True)
+    return path
 
 
 def test_dependency_graph_creation(
     test_graph_path: Path, artifacts_dir: Path
 ) -> None:
-    params: dict[str, str] = {"reset_count": "reset count test!"}
-
     graph = create_dependency_graph(
-        test_graph_path,
-        params,
+        test_graph_path, {"reset_count": "reset count test!"}
     )
-    output_path = str(artifacts_dir / "test_graph.html")
-    graph.render(output_path)
 
-    expected_output: Path = artifacts_dir / "test_graph.html"
-    assert expected_output.exists(), "Graph output file was not created"
-    assert expected_output.stat().st_size > 0, "Graph output file is empty"
+    output_file = artifacts_dir / "test_graph.html"
+    graph.render(str(output_file))
+
+    assert (
+        output_file.exists() and output_file.stat().st_size > 0
+    ), "Graph output file was not created or is empty"
