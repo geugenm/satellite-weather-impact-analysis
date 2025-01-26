@@ -1,36 +1,21 @@
 # astra satellite-weather-impact-analysis
 
-<div align="center" style="text-align: center;">
-  <div>
-    <a href="https://github.com/geugenm/satellite-weather-impact-analysis/issues">
-      <img alt="GitHub Issues or Pull Requests" src="https://img.shields.io/github/issues/geugenm/satellite-weather-impact-analysis?style=for-the-badge">
-    </a>
-    <img src="https://img.shields.io/badge/python-3.12+-green?style=for-the-badge&logo=python&logoColor=yellow" alt="python" />
-    <img src="https://img.shields.io/badge/Latex-LuaTeX-green?style=for-the-badge&logo=latex" alt="Latex" />
-    <img src="https://img.shields.io/badge/License-GPU--GPL3.0-green?style=for-the-badge" alt="License" />
-  </div>
-</div>
-
-<!-- badges generated with: https://badgesgenerator.com/>
-<!-- PROJECT LOGO -->
-<br />
 <div align="center">
-  <a href="https://github.com/geugenm/satellite-weather-impact-analysis">
-    <img src="img/logo.png" alt="Logo" width="80" height="80">
-  </a>
 
-<h3 align="center">satellite-weather-impact-analysis</h3>
+[![GitHub Issues](https://img.shields.io/github/issues/geugenm/satellite-weather-impact-analysis?style=for-the-badge)](https://github.com/geugenm/satellite-weather-impact-analysis/issues)
+![Python](https://img.shields.io/badge/python-3.12+-green?style=for-the-badge&logo=python&logoColor=yellow)
+![Latex](https://img.shields.io/badge/Latex-LuaTeX-green?style=for-the-badge&logo=latex)
+![License](https://img.shields.io/badge/License-GPU--GPL3.0-green?style=for-the-badge)
 
-  <p align="center">
-    This repository includes the code for a study that examines the effects of space weather on operational satellite systems. The analysis involves comparing solar data with active satellite data to uncover correlations between the two.
-    <br />
-    <a href="https://github.com/geugenm/satellite-weather-impact-analysis/docs"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
-    ·
-    <a href="https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
-  </p>
+[![Logo](img/logo.png)](https://github.com/geugenm/satellite-weather-impact-analysis)
+
+This repository includes the code for a study that examines the effects of space weather on operational satellite systems. The analysis involves comparing solar data with active satellite data to uncover correlations between the two.
+
+**[Explore the docs »](https://github.com/geugenm/satellite-weather-impact-analysis/docs)**
+
+[Report Bug](https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=bug&template=bug-report---.md) ·
+[Request Feature](https://github.com/geugenm/satellite-weather-impact-analysis/issues/new?labels=enhancement&template=feature-request---.md)
+
 </div>
 
 ![graph_preview](img/preview.png)
@@ -41,12 +26,6 @@
 
     ```sh
     python --version
-    ```
-
-- poetry
-
-    ```sh
-    poetry --version
     ```
 
 ### Installation
