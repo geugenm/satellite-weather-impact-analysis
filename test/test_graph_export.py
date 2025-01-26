@@ -10,7 +10,7 @@ def test_graph_path() -> Path:
 
 @pytest.fixture
 def artifacts_dir() -> Path:
-    artifacts: Path = Path(".test")
+    artifacts: Path = Path("build/test")
     artifacts.mkdir(exist_ok=True)
     return artifacts
 
