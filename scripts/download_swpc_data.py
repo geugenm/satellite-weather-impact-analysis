@@ -81,7 +81,9 @@ def remove_dashes_from_second_line(file_path: Path) -> None:
 
 def main() -> None:
     with ThreadPoolExecutor() as executor:
-        futures = {executor.submit(download_and_process, url): url for url in URLS}
+        futures = {
+            executor.submit(download_and_process, url): url for url in URLS
+        }
 
         for future in as_completed(futures):
             url = futures[future]

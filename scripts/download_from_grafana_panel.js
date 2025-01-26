@@ -7,7 +7,7 @@ async function waitForElement(xpath, timeout = 100) {
                 document,
                 null,
                 XPathResult.FIRST_ORDERED_NODE_TYPE,
-                null
+                null,
             ).singleNodeValue;
 
             if (element) {
@@ -15,7 +15,11 @@ async function waitForElement(xpath, timeout = 100) {
                 resolve(element);
             } else if (performance.now() - startTime > timeout) {
                 clearInterval(interval);
-                reject(new Error(`Element '${xpath}' not found within timeout of ${timeout}ms.`));
+                reject(
+                    new Error(
+                        `Element '${xpath}' not found within timeout of ${timeout}ms.`,
+                    ),
+                );
             }
         }, 5);
     });
@@ -27,7 +31,7 @@ function getElementByXPath(xpath) {
         document,
         null,
         XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
+        null,
     ).singleNodeValue;
 }
 
@@ -41,8 +45,11 @@ function safeClick(element) {
 
 function dispatchEvents(element, events = ["focus", "mousedown", "input"]) {
     if (element) {
-        events.forEach(eventType => {
-            const event = new Event(eventType, { bubbles: true, cancelable: true });
+        events.forEach((eventType) => {
+            const event = new Event(eventType, {
+                bubbles: true,
+                cancelable: true,
+            });
             element.dispatchEvent(event);
         });
     } else {
@@ -61,19 +68,23 @@ async function processElement(xpath, action, timeout = 100) {
 
 async function main() {
     const xpaths = {
-        dataOptions: "/html/body/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div/div",
-        inputField: '//*[starts-with(@id, "react-select-") and substring(@id, string-length(@id) - string-length("-input") + 1) = "-input"]',
-        firstOption: '//*[starts-with(@id, "react-select-") and substring(@id, string-length(@id) - string-length("-option-0") + 1) = "-option-0"]',
-        downloadButton: "/html/body/div/div/div[2]/div/div[2]/div[1]/div[1]/button",
+        dataOptions:
+            "/html/body/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div/div",
+        inputField:
+            '//*[starts-with(@id, "react-select-") and substring(@id, string-length(@id) - string-length("-input") + 1) = "-input"]',
+        firstOption:
+            '//*[starts-with(@id, "react-select-") and substring(@id, string-length(@id) - string-length("-option-0") + 1) = "-option-0"]',
+        downloadButton:
+            "/html/body/div/div/div[2]/div/div[2]/div[1]/div[1]/button",
     };
 
     await processElement(xpaths.dataOptions, safeClick);
 
-    await processElement(xpaths.inputField, element => {
+    await processElement(xpaths.inputField, (element) => {
         dispatchEvents(element);
     });
 
-    await processElement(xpaths.firstOption, element => {
+    await processElement(xpaths.firstOption, (element) => {
         dispatchEvents(element);
         element?.click();
     });
@@ -81,4 +92,6 @@ async function main() {
     await processElement(xpaths.downloadButton, safeClick);
 }
 
-main().catch(error => console.error(`Unhandled error in main: ${error.message}`));
+main().catch((error) =>
+    console.error(`Unhandled error in main: ${error.message}`),
+);
