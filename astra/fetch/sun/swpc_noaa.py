@@ -34,14 +34,9 @@ class SwpcProcessor(DataProcessor):
         return self.sanitize_columns(df)
 
 
-def main() -> None:
-    """Main execution"""
+if __name__ == "__main__":
     url = (
         "https://services.swpc.noaa.gov/json/solar-cycle/swpc_observed_ssn.json"
     )
     processor = SwpcProcessor()
     processor.run(url)
-
-
-if __name__ == "__main__":
-    main()
