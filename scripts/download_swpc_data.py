@@ -22,17 +22,21 @@ def download_and_process(url: str) -> None:
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
+
         with open(file_path, "wb") as file:
             file.write(response.content)
 
         print(f"Downloaded {file_name}")
 
-        if file_name == "sndtotcsv.php":
-            convert_to_csv(file_path, "daily_total_sunspot_number.csv")
-        elif file_name == "sndhemcsv.php":
-            convert_to_csv(file_path, "daily_hemispheric_sunspot_number.csv")
-        elif file_name == "fluxtable.txt":
-            remove_dashes_from_second_line(file_path)
+        match file_name:
+            case "sndtotcsv.php":
+                convert_to_csv(file_path, "daily_total_sunspot_number.csv")
+            case "sndhemcsv.php":
+                convert_to_csv(
+                    file_path, "daily_hemispheric_sunspot_number.csv"
+                )
+            case "fluxtable.txt":
+                remove_dashes_from_second_line(file_path)
 
     except requests.RequestException as e:
         print(f"Failed to download {url}: {e}")
@@ -61,6 +65,7 @@ def convert_to_csv(file_path: Path, output_file: str) -> None:
         df.to_csv(output_path, index=False)
 
         print(f"Processed and saved to {output_path}")
+
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
     finally:
