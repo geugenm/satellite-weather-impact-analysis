@@ -25,7 +25,7 @@ SATELLITE_URLS = [
 ]
 
 # Time periods and timeouts
-TIME_PERIODS = {"from": "now", "to": "9y"}
+TIME_PERIODS = {"from": "now", "to": "4y"}
 TIMEOUTS = {"page_load": 10, "panel_wait": 10, "download": 10}
 
 # Browser configuration
