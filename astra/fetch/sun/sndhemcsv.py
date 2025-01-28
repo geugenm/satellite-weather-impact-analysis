@@ -8,7 +8,7 @@ from io import StringIO
 class SndHemCsvProcessor(DataProcessor):
     """Processor for sndhemcsv.php data"""
 
-    output_prefix = "sndhemscv"
+    output_prefix = "daily_hemispheric_sunspot_number"
 
     def download(self, url: str) -> str:
         response = requests.get(url, timeout=10)

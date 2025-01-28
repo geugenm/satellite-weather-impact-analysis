@@ -8,7 +8,7 @@ from io import StringIO
 class SndTotCsvProcessor(DataProcessor):
     """Processor for sndtotcsv.php data"""
 
-    output_prefix = "sndtotcsv"
+    output_prefix = "daily_total_sunspot_number"
 
     def download(self, url: str) -> str:
         response = requests.get(url, timeout=10)
