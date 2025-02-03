@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 
 from pathlib import Path
-
-from indicies.storage.common import set_datetime_index
+from datetime import datetime
 
 LOGGER = logging.getLogger(__name__)
 CH = logging.StreamHandler()
@@ -17,6 +16,54 @@ LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 FORMATTER = logging.Formatter(LOG_FORMAT)
 CH.setFormatter(FORMATTER)
 LOGGER.addHandler(CH)
+
+
+def set_datetime_index(dataframe, field_name="EPOCH"):
+    """Converts field_name in dataframe to pd.DatetimeIndex
+
+    Args:
+        dataframe (pd.DataFrame): DataFrame with field_name column to be
+            converted to timeseries
+        field_name (str, optional): Name of field with timeseries data.
+            Defaults to 'EPOCH'.
+
+    Raises:
+        ValueError: If field_name does not exist in dataframe's columns
+
+    Returns:
+        pd.DataFrame: Original Data with `field_name` set as pd.DatetimeIndex
+    """
+    local_df = dataframe.copy()
+
+    # Check the field exists before using it
+    if field_name not in local_df.columns:
+        raise ValueError("Column {} does not exist".format(field_name))
+
+    # If the index is already datetime index, ignore field_name
+    if isinstance(local_df.index, pd.DatetimeIndex):
+        return local_df
+
+    # Check if the field is datetime or int/string
+    if not isinstance(local_df[field_name], datetime):
+        if isinstance(local_df[field_name][0], (int, float, np.int64)):
+            # Unix epoch time of seconds format
+            if local_df[field_name][0] < 10**11:
+                local_df[field_name] = pd.to_datetime(
+                    local_df[field_name], origin="unix", unit="s"
+                )
+            # Unix epoch time of milliseconds format
+            else:
+                local_df[field_name] = pd.to_datetime(
+                    local_df[field_name], origin="unix", unit="ms"
+                )
+
+        else:
+            # Unknown string format (automatic decoding)
+            local_df[field_name] = pd.to_datetime(local_df[field_name])
+    # Set the formatted (datetime) field as index
+    local_df.set_index(field_name, inplace=True)
+
+    return local_df
 
 
 class NoSpaceWeatherForIndex(Exception):
