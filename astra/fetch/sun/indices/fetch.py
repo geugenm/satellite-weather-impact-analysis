@@ -6,7 +6,7 @@ import logging
 import os
 from time import sleep
 
-from space_weather import sw_extractor
+from indices import extract
 
 LOGGER = logging.getLogger(__name__)
 CH = logging.StreamHandler()
@@ -143,7 +143,7 @@ def _fetch_attempt(index, start_date, final_date, directory):
                     LOGGER.info(error_name)
                     continue
 
-    return sw_extractor.extract_data_from_multiple(index, file_name_list)
+    return extract.extract_data_from_multiple(index, file_name_list)
 
 
 def _fetch_file_names(index, start_date, final_date, directory):

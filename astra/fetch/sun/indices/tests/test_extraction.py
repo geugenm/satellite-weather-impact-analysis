@@ -8,7 +8,7 @@ import numpy as np
 
 
 import pytest
-from space_weather.sw_extractor import (
+from indices.extract import (
     NoSpaceWeatherForIndex,
     extract_data_from_multiple,
     extract_data_regex,
@@ -19,7 +19,7 @@ from space_weather.sw_extractor import (
 FIXTURE_DIR = Path(
     os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
-        "test_sw_extractor",
+        "sources",
     )
 )
 

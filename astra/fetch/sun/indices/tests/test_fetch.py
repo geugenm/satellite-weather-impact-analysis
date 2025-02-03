@@ -4,14 +4,14 @@ import os
 from datetime import datetime, timedelta
 
 import pytest
-from space_weather.sw_file_fetch import fetch_indices
+from indices.fetch import fetch_indices
 
 from pathlib import Path
 
 datafiles = Path(
     os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
-        "test_sw_extractor",
+        "sources",
     )
 )
 
@@ -38,7 +38,7 @@ def test_fetch_indices_happy():
 
     for index, start, end in zip(test_indices, start_dates, end_dates):
         fetch_indices(
-            index, start, end, directory=str(datafiles / "still_not_created")
+            index, start, end, directory=str(datafiles / "fetch-test")
         )
 
 
