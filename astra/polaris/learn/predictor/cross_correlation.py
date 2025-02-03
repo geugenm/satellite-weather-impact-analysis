@@ -3,7 +3,6 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from mlflow import log_metric, log_param, log_params
-from scipy.stats import norm
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import (
     AdaBoostRegressor,
@@ -11,7 +10,6 @@ from sklearn.ensemble import (
     GradientBoostingRegressor,
     RandomForestRegressor,
 )
-from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
@@ -21,7 +19,6 @@ from astra.polaris.feature.cleaner import Cleaner
 from astra.polaris.learn.predictor.cross_correlation_parameters import (
     CrossCorrelationParameters,
 )
-import io
 
 mlflow.xgboost.autolog(model_format="json")
 
@@ -200,6 +197,6 @@ class XCorr(BaseEstimator, TransformerMixin):
             index=[target_name],
         )
         imp_df.dropna(axis=1, how="all", inplace=True)
+        self.importances_map.dropna(axis=1, how="all", inplace=True)
 
-        if not imp_df.empty and self.importances_map is not None:
-            self.importances_map = pd.concat([self.importances_map, imp_df])
+        self.importances_map = pd.concat([self.importances_map, imp_df])
