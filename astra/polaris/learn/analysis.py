@@ -7,9 +7,6 @@ import numpy as np
 from pathlib import Path
 
 from astra.polaris.learn.predictor.cross_correlation import XCorr
-from astra.polaris.learn.predictor.cross_correlation_configurator import (
-    CrossCorrelationConfigurator,
-)
 
 
 class NoFramesInInputFile(Exception):
@@ -48,8 +45,6 @@ def cross_correlate(
     input_dataframe: pd.DataFrame,
     output_graph_file: str | None = None,
     xcorr_configuration_file: str | None = None,
-    graph_link_threshold: float = 0.1,
-    force_cpu: bool = False,
     index_column: str = "time",
     dropna: bool = False,
 ) -> None:
@@ -62,17 +57,16 @@ def cross_correlate(
         logging.error("Input DataFrame is empty; nothing to correlate.")
         raise NoFramesInInputFile
 
-    configurator = CrossCorrelationConfigurator(
-        xcorr_configuration_file,
-        force_cpu,
-    )
-
     metadata = {
         "satellite_name": os.path.splitext(os.path.basename(output_graph_file))[
             0
         ]
     }
-    xcorr = XCorr(metadata, configurator.get_configuration())
+    config = None
+    with Path(xcorr_configuration_file).open("r") as f:
+        config = yaml.safe_load(f)
+
+    xcorr = XCorr(metadata, config)
     xcorr.fit(normalize_dataframe(input_dataframe, index_column, dropna))
 
     output_graph_file = (
@@ -80,7 +74,9 @@ def cross_correlate(
     )
 
     graph_data = create_graph_data(
-        metadata["satellite_name"], xcorr.importances_map, graph_link_threshold
+        metadata["satellite_name"],
+        xcorr.importances_map,
+        config["graph"]["graph_link_threshold"],
     )
     save_to_yaml(graph_data, output_graph_file)
 

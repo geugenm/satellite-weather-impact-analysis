@@ -3,8 +3,8 @@ import logging
 
 class Cleaner:
     def __init__(self, metadata, cleaning_params):
-        self._col_threshold = cleaning_params.col_max_na_percentage
-        self._row_threshold = cleaning_params.row_max_na_percentage
+        self._col_threshold = cleaning_params["col_max_na_percentage"]
+        self._row_threshold = cleaning_params["row_max_na_percentage"]
         self._metadata = metadata
 
     def handle_missing_values(self, dataframe):

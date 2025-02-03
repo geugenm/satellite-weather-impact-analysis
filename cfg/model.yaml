@@ -1,5 +1,6 @@
 random_state: 43
 test_size: 0.2
+regressor_name: XGBoosting
 dataset_cleaning_params:
     col_max_na_percentage: 80
     row_max_na_percentage: 80
@@ -37,3 +38,5 @@ model_params:
     validate_parameters: false
     verbosity: 1
     early_stopping_rounds: null
+graph:
+    graph_link_threshold: 0.2

@@ -13,7 +13,7 @@ TRACKING_URI = ARTIFACTS_DIR / "mlruns"
 DOWNLOAD_DIR = Path("../downloads")
 SATELLITES_DIR = DOWNLOAD_DIR / "sat"
 SOLAR_DIR = DOWNLOAD_DIR / "sun"
-MODEL_CFG_PATH = Path("../cfg/model.json")
+MODEL_CFG_PATH = Path("../cfg/model.yaml")
 TIME_COLUMN = "Time"
 OUTPUT_GRAPH_SUFFIX = "_graph.yaml"
 

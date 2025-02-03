@@ -16,9 +16,7 @@ from sklearn.model_selection import train_test_split
 import mlflow.xgboost
 from xgboost import XGBRegressor
 from astra.polaris.feature.cleaner import Cleaner
-from astra.polaris.learn.predictor.cross_correlation_parameters import (
-    CrossCorrelationParameters,
-)
+
 
 mlflow.xgboost.autolog(model_format="json")
 
@@ -27,25 +25,26 @@ class XCorr(BaseEstimator, TransformerMixin):
     def __init__(
         self,
         dataset_metadata: dict[str, any],
-        cross_correlation_params: CrossCorrelationParameters,
+        cross_correlation_params: dict,
     ) -> None:
         self.models: list[any] = []
         self.importances_map: Optional[pd.DataFrame] = None
         self._feature_cleaner = Cleaner(
-            dataset_metadata, cross_correlation_params.dataset_cleaning_params
+            dataset_metadata,
+            cross_correlation_params["dataset_cleaning_params"],
         )
 
-        log_params(cross_correlation_params.model_params)
+        log_params(cross_correlation_params["model_params"])
         self.xcorr_params = {
-            "random_state": cross_correlation_params.random_state,
-            "test_size": cross_correlation_params.test_size,
+            "random_state": cross_correlation_params["random_state"],
+            "test_size": cross_correlation_params["test_size"],
             "feature_columns": dataset_metadata.get("analysis", {}).get(
                 "feature_columns", []
             ),
         }
         self.model_params = {
-            "current": cross_correlation_params.model_params,
-            "regressor_name": cross_correlation_params.regressor_name
+            "current": cross_correlation_params["model_params"],
+            "regressor_name": cross_correlation_params["regressor_name"]
             or "XGBoosting",
         }
         self.method, self.mlf_logging = (
