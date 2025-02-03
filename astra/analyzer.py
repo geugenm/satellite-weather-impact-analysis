@@ -15,7 +15,6 @@ SATELLITES_DIR = DOWNLOAD_DIR / "sat"
 SOLAR_DIR = DOWNLOAD_DIR / "sun"
 MODEL_CFG_PATH = Path("../cfg/model.json")
 TIME_COLUMN = "Time"
-OBS_DATE_COLUMN = "Obsdate"
 OUTPUT_GRAPH_SUFFIX = "_graph.json"
 
 
