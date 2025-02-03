@@ -6,7 +6,7 @@ time_column: time # Default column name for timestamps
 time_format: "%Y-%m-%d" # Python strftime format
 timezone: UTC # Timezone for datetime operations
 
-# File I/O configuration
+# File output configuration
 separator: "," # CSV separator character
 
 # Advanced save configuration

@@ -2,8 +2,11 @@ import logging
 import os
 
 import pandas as pd
+import yaml
+import numpy as np
+from pathlib import Path
 
-from astra.polaris.data.graph import PolarisGraph, PolarisMetadata
+from astra.polaris.data.graph import PolarisMetadata
 
 from astra.polaris.learn.predictor.cross_correlation import XCorr
 from astra.polaris.learn.predictor.cross_correlation_configurator import (
@@ -13,6 +16,34 @@ from astra.polaris.learn.predictor.cross_correlation_configurator import (
 
 class NoFramesInInputFile(Exception):
     pass
+
+
+def create_graph_data(
+    satellite_name: str, heatmap, threshold: float = 0.1  # pandas DataFrame
+) -> dict:
+    """Transform heatmap matrix into optimized graph structure"""
+    return {
+        "satellite": satellite_name,
+        "links": [
+            {"source": src, "target": tgt, "coefficient": float(val)}
+            for src, targets in heatmap.items()
+            for tgt, val in targets.items()
+            if tgt != src and not np.isnan(val) and val >= threshold
+        ],
+    }
+
+
+def save_to_yaml(graph_data: dict, path: str | Path) -> None:
+    """Atomic write of graph data with YAML safety"""
+    Path(path).write_text(
+        yaml.safe_dump(
+            graph_data,
+            sort_keys=False,
+            default_flow_style=None,
+            allow_unicode=True,
+            width=80,
+        )
+    )
 
 
 def cross_correlate(
@@ -49,14 +80,13 @@ def cross_correlate(
     xcorr.fit(normalize_dataframe(input_dataframe, index_column, dropna))
 
     output_graph_file = (
-        output_graph_file or f"/tmp/polaris_graph_{xcorr.regressor}.json"
+        output_graph_file or f"/tmp/polaris_graph_{xcorr.regressor}.yaml"
     )
 
-    graph = PolarisGraph(satellite_name=metadata["satellite_name"])
-    graph.from_heatmap(xcorr.importances_map, graph_link_threshold)
-
-    with open(output_graph_file, "w") as graph_file:
-        graph_file.write(graph.to_json())
+    graph_data = create_graph_data(
+        metadata["satellite_name"], xcorr.importances_map, graph_link_threshold
+    )
+    save_to_yaml(graph_data, output_graph_file)
 
 
 def normalize_dataframe(dataframe, index_column="time", dropna=False):

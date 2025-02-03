@@ -15,7 +15,7 @@ SATELLITES_DIR = DOWNLOAD_DIR / "sat"
 SOLAR_DIR = DOWNLOAD_DIR / "sun"
 MODEL_CFG_PATH = Path("../cfg/model.json")
 TIME_COLUMN = "Time"
-OUTPUT_GRAPH_SUFFIX = "_graph.json"
+OUTPUT_GRAPH_SUFFIX = "_graph.yaml"
 
 
 def get_columns_and_sources(path: Path) -> dict[str, str]:

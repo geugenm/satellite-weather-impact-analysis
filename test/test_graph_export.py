@@ -10,7 +10,7 @@ def test_graph_path() -> Path:
     return Path(
         os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "test_graph.json",
+            "test_graph.yaml",
         )
     )
 
