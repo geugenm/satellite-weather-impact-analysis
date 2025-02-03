@@ -29,9 +29,11 @@ def get_columns_and_sources(path: Path) -> dict[str, str]:
     }
 
 
-def read_csv_files(path: Path, time_column: str = "Time") -> pd.DataFrame:
+def read_csv_files(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
     dataframes = [pd.read_csv(file) for file in Path(path).glob("*.csv")]
-    combined_df = pd.concat(dataframes, ignore_index=True)
+    combined_df = pd.concat(dataframes, ignore_index=True).rename(
+        columns={"Time": TIME_COLUMN}
+    )
     combined_df[time_column] = pd.to_datetime(
         combined_df[time_column]
     ).dt.normalize()
@@ -66,7 +68,8 @@ def process_satellite_data(satellite_name: str) -> None:
     mlflow.start_run(run_name="build_graph")
 
     satellite_data = read_csv_files(SATELLITES_DIR / satellite_name)
-    satellite_data.rename(columns={"time": TIME_COLUMN}, inplace=True)
+
+    print(satellite_data.columns)
 
     solar_dataframes = [
         pd.read_csv(file, parse_dates=["time"])
