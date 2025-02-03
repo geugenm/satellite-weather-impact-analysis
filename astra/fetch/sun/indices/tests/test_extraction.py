@@ -122,4 +122,5 @@ def test_process_and_save_txt_files() -> None:
         raise ValueError("no valid dataframes extracted from txt files")
 
     merged_df = pd.concat(dfs)
+    merged_df.rename(columns={"Date": "time"}, inplace=True)
     merged_df.to_csv(directory / output_filename)
