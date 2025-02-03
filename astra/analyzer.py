@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import logging
 
 import mlflow
 import pandas as pd
@@ -14,8 +15,10 @@ DOWNLOAD_DIR = Path("../downloads")
 SATELLITES_DIR = DOWNLOAD_DIR / "sat"
 SOLAR_DIR = DOWNLOAD_DIR / "sun"
 MODEL_CFG_PATH = Path("../cfg/model.yaml")
-TIME_COLUMN = "Time"
+TIME_COLUMN = "time"
 OUTPUT_GRAPH_SUFFIX = "_graph.yaml"
+
+logging.basicConfig(level=logging.INFO)
 
 
 def get_columns_and_sources(path: Path) -> dict[str, str]:
@@ -26,7 +29,7 @@ def get_columns_and_sources(path: Path) -> dict[str, str]:
     }
 
 
-def read_csv_files(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
+def read_csv_files(path: Path, time_column: str = "Time") -> pd.DataFrame:
     dataframes = [pd.read_csv(file) for file in Path(path).glob("*.csv")]
     combined_df = pd.concat(dataframes, ignore_index=True)
     combined_df[time_column] = pd.to_datetime(
@@ -42,15 +45,6 @@ def read_csv_files(path: Path, time_column: str = TIME_COLUMN) -> pd.DataFrame:
         .groupby(time_column)
         .mean()
     )
-
-
-def parse_solar_data(solar_dir: Path) -> list[pd.DataFrame]:
-    return [
-        pd.read_csv(file, parse_dates=["time"]).rename(
-            columns={"time": TIME_COLUMN}
-        )
-        for file in solar_dir.glob("*.csv")
-    ]
 
 
 def merge_dataframes(
@@ -72,7 +66,12 @@ def process_satellite_data(satellite_name: str) -> None:
     mlflow.start_run(run_name="build_graph")
 
     satellite_data = read_csv_files(SATELLITES_DIR / satellite_name)
-    solar_dataframes = parse_solar_data(SOLAR_DIR)
+    satellite_data.rename(columns={"time": TIME_COLUMN}, inplace=True)
+
+    solar_dataframes = [
+        pd.read_csv(file, parse_dates=["time"])
+        for file in SOLAR_DIR.glob("*.csv")
+    ]
     filtered_solar_data = merge_dataframes(
         solar_dataframes[0], solar_dataframes[1:]
     )

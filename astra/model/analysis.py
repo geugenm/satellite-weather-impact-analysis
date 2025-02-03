@@ -9,10 +9,6 @@ from pathlib import Path
 from astra.model.cross_correlation import XCorr
 
 
-class NoFramesInInputFile(Exception):
-    pass
-
-
 def create_graph_data(
     satellite_name: str, heatmap, threshold: float = 0.1  # pandas DataFrame
 ) -> dict:
@@ -54,8 +50,7 @@ def cross_correlate(
     """
 
     if input_dataframe.empty:
-        logging.error("Input DataFrame is empty; nothing to correlate.")
-        raise NoFramesInInputFile
+        raise ValueError("Input DataFrame is empty; nothing to correlate.")
 
     metadata = {
         "satellite_name": os.path.splitext(os.path.basename(output_graph_file))[
@@ -67,7 +62,13 @@ def cross_correlate(
         config = yaml.safe_load(f)
 
     xcorr = XCorr(metadata, config)
-    xcorr.fit(normalize_dataframe(input_dataframe, index_column, dropna))
+
+    if dropna:
+        input_dataframe.dropna()
+    input_dataframe.set_index(index_column)
+    input_dataframe.drop(index_column, axis=1, inplace=True)
+
+    xcorr.fit(input_dataframe)
 
     output_graph_file = (
         output_graph_file or f"/tmp/polaris_graph_{xcorr.regressor}.yaml"
@@ -79,12 +80,3 @@ def cross_correlate(
         config["graph"]["graph_link_threshold"],
     )
     save_to_yaml(graph_data, output_graph_file)
-
-
-def normalize_dataframe(dataframe, index_column="time", dropna=False):
-    if dropna:
-        dataframe.dropna()
-    dataframe.set_index(index_column)
-    dataframe.drop(index_column, axis=1, inplace=True)
-
-    return dataframe
