@@ -104,3 +104,22 @@ def test_no_data_to_concatenate():
 
     with pytest.raises(NoSpaceWeatherForIndex):
         _ = extract_data_from_multiple("DPD", [])
+
+
+def test_process_and_save_txt_files() -> None:
+    """Process all txt files in directory and save merged results to csv"""
+    output_filename: str = "merged_data.csv"
+    dfs = []
+    directory = FIXTURE_DIR
+
+    for file in directory.glob("*.txt"):
+        index = file.stem[-3:]
+        df = extract_data_regex(index, str(file))
+        if isinstance(df, pd.DataFrame) and not df.empty:
+            dfs.append(df)
+
+    if not dfs:
+        raise ValueError("no valid dataframes extracted from txt files")
+
+    merged_df = pd.concat(dfs)
+    merged_df.to_csv(directory / output_filename)

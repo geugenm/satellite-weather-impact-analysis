@@ -75,15 +75,6 @@ def process_satellite_data(satellite_name: str) -> None:
     solar_dataframes = parse_solar_data(SOLAR_DIR)
     filtered_solar_data = merge_dataframes(
         solar_dataframes[0], solar_dataframes[1:]
-    ).filter(
-        items=[
-            TIME_COLUMN,
-            "fluxcarrington",
-            "swpc_ssn",
-            "Fredericksburg A",
-            "SNvalue",
-            "SNvalue_tot",
-        ]
     )
     dynamics = merge_dataframes(satellite_data, [filtered_solar_data])
     dynamics_file = artifacts_dir / f"{satellite_name}.csv"
