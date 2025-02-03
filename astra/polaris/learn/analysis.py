@@ -6,8 +6,6 @@ import yaml
 import numpy as np
 from pathlib import Path
 
-from astra.polaris.data.graph import PolarisMetadata
-
 from astra.polaris.learn.predictor.cross_correlation import XCorr
 from astra.polaris.learn.predictor.cross_correlation_configurator import (
     CrossCorrelationConfigurator,
@@ -69,13 +67,11 @@ def cross_correlate(
         force_cpu,
     )
 
-    metadata = PolarisMetadata(
-        {
-            "satellite_name": os.path.splitext(
-                os.path.basename(output_graph_file)
-            )[0]
-        }
-    )
+    metadata = {
+        "satellite_name": os.path.splitext(os.path.basename(output_graph_file))[
+            0
+        ]
+    }
     xcorr = XCorr(metadata, configurator.get_configuration())
     xcorr.fit(normalize_dataframe(input_dataframe, index_column, dropna))
 

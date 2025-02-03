@@ -1,4 +1,4 @@
-import json
+import yaml
 import logging
 from typing import Any, Dict
 import GPUtil
@@ -53,7 +53,7 @@ class CrossCorrelationConfigurator:
         logging.info(f"Loading configuration from file: {path}")
         try:
             with open(path, "r") as f:
-                config = json.load(f)
+                config = yaml.safe_load(f)
             self._set_custom_configuration(**config)
         except Exception as e:
             logging.exception(f"Failed to load configuration: {e}")

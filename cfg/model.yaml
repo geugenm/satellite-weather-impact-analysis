@@ -1,0 +1,39 @@
+random_state: 43
+test_size: 0.2
+dataset_cleaning_params:
+    col_max_na_percentage: 80
+    row_max_na_percentage: 80
+model_params:
+    objective: reg:squarederror
+    n_estimators: 81
+    learning_rate: 0.1
+    n_jobs: 1
+    tree_method: auto
+    max_depth: 12
+    device: cpu
+    base_score: 0.5
+    booster: gbtree
+    colsample_bylevel: 1
+    colsample_bynode: 1
+    colsample_bytree: 1
+    eval_metric: rmse
+    gamma: 0.2
+    grow_policy: depthwise
+    interaction_constraints: null
+    max_bin: null
+    max_cat_threshold: null
+    max_cat_to_onehot: null
+    max_delta_step: 0
+    max_leaves: null
+    min_child_weight: 1
+    monotone_constraints: null
+    multi_strategy: null
+    num_parallel_tree: 1
+    reg_alpha: 0
+    reg_lambda: 1
+    sampling_method: null
+    scale_pos_weight: 1
+    subsample: 1
+    validate_parameters: false
+    verbosity: 1
+    early_stopping_rounds: null
