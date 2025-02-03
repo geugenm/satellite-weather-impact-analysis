@@ -4,11 +4,10 @@ import os
 
 from pathlib import Path
 import pandas as pd
-import numpy as np
 
 
 import pytest
-from indices.extract import (
+from astra.fetch.sun.solar_indices import (
     NoSpaceWeatherForIndex,
     extract_data_from_multiple,
     extract_data_regex,

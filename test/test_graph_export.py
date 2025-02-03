@@ -2,10 +2,17 @@ import pytest
 from pathlib import Path
 from astra.graph import create_dependency_graph
 
+import os
+
 
 @pytest.fixture
 def test_graph_path() -> Path:
-    return Path("test/test_graph.json")
+    return Path(
+        os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "test_graph.json",
+        )
+    )
 
 
 @pytest.fixture

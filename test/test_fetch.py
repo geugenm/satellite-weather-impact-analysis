@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 
 import pytest
-from indices.fetch import fetch_indices
+from astra.fetch.sun.solar_indices import fetch_indices
 
 from pathlib import Path
 
