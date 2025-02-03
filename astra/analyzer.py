@@ -6,7 +6,7 @@ import pandas as pd
 from mlflow.data.pandas_dataset import PandasDataset
 
 from astra.graph import create_dependency_graph
-from astra.polaris.learn.analysis import cross_correlate
+from astra.model.analysis import cross_correlate
 
 ARTIFACTS_DIR = Path("../artifacts")
 TRACKING_URI = ARTIFACTS_DIR / "mlruns"

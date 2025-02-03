@@ -15,7 +15,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 import mlflow.xgboost
 from xgboost import XGBRegressor
-from astra.polaris.feature.cleaner import Cleaner
+from astra.model.cleaner import Cleaner
 
 
 mlflow.xgboost.autolog(model_format="json")

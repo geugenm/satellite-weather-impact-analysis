@@ -6,7 +6,7 @@ import yaml
 import numpy as np
 from pathlib import Path
 
-from astra.polaris.learn.predictor.cross_correlation import XCorr
+from astra.model.cross_correlation import XCorr
 
 
 class NoFramesInInputFile(Exception):
