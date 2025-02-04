@@ -74,6 +74,7 @@ class XCorr(BaseEstimator, TransformerMixin):
             return
 
         logging.info("Cleaning data...")
+
         x_dataframe = self._feature_cleaner.drop_constant_values(x_dataframe)
         x_dataframe = self._feature_cleaner.drop_non_numeric_values(x_dataframe)
         x_dataframe = self._feature_cleaner.handle_missing_values(x_dataframe)
