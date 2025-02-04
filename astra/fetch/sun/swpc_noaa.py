@@ -1,12 +1,7 @@
 from data_processor import DataProcessor
 
-from pathlib import Path
 import requests
-import yaml
-import json
 import pandas as pd
-from datetime import datetime
-from typing import Any, Dict
 
 
 class SwpcProcessor(DataProcessor):
@@ -14,17 +9,16 @@ class SwpcProcessor(DataProcessor):
 
     output_prefix = "swpc_ssn"
 
-    def download(self, url: str) -> Dict:
+    def download(self, url: str) -> dict:
         """Download SWPC JSON data"""
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
 
-    def process(self, data: Dict) -> pd.DataFrame:
+    def process(self, data: dict) -> pd.DataFrame:
         """Process SWPC specific data"""
         df = pd.DataFrame(data)
 
-        # SWPC specific column mappings
         column_mappings = {
             "Obsdate": self.config["time_column"],
             "SSN": "sunspot_number",

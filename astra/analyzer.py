@@ -16,7 +16,7 @@ SATELLITES_DIR = DOWNLOAD_DIR / "sat"
 SOLAR_DIR = DOWNLOAD_DIR / "sun"
 MODEL_CFG_PATH = Path("../cfg/model.yaml")
 TIME_COLUMN = "time"
-OUTPUT_GRAPH_SUFFIX = "_graph.yaml"
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -69,8 +69,6 @@ def process_satellite_data(satellite_name: str) -> None:
 
     satellite_data = read_csv_files(SATELLITES_DIR / satellite_name)
 
-    print(satellite_data.columns)
-
     solar_dataframes = [
         pd.read_csv(file, parse_dates=["time"])
         for file in SOLAR_DIR.glob("*.csv")
@@ -88,15 +86,15 @@ def process_satellite_data(satellite_name: str) -> None:
         )
     )
     dynamics.to_csv(dynamics_file, index=False)
+    dynamics.dropna()
     mlflow.log_artifact(str(dynamics_file), artifact_path="graph")
 
-    graph_file = artifacts_dir / f"{satellite_name}{OUTPUT_GRAPH_SUFFIX}"
+    graph_file = artifacts_dir / f"{satellite_name}_graph.yaml"
     cross_correlate(
         input_dataframe=dynamics,
-        output_graph_file=str(graph_file),
+        output_graph_file=graph_file,
         index_column=TIME_COLUMN,
-        xcorr_configuration_file=str(MODEL_CFG_PATH),
-        dropna=True,
+        xcorr_configuration_file=MODEL_CFG_PATH,
     )
 
     mlflow.log_artifact(str(graph_file), artifact_path="graph")

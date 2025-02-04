@@ -35,7 +35,6 @@ def _color_from_value(value: float, min_val: float, max_val: float) -> str:
 
 
 def _parse_dependency_graph(yaml_path: Path) -> list[dict]:
-    """Parse YAML graph with coefficient validation"""
     try:
         with yaml_path.open("r") as f:
             data = yaml.safe_load(f)
@@ -47,7 +46,7 @@ def _parse_dependency_graph(yaml_path: Path) -> list[dict]:
                 "value": float(link["coefficient"]),  # Standardize to float
             }
             for link in data.get("links", [])
-            if "coefficient" in link  # Fail-fast validation
+            if "coefficient" in link
         ]
     except (yaml.YAMLError, KeyError) as e:
         print(f"🚨 Failed parsing {yaml_path.name}: {str(e)}")

@@ -1,6 +1,3 @@
-import logging
-import os
-
 import pandas as pd
 import yaml
 import numpy as np
@@ -9,9 +6,7 @@ from pathlib import Path
 from astra.model.cross_correlation import XCorr
 
 
-def create_graph_data(
-    satellite_name: str, heatmap, threshold: float = 0.1  # pandas DataFrame
-) -> dict:
+def create_graph_data(satellite_name: str, heatmap, threshold: float) -> dict:
     """Transform heatmap matrix into optimized graph structure"""
     return {
         "satellite": satellite_name,
@@ -38,41 +33,31 @@ def save_to_yaml(graph_data: dict, path: str | Path) -> None:
 
 
 def cross_correlate(
+    output_graph_file: Path,
+    xcorr_configuration_file: Path,
     input_dataframe: pd.DataFrame,
-    output_graph_file: str | None = None,
-    xcorr_configuration_file: str | None = None,
-    index_column: str = "time",
-    dropna: bool = False,
+    index_column: str,
 ) -> None:
     """
     Catch linear and non-linear correlations between all columns of the
     input data.
     """
 
-    if input_dataframe.empty:
-        raise ValueError("Input DataFrame is empty; nothing to correlate.")
+    assert (
+        not input_dataframe.empty
+    ), "Input DataFrame is empty; nothing to correlate."
 
-    metadata = {
-        "satellite_name": os.path.splitext(os.path.basename(output_graph_file))[
-            0
-        ]
-    }
-    config = None
+    metadata = {"satellite_name": xcorr_configuration_file.stem}
+
     with Path(xcorr_configuration_file).open("r") as f:
         config = yaml.safe_load(f)
 
     xcorr = XCorr(metadata, config)
 
-    if dropna:
-        input_dataframe.dropna()
     input_dataframe.set_index(index_column)
     input_dataframe.drop(index_column, axis=1, inplace=True)
 
     xcorr.fit(input_dataframe)
-
-    output_graph_file = (
-        output_graph_file or f"/tmp/polaris_graph_{xcorr.regressor}.yaml"
-    )
 
     graph_data = create_graph_data(
         metadata["satellite_name"],
