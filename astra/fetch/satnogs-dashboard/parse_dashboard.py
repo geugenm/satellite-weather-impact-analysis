@@ -18,7 +18,7 @@ TIMEOUTS = {
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    format="%(asctime)s [%(levelname).1s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ How to Fail:
     group.add_argument(
         "--config",
         type=Path,
-        help="YAML config file with panel definitions. Use --study first, dipshit",
+        help="YAML config file with panel definitions. Use --study first",
     )
     parser.add_argument(
         "--study",
@@ -102,10 +102,10 @@ def extract_panel_title(page) -> str:
     """Extract the actual panel title from the DOM"""
     try:
         title_element = page.locator(".panel-title-text").first
-        return title_element.inner_text()
+        return title_element.inner_text() if title_element else "untitled_panel"
     except Exception as e:
         logger.warning(f"Failed to extract panel title: {str(e)}")
-        return "untitled_panel"
+        return "unknown_panel"
 
 
 def download_panel_data(page, download_dir: Path) -> bool:
@@ -144,7 +144,7 @@ def scan_grafana_panels(page, url: str) -> dict:
 
     page.wait_for_selector("div.react-grid-layout", timeout=10000)
     expanded = page.evaluate(scripts["expand_all"])
-    logging.info(f"Expanded {expanded} collapsed rows")
+    logger.info(f"expanded {expanded} collapsed rows")
     time.sleep(1)  # Wait for expansion
 
     panels = page.evaluate(scripts["get_all_panels"])
@@ -162,10 +162,12 @@ def scan_grafana_panels(page, url: str) -> dict:
                 processed_panels.append(
                     {"id": panel["id"], "name": actual_title, "type": "panel"}
                 )
-                logger.info(f"Found panel: {actual_title} (ID: {panel['id']})")
+                logger.info(
+                    f"discovered panel '{actual_title}' [id={panel['id']}]"
+                )
             except Exception as e:
-                logger.warning(
-                    f"Failed to get title for panel {panel['id']}: {str(e)}"
+                logger.exception(
+                    f"failed to extract title for panel [id={panel['id']}]: {str(e)}"
                 )
                 processed_panels.append(panel)
 
@@ -206,13 +208,13 @@ def process_grafana_url(url: str, study_mode: bool = False):
                     panel_info, sort_keys=False, allow_unicode=True
                 )
                 output_file.write_text(yaml_content)
-                logger.info(f"Panel info saved to {output_file}")
+                logger.info(f"saved config to '{output_file}'")
             else:
                 page.goto(url, wait_until="networkidle")
                 download_panel_data(page, download_dir)
 
         except Exception as e:
-            logger.error(f"Failed because: {str(e)}")
+            logger.error(f"operation failed: {str(e)}")
         finally:
             context.close()
             browser.close()
@@ -226,12 +228,12 @@ def process_config_file(config_path: Path):
 
         for panel in config["panels"]:
             panel_url = f"{base_url}?viewPanel={panel['id']}"
-            logger.info(f"Processing panel {panel['name']} (ID: {panel['id']})")
+            logger.info(f"processing '{panel['name']}' [id={panel['id']}]")
             process_grafana_url(panel_url, study_mode=False)
             time.sleep(1)  # Don't DoS their server, asshole
 
     except Exception as e:
-        logger.error(f"Failed to process config file: {str(e)}")
+        logger.error(f"config '{config_path}' processing failed: {str(e)}")
 
 
 if __name__ == "__main__":
