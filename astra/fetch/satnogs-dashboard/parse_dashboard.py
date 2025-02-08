@@ -4,6 +4,7 @@ import logging
 import time
 from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 from collections.abc import Mapping
+import yaml
 
 DOWNLOAD_BASE_DIR = Path("downloads/sat").absolute()
 TIMEOUTS = {
@@ -75,6 +76,43 @@ def download_panel_data(page, download_dir: Path) -> bool:
         return False
 
 
+def scan_grafana_panels(page, url: str) -> dict:
+    """Scan Grafana dashboard panels and return their info in YAML format"""
+
+    parsed = urlparse(url)
+    base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path.split('?')[0]}"
+
+    page.goto(base_url, wait_until="networkidle")
+
+    # Load JavaScript scripts
+    scripts = {
+        name: Path(f"{name}.js").read_text(encoding="utf-8")
+        for name in ["expand_all", "get_all_panels"]
+    }
+
+    page.wait_for_selector("div.react-grid-layout", timeout=10000)
+
+    # Expand all rows
+    expanded = page.evaluate(scripts["expand_all"])
+    logging.info(f"Expanded {expanded} collapsed rows")
+    time.sleep(1)  # Wait for expansion
+
+    # Get all panels
+    panels = page.evaluate(scripts["get_all_panels"])
+
+    # Convert to YAML-friendly format
+    panel_info = {
+        "dashboard": base_url.split("/")[-1],
+        "panels": [
+            {"id": panel["id"], "name": panel["title"], "type": panel["type"]}
+            for panel in panels
+            if panel["type"] == "panel"  # Filter out row headers
+        ],
+    }
+
+    return panel_info
+
+
 def process_grafana_url(url: str, download_dir: Path):
     """Process single Grafana dashboard URL"""
     url = transform_to_data_view(url)
@@ -87,6 +125,7 @@ def process_grafana_url(url: str, download_dir: Path):
 
         try:
             page = context.new_page()
+            print(yaml.dump(scan_grafana_panels(page, url)))
             page.goto(url, wait_until="networkidle")
 
             download_panel_data(page, download_dir)
@@ -99,7 +138,7 @@ def process_grafana_url(url: str, download_dir: Path):
 
 
 if __name__ == "__main__":
-    url = "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=26&orgId=1&from=now-2y&to=now&var-suid=58261"
+    url = "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=26&orgId=1&from=now-2y&to=now"
     download_dir = DOWNLOAD_BASE_DIR / "veronika"
     download_dir.mkdir(parents=True, exist_ok=True)
 
