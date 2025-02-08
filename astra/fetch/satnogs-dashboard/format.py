@@ -83,6 +83,12 @@ def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
     """Parse CSV and normalize units because nobody follows standards"""
     df = pd.read_csv(file_path)
 
+    if df.empty:
+        raise ValueError("empty dataframe")
+
+    if df.columns.size < 2:
+        raise ValueError("dataframe must have at least two columns")
+
     df = df.rename(columns=lambda col: "time" if col.lower() == "time" else col)
     df["time"] = pd.to_datetime(df["time"]).dt.normalize()
 
@@ -149,7 +155,7 @@ def process_satellites(
                 df.to_csv(output_file, index=False)
                 logger.info(f"processed '{file.name}' -> '{output_file}'")
             except Exception as e:
-                logger.error(f"failed to process {file}: {e}")
+                logger.error(f"failed to process {file}, skipping, error: {e}")
 
 
 def main() -> None:
