@@ -2,14 +2,10 @@ from pathlib import Path
 import pandas as pd
 import logging
 import argparse
+import re
 
-from astra.analyzer import (
-    merge_dataframes,
-    build_file_database,
-    get_csv_files,
-)
+from astra.analyzer import get_csv_files
 
-# Configuration
 DOWNLOAD_BASE = Path("downloads/sat").absolute()
 
 logging.basicConfig(
@@ -23,14 +19,6 @@ logger = logging.getLogger(__name__)
 def get_available_satellites() -> list:
     """Get list of satellites with downloaded data"""
     return [d.name for d in DOWNLOAD_BASE.iterdir() if d.is_dir()]
-
-
-def merge_satellite_data(sat_name: str) -> pd.DataFrame:
-    satellite_files = get_csv_files(DOWNLOAD_BASE / sat_name)
-
-    dataset_files_db = build_file_database(satellite_files)
-
-    return merge_dataframes(dataset_files_db)
 
 
 def init_argparse() -> argparse.ArgumentParser:
@@ -72,6 +60,62 @@ Usage Examples:
     return parser
 
 
+def custom_parse(file_path: Path) -> pd.DataFrame:
+    """Parse CSV and unfuck units from values because satellite engineers are creative"""
+    df = pd.read_csv(file_path)
+
+    # Normalize time column because nobody can agree on naming
+    df = df.rename(columns=lambda col: "time" if col.lower() == "time" else col)
+    df["time"] = pd.to_datetime(df["time"]).dt.normalize()
+
+    # Hunt down and process units in data
+    for col in df.columns:
+        if col == "time" or df[col].dtype != "object":
+            continue
+
+        # Check first 100 rows for units because we're not parsing the whole shit
+        sample = df[col].dropna().astype(str).iloc[:100]
+
+        # Match common satellite telemetry units
+        unit_pattern = (
+            r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c)$"
+        )
+
+        if sample.str.match(unit_pattern, case=False).any():
+            # Extract values and detect unit
+            cleaned = df[col].str.extract(unit_pattern, flags=re.IGNORECASE)
+            if cleaned[0].notna().any():
+                df[col] = pd.to_numeric(cleaned[0], errors="coerce")
+                unit = cleaned[1].dropna().iloc[0].lower()
+
+                # Map units to sane names
+                unit_map = {
+                    "c": "celsius",
+                    "°c": "celsius",
+                    "v": "v",
+                    "mv": "mv",
+                    "ma": "ma",
+                    "ms": "ms",
+                    "s": "s",
+                    "m": "m",
+                    "kg": "kg",
+                    "hz": "hz",
+                    "db": "db",
+                    "rpm": "rpm",
+                }
+
+                df = df.rename(
+                    columns={col: f"{col}_{unit_map.get(unit, unit)}"}
+                )
+
+    # Clean up column names and keep only numeric data
+    return df.select_dtypes(include=["number", "bool", "datetime"]).rename(
+        columns=lambda col: col.translate(
+            str.maketrans({c: "_" for c in " ,<>[]()#+"})
+        )
+    )
+
+
 def main() -> None:
     parser = init_argparse()
     args = parser.parse_args()
@@ -92,16 +136,22 @@ def main() -> None:
     else:
         satellites = [args.merge]
 
-    output_dir = Path("merged")
+    output_dir = Path("filtered")
     output_dir.mkdir(exist_ok=True)
 
     for sat in satellites:
-        logger.info(f"processing '{sat}'")
-        merged = merge_satellite_data(sat)
-        if merged is not None:
-            output_file = output_dir / f"{sat}_merged.csv"
-            merged.to_csv(output_file, index=False)
-            logger.info(f"saved to '{output_file}' → {len(merged)} rows")
+        logging.info(f"processing '{sat}'")
+        try:
+            for file in get_csv_files(DOWNLOAD_BASE / sat):
+                try:
+                    custom_parse(file).to_csv(
+                        output_dir / file.name, index=False
+                    )
+                    logging.info(f"saved '{file.name}' to filtered directory")
+                except Exception as e:
+                    logging.error(f"failed to process {file}: {e}")
+        except Exception as e:
+            logging.error(f"failed to process satellite {sat}: {e}")
 
 
 if __name__ == "__main__":
