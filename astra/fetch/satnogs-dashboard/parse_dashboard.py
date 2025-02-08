@@ -40,17 +40,24 @@ Download Specific Panel:
     %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=26&orgId=1"
     %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=11&from=now-5y&to=now"
 
+Download All Panels from Config:
+    %(prog)s --config cfg/veronika.yaml
+
 How to Fail:
     %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"  # Missing --study or viewPanel
-
-Note:
-    If you're too dumb to provide either --study or a panel URL,
-    I'll tell you to fuck off with a helpful error message.
+    %(prog)s --config nonexistent.yaml  # Being a moron with file paths
     """,
     )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
         "url",
+        nargs="?",
         help="Grafana dashboard URL. For fuck's sake, make sure it's valid",
+    )
+    group.add_argument(
+        "--config",
+        type=Path,
+        help="YAML config file with panel definitions. Use --study first, dipshit",
     )
     parser.add_argument(
         "--study",
@@ -91,9 +98,18 @@ def transform_to_data_view(url: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{query}"
 
 
+def extract_panel_title(page) -> str:
+    """Extract the actual panel title from the DOM"""
+    try:
+        title_element = page.locator(".panel-title-text").first
+        return title_element.inner_text()
+    except Exception as e:
+        logger.warning(f"Failed to extract panel title: {str(e)}")
+        return "untitled_panel"
+
+
 def download_panel_data(page, download_dir: Path) -> bool:
     """Hunt down and murder that download button regardless of its disguise"""
-
     js_code = Path("download_panel.js").read_text(encoding="utf-8")
 
     try:
@@ -102,8 +118,9 @@ def download_panel_data(page, download_dir: Path) -> bool:
 
         download = download_info.value
         timestamp = int(time.time())
-        panel_name = page.title().replace(" - Grafana", "").strip()
-        file_path = download_dir / f"{panel_name}_{timestamp}.csv"
+        panel_name = extract_panel_title(page)
+        sanitized_name = "".join(c if c.isalnum() else "_" for c in panel_name)
+        file_path = download_dir / f"{sanitized_name}_{timestamp}.csv"
 
         download.save_as(file_path)
         logger.info(f"Successfully downloaded to {file_path}")
@@ -116,32 +133,46 @@ def download_panel_data(page, download_dir: Path) -> bool:
 
 def scan_grafana_panels(page, url: str) -> dict:
     """Scan Grafana dashboard panels and return their info in YAML format"""
-
     parsed = urlparse(url)
     base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path.split('?')[0]}"
 
     page.goto(base_url, wait_until="networkidle")
-
     scripts = {
         name: Path(f"{name}.js").read_text(encoding="utf-8")
         for name in ["expand_all", "get_all_panels"]
     }
 
     page.wait_for_selector("div.react-grid-layout", timeout=10000)
-
     expanded = page.evaluate(scripts["expand_all"])
     logging.info(f"Expanded {expanded} collapsed rows")
     time.sleep(1)  # Wait for expansion
 
     panels = page.evaluate(scripts["get_all_panels"])
 
+    # Process each panel to get its actual title
+    processed_panels = []
+    for panel in panels:
+        if panel["type"] == "panel":
+            try:
+                page.goto(
+                    f"{base_url}?viewPanel={panel['id']}",
+                    wait_until="networkidle",
+                )
+                actual_title = extract_panel_title(page)
+                processed_panels.append(
+                    {"id": panel["id"], "name": actual_title, "type": "panel"}
+                )
+                logger.info(f"Found panel: {actual_title} (ID: {panel['id']})")
+            except Exception as e:
+                logger.warning(
+                    f"Failed to get title for panel {panel['id']}: {str(e)}"
+                )
+                processed_panels.append(panel)
+
     panel_info = {
         "dashboard": base_url.split("/")[-1],
-        "panels": [
-            {"id": panel["id"], "name": panel["title"], "type": panel["type"]}
-            for panel in panels
-            if panel["type"] == "panel"  # Filter out row headers
-        ],
+        "url": url,
+        "panels": processed_panels,
     }
 
     return panel_info
@@ -187,8 +218,30 @@ def process_grafana_url(url: str, study_mode: bool = False):
             browser.close()
 
 
+def process_config_file(config_path: Path):
+    """Process all panels from a config file because you're too lazy to do it manually"""
+    try:
+        config = yaml.safe_load(config_path.read_text())
+        base_url = config["url"]
+
+        for panel in config["panels"]:
+            panel_url = f"{base_url}?viewPanel={panel['id']}"
+            logger.info(f"Processing panel {panel['name']} (ID: {panel['id']})")
+            process_grafana_url(panel_url, study_mode=False)
+            time.sleep(1)  # Don't DoS their server, asshole
+
+    except Exception as e:
+        logger.error(f"Failed to process config file: {str(e)}")
+
+
 if __name__ == "__main__":
     parser = init_argparse()
     args = parser.parse_args()
 
-    process_grafana_url(args.url, args.study)
+    if args.config:
+        if not args.config.exists():
+            logger.error(f"Config file {args.config} doesn't exist, genius")
+            exit(1)
+        process_config_file(args.config)
+    else:
+        process_grafana_url(args.url, args.study)
