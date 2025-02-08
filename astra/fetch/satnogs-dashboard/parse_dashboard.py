@@ -1,3 +1,4 @@
+import argparse
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 import logging
@@ -7,6 +8,7 @@ from collections.abc import Mapping
 import yaml
 
 DOWNLOAD_BASE_DIR = Path("downloads/sat").absolute()
+CONFIG_DIR = Path("cfg").absolute()
 TIMEOUTS = {
     "page_load": 10000,
     "panel_wait": 10000,
@@ -20,6 +22,42 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+
+
+def init_argparse() -> argparse.ArgumentParser:
+    """Initialize argument parser with examples that even a monkey could understand"""
+    parser = argparse.ArgumentParser(
+        description="Extract data from Grafana or die trying",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples that won't make you look stupid:
+
+Study Mode (saves panel info to cfg/<satellite>.yaml):
+    %(prog)s --study "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"
+    %(prog)s --study "https://dashboard.satnogs.org/d/TauG79dWz/grifex"
+
+Download Specific Panel:
+    %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=26&orgId=1"
+    %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=11&from=now-5y&to=now"
+
+How to Fail:
+    %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"  # Missing --study or viewPanel
+
+Note:
+    If you're too dumb to provide either --study or a panel URL,
+    I'll tell you to fuck off with a helpful error message.
+    """,
+    )
+    parser.add_argument(
+        "url",
+        help="Grafana dashboard URL. For fuck's sake, make sure it's valid",
+    )
+    parser.add_argument(
+        "--study",
+        action="store_true",
+        help="Just study the panels without downloading.",
+    )
+    return parser
 
 
 def transform_to_data_view(url: str) -> str:
@@ -84,7 +122,6 @@ def scan_grafana_panels(page, url: str) -> dict:
 
     page.goto(base_url, wait_until="networkidle")
 
-    # Load JavaScript scripts
     scripts = {
         name: Path(f"{name}.js").read_text(encoding="utf-8")
         for name in ["expand_all", "get_all_panels"]
@@ -92,15 +129,12 @@ def scan_grafana_panels(page, url: str) -> dict:
 
     page.wait_for_selector("div.react-grid-layout", timeout=10000)
 
-    # Expand all rows
     expanded = page.evaluate(scripts["expand_all"])
     logging.info(f"Expanded {expanded} collapsed rows")
     time.sleep(1)  # Wait for expansion
 
-    # Get all panels
     panels = page.evaluate(scripts["get_all_panels"])
 
-    # Convert to YAML-friendly format
     panel_info = {
         "dashboard": base_url.split("/")[-1],
         "panels": [
@@ -113,9 +147,18 @@ def scan_grafana_panels(page, url: str) -> dict:
     return panel_info
 
 
-def process_grafana_url(url: str, download_dir: Path):
-    """Process single Grafana dashboard URL"""
-    url = transform_to_data_view(url)
+def process_grafana_url(url: str, study_mode: bool = False):
+    """Process Grafana URL like a boss"""
+    parsed = urlparse(url)
+    sat_name = parsed.path.split("/")[-1]
+
+    if study_mode:
+        CONFIG_DIR.mkdir(exist_ok=True)
+        output_file = CONFIG_DIR / f"{sat_name}.yaml"
+    else:
+        download_dir = DOWNLOAD_BASE_DIR / sat_name
+        download_dir.mkdir(parents=True, exist_ok=True)
+        url = transform_to_data_view(url)
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -125,21 +168,27 @@ def process_grafana_url(url: str, download_dir: Path):
 
         try:
             page = context.new_page()
-            print(yaml.dump(scan_grafana_panels(page, url)))
-            page.goto(url, wait_until="networkidle")
-
-            download_panel_data(page, download_dir)
+            if study_mode:
+                panel_info = scan_grafana_panels(page, url)
+                panel_info["url"] = url  # Add base URL to YAML
+                yaml_content = yaml.dump(
+                    panel_info, sort_keys=False, allow_unicode=True
+                )
+                output_file.write_text(yaml_content)
+                logger.info(f"Panel info saved to {output_file}")
+            else:
+                page.goto(url, wait_until="networkidle")
+                download_panel_data(page, download_dir)
 
         except Exception as e:
-            logger.error(f"Failed to process URL: {str(e)}")
+            logger.error(f"Failed because: {str(e)}")
         finally:
             context.close()
             browser.close()
 
 
 if __name__ == "__main__":
-    url = "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=26&orgId=1&from=now-2y&to=now"
-    download_dir = DOWNLOAD_BASE_DIR / "veronika"
-    download_dir.mkdir(parents=True, exist_ok=True)
+    parser = init_argparse()
+    args = parser.parse_args()
 
-    process_grafana_url(url, download_dir)
+    process_grafana_url(args.url, args.study)
