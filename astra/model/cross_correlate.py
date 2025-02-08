@@ -4,9 +4,10 @@ import numpy as np
 from pathlib import Path
 
 from astra.model.cross_correlation import XCorr
+from astra.model.data_model import SatelliteGraphData
 
 
-def create_graph_data(satellite_name: str, heatmap, threshold: float) -> dict:
+def _create_graph_data(satellite_name: str, heatmap, threshold: float) -> dict:
     """Transform heatmap matrix into optimized graph structure"""
     return {
         "satellite": satellite_name,
@@ -16,28 +17,15 @@ def create_graph_data(satellite_name: str, heatmap, threshold: float) -> dict:
             for tgt, val in targets.items()
             if tgt != src and not np.isnan(val) and val >= threshold
         ],
+        "graph_link_threshold": threshold,
     }
 
 
-def save_to_yaml(graph_data: dict, path: str | Path) -> None:
-    """Atomic write of graph data with YAML safety"""
-    Path(path).write_text(
-        yaml.safe_dump(
-            graph_data,
-            sort_keys=False,
-            default_flow_style=None,
-            allow_unicode=True,
-            width=80,
-        )
-    )
-
-
 def cross_correlate(
-    output_graph_file: Path,
     xcorr_configuration_file: Path,
     input_dataframe: pd.DataFrame,
     index_column: str,
-) -> None:
+) -> dict[any, any]:
     """
     Catch linear and non-linear correlations between all columns of the
     input data.
@@ -59,9 +47,10 @@ def cross_correlate(
 
     xcorr.fit(input_dataframe)
 
-    graph_data = create_graph_data(
-        metadata["satellite_name"],
-        xcorr.importances_map,
-        config["graph"]["graph_link_threshold"],
-    )
-    save_to_yaml(graph_data, output_graph_file)
+    return SatelliteGraphData(
+        **_create_graph_data(
+            metadata["satellite_name"],
+            xcorr.importances_map,
+            config["graph"]["graph_link_threshold"],
+        )
+    ).model_dump()

@@ -2,13 +2,16 @@ import argparse
 from pathlib import Path
 import logging
 
+import yaml
 import mlflow
 import pandas as pd
+
 from mlflow.data.pandas_dataset import PandasDataset
 import hashlib
+import re
 
 from astra.graph import create_dependency_graph
-from astra.model.analysis import cross_correlate
+from astra.model.cross_correlate import cross_correlate
 
 ARTIFACTS_DIR = Path("../artifacts")
 TRACKING_URI = ARTIFACTS_DIR / "mlruns"
@@ -23,15 +26,6 @@ logging.basicConfig(level=logging.INFO)
 
 
 def merge_dataframes(file_db: dict) -> pd.DataFrame:
-    """
-    Merge multiple DataFrames on 'time' column with mean value aggregation.
-
-    Args:
-        file_db: Dictionary from build_file_database containing parsed data
-
-    Returns:
-        Merged DataFrame with aligned time index and averaged values
-    """
     merged_df = pd.DataFrame()
 
     for _, entry in file_db.items():
@@ -81,23 +75,25 @@ def build_file_database(file_list: list[Path]) -> dict:
     return file_db
 
 
+def save_to_yaml(graph_data: dict, path: str | Path) -> None:
+    """Atomic write of graph data with YAML safety"""
+    Path(path).write_text(
+        yaml.safe_dump(
+            graph_data,
+            sort_keys=False,
+            default_flow_style=None,
+            allow_unicode=True,
+            width=80,
+        )
+    )
+
+
 def get_csv_files(
     root_dir: str | Path,
     *,
     recursive: bool = False,
     case_insensitive: bool = False,
 ) -> list[Path]:
-    """
-    Collect CSV files with Python 3.13's pathlib optimizations.
-
-    Args:
-        root_dir: Starting directory for search
-        recursive: Include subdirectories when True
-        case_insensitive: Match filename case insensitively
-
-    Returns:
-        List of Path objects for matched CSV files
-    """
     base_path = Path(root_dir)
     pattern = "**/*.csv" if recursive else "*.csv"
 
@@ -109,14 +105,6 @@ def get_csv_files(
 
 
 def get_column_file_map(file_db: dict) -> dict[str, str]:
-    """Create bidirectional column↔filename mapping from file database.
-
-    Args:
-        file_db: Output from build_file_database()
-
-    Returns:
-        Dictionary with column names as keys and source filenames as values
-    """
     return {
         column: filename
         for filename, entry in file_db.items()
@@ -142,8 +130,6 @@ def process_satellite_data(satellite_name: str) -> None:
 
     dynamics = merge_dataframes(dataset_files_db).dropna()
 
-    assert "time" in dynamics.columns
-
     dynamics_file = artifacts_dir / f"{satellite_name}.csv"
 
     mlflow.log_input(
@@ -156,12 +142,13 @@ def process_satellite_data(satellite_name: str) -> None:
     mlflow.log_artifact(str(dynamics_file), artifact_path="graph")
 
     graph_file = artifacts_dir / f"{satellite_name}_graph.yaml"
-    cross_correlate(
+    graph_data = cross_correlate(
         input_dataframe=dynamics,
-        output_graph_file=graph_file,
         index_column=TIME_COLUMN,
         xcorr_configuration_file=MODEL_CFG_PATH,
     )
+
+    save_to_yaml(graph_data, graph_file)
 
     mlflow.log_artifact(str(graph_file), artifact_path="graph")
 
