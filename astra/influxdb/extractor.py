@@ -184,6 +184,8 @@ Environment:
             print("\nDataframe info:")
             print(df.info())
 
+            df.to_csv("out.csv", index=True)
+
     except Exception as e:
         logger.error(f"execution failed: {e}")
         sys.exit(1)

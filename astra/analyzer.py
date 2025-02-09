@@ -7,7 +7,7 @@ import mlflow
 import pandas as pd
 
 from mlflow.data.pandas_dataset import PandasDataset
-import hashlib
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from astra.graph import create_dependency_graph
 from astra.model.cross_correlate import cross_correlate
@@ -15,59 +15,11 @@ from astra.model.cross_correlate import cross_correlate
 ARTIFACTS_DIR = Path("../artifacts")
 TRACKING_URI = ARTIFACTS_DIR / "mlruns"
 DOWNLOAD_DIR = Path("../downloads")
-SATELLITES_DIR = DOWNLOAD_DIR / "sat"
-SOLAR_DIR = DOWNLOAD_DIR / "sun"
 MODEL_CFG_PATH = Path("../cfg/model.yaml")
 TIME_COLUMN = "time"
 
 
 logging.basicConfig(level=logging.INFO)
-
-
-def merge_dataframes(file_db: dict) -> pd.DataFrame:
-    valid_dfs = [entry["dataframe"] for entry in file_db.values()]
-
-    df = valid_dfs[0]
-    for other_df in valid_dfs[1:]:
-        df = pd.merge(df, other_df, how="left", on="time")
-
-    return df
-
-
-def custom_parse(file_path: Path) -> pd.DataFrame:
-    df = pd.read_csv(file_path)
-
-    df = df.rename(columns=lambda col: "time" if col.lower() == "time" else col)
-    df["time"] = pd.to_datetime(df["time"]).dt.normalize()
-
-    return df.select_dtypes(include=["number", "bool", "datetime"]).rename(
-        columns=lambda col: col.translate(
-            str.maketrans({c: "_" for c in " ,<>[]()#+"})
-        )
-    )
-
-
-def build_file_database(file_list: list[Path]) -> dict:
-    file_db = {}
-
-    for file_path in file_list:
-        path = file_path
-
-        if path.is_file():
-            file_hash = hashlib.md5(path.read_bytes()).hexdigest()
-
-            try:
-                df = custom_parse(path)
-
-                file_db[path.name] = {
-                    "hash": file_hash,
-                    "dataframe": df,
-                    "path": path.resolve().as_posix(),
-                }
-            except Exception as e:
-                logging.exception(e)
-
-    return file_db
 
 
 def save_to_yaml(graph_data: dict, path: str | Path) -> None:
@@ -83,28 +35,25 @@ def save_to_yaml(graph_data: dict, path: str | Path) -> None:
     )
 
 
-def get_csv_files(
-    root_dir: str | Path,
-    *,
-    recursive: bool = False,
-    case_insensitive: bool = False,
-) -> list[Path]:
-    base_path = Path(root_dir)
-    pattern = "**/*.csv" if recursive else "*.csv"
+def advanced_interpolation(df: pd.DataFrame) -> pd.DataFrame:
+    """Interpolate missing values using multiple methods, handling duplicates."""
+    # Ensure time column is datetime
+    df["time"] = pd.to_datetime(df["time"])
 
-    return [
-        p.resolve()
-        for p in base_path.glob(pattern, case_sensitive=not case_insensitive)
-        if p.is_file()
-    ]
+    # Remove duplicate timestamps by averaging values
+    df = df.groupby("time", as_index=False).mean()
 
+    # Set time as index for interpolation
+    df = df.set_index("time")
 
-def get_column_file_map(file_db: dict) -> dict[str, str]:
-    return {
-        column: filename
-        for filename, entry in file_db.items()
-        for column in entry["dataframe"].columns
-    }
+    # Apply simpler interpolation methods that handle duplicates
+    df = (
+        df.interpolate(method="time")  # Time-based interpolation
+        .ffill()  # Forward fill remaining gaps
+        .bfill()
+    )  # Backward fill edge cases
+
+    return df.reset_index()
 
 
 def process_satellite_data(satellite_name: str) -> None:
@@ -117,13 +66,27 @@ def process_satellite_data(satellite_name: str) -> None:
 
     mlflow.start_run(run_name="build_graph")
 
-    satellite_files = get_csv_files(SATELLITES_DIR / satellite_name)
-    solar_files = get_csv_files(SOLAR_DIR)
+    dynamics = pd.read_csv(DOWNLOAD_DIR / f"{satellite_name}.csv").drop(
+        ["cumulative_sum", "uptime_total", "58261.mode"], axis=1
+    )
 
-    dataset_files = satellite_files + solar_files
-    dataset_files_db = build_file_database(dataset_files)
+    dynamics = advanced_interpolation(dynamics)
 
-    dynamics = merge_dataframes(dataset_files_db)
+    numeric_cols = dynamics.select_dtypes(include=["float64", "int64"]).columns
+    df_numeric = dynamics[numeric_cols]
+
+    scaler = StandardScaler()
+    df_normalized = pd.DataFrame(
+        scaler.fit_transform(df_numeric),
+        columns=numeric_cols,
+        index=dynamics.index,
+    )
+
+    # Add back time column
+    df_normalized["time"] = dynamics["time"]
+    dynamics = df_normalized
+
+    print(dynamics.info())
 
     dynamics_file = artifacts_dir / f"{satellite_name}.csv"
 
@@ -149,7 +112,7 @@ def process_satellite_data(satellite_name: str) -> None:
 
     graph = create_dependency_graph(
         graph_file,
-        get_column_file_map(dataset_files_db),
+        {},
     )
     output_path = str(artifacts_dir / "graph.html")
     graph.render(output_path)
