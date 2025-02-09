@@ -1,61 +1,92 @@
 import argparse
-from pathlib import Path
 import logging
+import sys
+from pathlib import Path
+
 import astra.fetch.satnogs_dashboard.format as format
 import astra.fetch.satnogs_dashboard.scrap as scrap
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname).1s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
+__version__ = "1.0.0"
+
+LOG_FORMAT = "%(asctime)s [%(module)s] %(levelname).1s: %(message)s"
+DATE_FORMAT = "%Y%m%d-%H%M%S"
 
 
 def init_argparse() -> argparse.ArgumentParser:
+    """Configure command-line interface with battle-tested argparse settings"""
     parser = argparse.ArgumentParser(
-        description="Download and process satellite data",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        epilog=f"""Examples:
+  %(prog)s https://grafana.satnogs.org/d/SATNOGS-1234
+  %(prog)s https://network.satnogs.org/d/SATNOGS-5678 --output /var/lib/satdata \\
+    --strict
+""",
     )
-    parser.add_argument(
+
+    input_group = parser.add_argument_group("Input parameters")
+    input_group.add_argument(
         "url",
-        help="Grafana dashboard URL",
+        help="Grafana dashboard URL (e.g. https://grafana.satnogs.org/d/SATNOGS-<ID>)",
     )
-    parser.add_argument(
+
+    output_group = parser.add_argument_group("Output control")
+    output_group.add_argument(
+        "-o",
         "--output",
         type=Path,
-        help="output directory for processed files",
         default=Path("formatted"),
+        help="Output directory for processed files",
     )
-    parser.add_argument(
-        "--strict",
-        action="store_true",
-        help="enforce strict formatting rules",
+    output_group.add_argument(
+        "--strict", action="store_true", help="Enable strict validation mode"
     )
+
+    dev_group = parser.add_argument_group("Developer options")
+    dev_group.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable debug logging"
+    )
+    dev_group.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
+
     return parser
 
 
-def process_satellite(url: str, output_dir: Path, strict: bool = False):
-    sat_name = url.split("/")[-1].split("?")[0]
-    config_file = scrap.CONFIG_DIR / f"{sat_name}.yaml"
+def process_satellite(url: str, output_dir: Path, strict: bool = False) -> None:
+    """Core processing pipeline with error containment"""
+    try:
+        sat_name = url.split("/")[-1].split("?")[0]
+        config_file = scrap.CONFIG_DIR / f"{sat_name}.yaml"
 
-    if not config_file.exists():
-        logging.info(f"no config found for '{sat_name}', scraping dashboard...")
-        scrap.process_grafana_url(url, study_mode=True)
-    else:
-        logging.info(
-            f"config found for '{sat_name}' in '{config_file}', skipping dashboard scrape"
-        )
+        if not config_file.exists():
+            logging.warning(
+                "No config found for '%s' - initiating scrape", sat_name
+            )
+            scrap.process_grafana_url(url, study_mode=True)
+        else:
+            logging.info("Using existing config: %s", config_file)
 
-    scrap.process_config_file(config_file)
+        scrap.process_config_file(config_file)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        format.process_satellites([sat_name], output_dir, strict)
 
-    satellites = [sat_name]
-    format.process_satellites(satellites, output_dir, strict)
+    except Exception as e:
+        logging.critical("Processing failure: %s", str(e))
+        raise
 
 
-def main():
+def main() -> None:
+    """Entry point with proper error handling"""
     parser = init_argparse()
     args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format=LOG_FORMAT,
+        datefmt=DATE_FORMAT,
+        stream=sys.stdout,
+    )
 
     process_satellite(args.url, args.output, args.strict)
 
