@@ -132,7 +132,7 @@ Examples:
     %(prog)s --start -1h
 
     # Get specific measurement since yesterday
-    %(prog)s --start -1d --measurement your_measurement
+    %(prog)s --start -1d --measurement Battery_1739049680
 
     # Get data since specific date
     %(prog)s --start 2024-01-01
