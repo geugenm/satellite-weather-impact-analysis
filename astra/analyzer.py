@@ -5,6 +5,11 @@ from typing import Final, TypeAlias
 import argparse
 import logging
 
+# fix for mlflow - https://github.com/SciTools/iris/issues/4879
+import matplotlib
+
+matplotlib.use("QtAgg")
+
 import pandas as pd
 import yaml
 import mlflow
