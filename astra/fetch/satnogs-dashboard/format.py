@@ -3,6 +3,7 @@ import pandas as pd
 import logging
 import argparse
 import re
+from typing import Final
 
 DOWNLOAD_BASE = Path("downloads/sat").absolute()
 
@@ -79,62 +80,59 @@ Usage Examples:
     return parser
 
 
+RESTRICTED_FILES: Final = {"Ground_Stations", "Last_Frame_Received"}
+UNIT_PATTERN: Final = (
+    r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c)$"
+)
+UNIT_MAP: Final = {
+    "c": "celsius",
+    "°c": "celsius",
+    "v": "volts",
+    "mv": "millivolts",
+    "ma": "milliamps",
+    "ms": "milliseconds",
+    "s": "seconds",
+    "m": "meters",
+    "kg": "kilograms",
+    "hz": "hertz",
+    "db": "decibels",
+    "rpm": "rpm",
+}
+
+
 def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
-    """Parse CSV and normalize units because nobody follows standards"""
-    if (
-        "Ground_Stations" in file_path.name
-        or "Last_Frame_Received" in file_path.name
-    ):
+    """Parse CSV and normalize units"""
+    if any(r in file_path.name for r in RESTRICTED_FILES):
         raise ValueError("restricted files")
 
     df = pd.read_csv(file_path)
+    if df.empty or df.columns.size < 2:
+        raise ValueError("invalid dataframe structure")
 
-    if df.empty:
-        raise ValueError("empty dataframe")
-
-    if df.columns.size < 2:
-        raise ValueError("dataframe must have at least two columns")
-
+    # Normalize time column
     df = df.rename(columns=lambda col: "time" if col.lower() == "time" else col)
     df["time"] = pd.to_datetime(df["time"]).dt.normalize()
 
-    unit_pattern = (
-        r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c)$"
-    )
-    unit_map = {
-        "c": "celsius",
-        "°c": "celsius",
-        "v": "volts",
-        "mv": "millivolts",
-        "ma": "milliamps",
-        "ms": "milliseconds",
-        "s": "seconds",
-        "m": "meters",
-        "kg": "kilograms",
-        "hz": "hertz",
-        "db": "decibels",
-        "rpm": "rpm",
-    }
-
-    for col in df.columns:
-        if col == "time" or df[col].dtype != "object":
+    # Process units for non-time string columns
+    for col in (
+        c for c in df.columns if c != "time" and df[c].dtype == "object"
+    ):
+        sample = df[col].dropna().astype(str).iloc[:100]
+        if not sample.str.match(UNIT_PATTERN, case=False).any():
             continue
 
-        sample = df[col].dropna().astype(str).iloc[:100]
-        if sample.str.match(unit_pattern, case=False).any():
-            cleaned = df[col].str.extract(unit_pattern, flags=re.IGNORECASE)
-            if cleaned[0].notna().any():
-                df[col] = pd.to_numeric(cleaned[0], errors="coerce")
-                unit = cleaned[1].dropna().iloc[0].lower()
-                df = df.rename(
-                    columns={col: f"{col}_{unit_map.get(unit, unit)}"}
-                )
+        cleaned = df[col].str.extract(UNIT_PATTERN, flags=re.IGNORECASE)
+        if cleaned[0].notna().any():
+            df[col] = pd.to_numeric(cleaned[0], errors="coerce")
+            unit = cleaned[1].dropna().iloc[0].lower()
+            df = df.rename(columns={col: f"{col}_{UNIT_MAP.get(unit, unit)}"})
 
+    # Filter numeric columns and validate
     df = df.select_dtypes(include=["number", "bool", "datetime"])
-
     if df.columns.size < 2:
-        raise ValueError("dataframe must have at least two columns")
+        raise ValueError("insufficient numeric columns")
 
+    # Apply strict naming if requested
     if strict:
         df = df.rename(
             columns=lambda col: col.lower().translate(
