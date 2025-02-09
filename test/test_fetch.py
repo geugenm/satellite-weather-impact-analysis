@@ -20,7 +20,7 @@ def test_fetch_indices_happy():
     """Test happy case for fetch_indices"""
     os.chdir(datafiles)
 
-    test_indices = ["DGD", "DpD", "dsd"]
+    test_indices = ["DGD", "dsd"]
     start_dates = [
         datetime(year=2018, month=3, day=12, hour=23, minute=22, second=47),
         None,

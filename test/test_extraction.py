@@ -79,30 +79,15 @@ def test_dsd_to_dataframe():
     assert dsd_df.shape[0] == 365
 
 
-def test_dpd_to_dataframe():
-    """Test for dpd"""
-    path_to_data_file = str(FIXTURE_DIR / "2019_DPD.txt")
-    dpd_df = extract_data_regex("dpD ", path_to_data_file)
-
-    assert dpd_df.shape[0] == 365
-
-
 def test_extract_data_regex_sad():
     """Test sad cases for extract_data_regex"""
-    path_to_data_file = str(FIXTURE_DIR / "2019_DPD.txt")
+    path_to_data_file = str(FIXTURE_DIR / "2019_DGD.txt")
 
     with pytest.raises(ValueError):
         _ = extract_data_regex("dsd ", path_to_data_file)
 
     with pytest.raises(ValueError):
         _ = extract_data_regex("no_support", path_to_data_file)
-
-
-def test_no_data_to_concatenate():
-    """Test sad cases for NoSpaceWeatherForIndex"""
-
-    with pytest.raises(NoSpaceWeatherForIndex):
-        _ = extract_data_from_multiple("DPD", [])
 
 
 def test_process_and_save_txt_files() -> None:

@@ -1,5 +1,3 @@
-"""Module for extracting space weather data fetched from SWPC"""
-
 import logging
 import re
 
@@ -75,7 +73,6 @@ class NoSpaceWeatherForIndex(Exception):
     """Raised when we have no sw data for a specific index"""
 
 
-# pylint: disable=too-many-locals
 def extract_data_regex(name, path_to_file):
     """Extracts data from path_to_file based on name
 
@@ -84,7 +81,7 @@ def extract_data_regex(name, path_to_file):
         path_to_file (str): Path to file containing data
 
     Raises:
-        ValueError: If name is not in ("dgd", "dpd", "dsd")
+        ValueError: If name is not in ("dgd", "dsd")
         ValueError: If no match is found in data
 
     Returns:
@@ -92,22 +89,7 @@ def extract_data_regex(name, path_to_file):
     """
     date = r"^(\d{2} [a-zA-Z]{3} \d{2}|\d{4} *\d{2} *\d{2}) *"
 
-    if name.strip().lower() == "dpd":
-        column_dict = {
-            "Date": "",
-            "Proton 1 MeV": "-1.0e+00",
-            "Proton 10 MeV": "-1.0e+00",
-            "Proton 100 MeV": "-1.0e+00",
-            "Electron 800 KeV": "-1.0e+00",
-            "Electron 2 MeV": "-1.0e+00",
-            "Neutron": "-999.99",
-        }
-
-        peindices = r"(-1\.0e\+00|\d*\.\d*e\+\d*) *"
-        nindices = r"(-999\.99|-1|\d*\.\d*)$"
-        regex = date + peindices * 5 + nindices
-
-    elif name.strip().lower() == "dgd":
+    if name.strip().lower() == "dgd":
         column_dict = {
             "Date": "",
             "Fredericksburg A": "-1",
@@ -222,8 +204,8 @@ def extract_data_from_multiple(name, path_to_files):
     Returns:
         data (pd.DataFrame): Dataframe containing all the extracted data
     """
-    if not name.strip().upper() in ("DGD", "DPD", "DSD"):
-        raise ValueError("{} not in 'DGD', 'DSD', 'DPD'".format(name.upper()))
+    if not name.strip().upper() in ("DGD", "DSD"):
+        raise ValueError("{} not in 'DGD', 'DSD'".format(name.upper()))
 
     if not isinstance(path_to_files, list):
         raise ValueError(
@@ -265,7 +247,7 @@ def fetch_indices(index, start_date=None, final_date=None, directory=None):
     """
 
     index = index.upper()
-    if index not in ("DSD", "DPD", "DGD"):
+    if index not in ("DSD", "DGD"):
         raise ValueError("Index {} is not currently supported".format(index))
 
     today = datetime.now()
