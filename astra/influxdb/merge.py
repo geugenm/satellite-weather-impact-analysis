@@ -47,6 +47,23 @@ def write_to_influx(
         logger.error(f"failed to write to influxdb: {e}")
 
 
+def init_influx_db(client: InfluxDBClient) -> None:
+    try:
+        buckets_api = client.buckets_api()
+        bucket = buckets_api.find_bucket_by_name("telemetry")
+
+        if bucket:
+            buckets_api.delete_bucket(bucket)
+            logger.info("telemetry bucket dropped")
+
+        # Create new bucket
+        buckets_api.create_bucket(bucket_name="telemetry", org="org")
+        logger.info("new telemetry bucket created")
+
+    except Exception as e:
+        logger.error(f"failed to initialize influxdb: {e}")
+
+
 def process_directory(input_dir: Path, username: str, password: str) -> None:
     try:
         csv_files = list(input_dir.glob("*.csv"))
@@ -60,8 +77,10 @@ def process_directory(input_dir: Path, username: str, password: str) -> None:
             url="http://localhost:8086",
             username=username,
             password=password,
-            org="my-org",
+            org="org",
         )
+
+        init_influx_db(client)
 
         for file in csv_files:
             df = parse_csv(file)

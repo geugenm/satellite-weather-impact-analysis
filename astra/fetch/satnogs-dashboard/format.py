@@ -142,7 +142,6 @@ def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
 
     # Group by time and take mean of duplicate timestamps
     df = df.groupby("time", as_index=False).agg("mean")
-    df = df.sort_values("time")
 
     return df
 
