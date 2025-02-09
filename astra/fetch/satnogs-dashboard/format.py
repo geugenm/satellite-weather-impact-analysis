@@ -81,6 +81,12 @@ Usage Examples:
 
 def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
     """Parse CSV and normalize units because nobody follows standards"""
+    if (
+        "Ground_Stations" in file_path.name
+        or "Last_Frame_Received" in file_path.name
+    ):
+        raise ValueError("restricted files")
+
     df = pd.read_csv(file_path)
 
     if df.empty:
@@ -124,15 +130,19 @@ def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
                     columns={col: f"{col}_{unit_map.get(unit, unit)}"}
                 )
 
-    result = df.select_dtypes(include=["number", "bool", "datetime"])
+    df = df.select_dtypes(include=["number", "bool", "datetime"])
+
+    if df.columns.size < 2:
+        raise ValueError("dataframe must have at least two columns")
+
     if strict:
-        result = result.rename(
+        df = df.rename(
             columns=lambda col: col.lower().translate(
                 str.maketrans({c: "_" for c in " ,<>[]()#+"})
             )
         )
 
-    return result
+    return df
 
 
 def process_satellites(

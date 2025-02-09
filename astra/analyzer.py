@@ -25,17 +25,13 @@ logging.basicConfig(level=logging.INFO)
 
 
 def merge_dataframes(file_db: dict) -> pd.DataFrame:
-    merged_df = pd.DataFrame()
+    valid_dfs = [entry["dataframe"] for entry in file_db.values()]
 
-    for _, entry in file_db.items():
-        df = entry["dataframe"]
+    df = valid_dfs[0]
+    for other_df in valid_dfs[1:]:
+        df = pd.merge(df, other_df, how="left", on="time")
 
-        if merged_df.empty:
-            merged_df = df
-        else:
-            merged_df = merged_df.merge(df, on="time")
-
-    return merged_df
+    return df
 
 
 def custom_parse(file_path: Path) -> pd.DataFrame:
@@ -127,7 +123,7 @@ def process_satellite_data(satellite_name: str) -> None:
     dataset_files = satellite_files + solar_files
     dataset_files_db = build_file_database(dataset_files)
 
-    dynamics = merge_dataframes(dataset_files_db).dropna()
+    dynamics = merge_dataframes(dataset_files_db)
 
     dynamics_file = artifacts_dir / f"{satellite_name}.csv"
 
