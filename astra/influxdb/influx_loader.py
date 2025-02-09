@@ -124,12 +124,45 @@ def process_files(input_dir: Path, config: InfluxConfig) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Import CSV files to InfluxDB")
-    parser.add_argument(
-        "input_dir", type=Path, help="directory containing CSV files"
+    parser = argparse.ArgumentParser(
+        description="Load your CSV crap into InfluxDB without breaking everything",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    # Basic usage (if you trust .env defaults like an idiot)
+    %(prog)s /path/to/csv/dir
+
+    # Override credentials (slightly less idiotic)
+    %(prog)s /path/to/csv/dir --username your_user --password your_pass
+
+Environment:
+    INFLUX_URL       InfluxDB URL (default: http://localhost:8086)
+    INFLUX_USER      Username (can be overridden by --username)
+    INFLUX_PASS      Password (can be overridden by --password)
+    INFLUX_ORG       Organization (default: org)
+    INFLUX_BUCKET    Bucket name (default: telemetry)
+    LOG_LEVEL        Logging level (default: INFO)
+
+Notes:
+    - Creates a new bucket, destroying any existing data (you've been warned)
+    - Expects CSV files with a 'time' column (case-insensitive)
+    - Uses filename as measurement name, so don't use stupid filenames
+    - All numeric columns will be stored as fields
+    """,
     )
-    parser.add_argument("--username", help="override .env username")
-    parser.add_argument("--password", help="override .env password")
+    parser.add_argument(
+        "input_dir",
+        type=Path,
+        help="directory with your CSV files (they better exist)",
+    )
+    parser.add_argument(
+        "--username",
+        help="override .env username (in case you don't trust environment variables)",
+    )
+    parser.add_argument(
+        "--password",
+        help="override .env password (store this in your shell history, I dare you)",
+    )
 
     args = parser.parse_args()
 
