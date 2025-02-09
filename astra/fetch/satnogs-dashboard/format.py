@@ -6,6 +6,24 @@ import re
 from typing import Final
 
 DOWNLOAD_BASE = Path("downloads/sat").absolute()
+RESTRICTED_FILES: Final = {"Ground_Stations", "Last_Frame_Received"}
+UNIT_PATTERN: Final = (
+    r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c)$"
+)
+UNIT_MAP: Final = {
+    "c": "celsius",
+    "°c": "celsius",
+    "v": "volts",
+    "mv": "millivolts",
+    "ma": "milliamps",
+    "ms": "milliseconds",
+    "s": "seconds",
+    "m": "meters",
+    "kg": "kilograms",
+    "hz": "hertz",
+    "db": "decibels",
+    "rpm": "rpm",
+}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -78,26 +96,6 @@ Usage Examples:
         help="enforce strict formatting rules",
     )
     return parser
-
-
-RESTRICTED_FILES: Final = {"Ground_Stations", "Last_Frame_Received"}
-UNIT_PATTERN: Final = (
-    r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c)$"
-)
-UNIT_MAP: Final = {
-    "c": "celsius",
-    "°c": "celsius",
-    "v": "volts",
-    "mv": "millivolts",
-    "ma": "milliamps",
-    "ms": "milliseconds",
-    "s": "seconds",
-    "m": "meters",
-    "kg": "kilograms",
-    "hz": "hertz",
-    "db": "decibels",
-    "rpm": "rpm",
-}
 
 
 def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
