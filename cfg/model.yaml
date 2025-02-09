@@ -11,7 +11,7 @@ model_params:
     n_jobs: 1
     tree_method: auto
     max_depth: 12
-    device: cpu
+    device: gpu
     base_score: 0.5
     booster: gbtree
     colsample_bylevel: 1

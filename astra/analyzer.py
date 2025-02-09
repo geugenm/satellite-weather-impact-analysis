@@ -1,131 +1,126 @@
-import argparse
+from __future__ import annotations
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Final, TypeAlias
+import argparse
 import logging
 
+import pandas as pd
 import yaml
 import mlflow
-import pandas as pd
-
-from mlflow.data.pandas_dataset import PandasDataset
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import StandardScaler
 
 from astra.graph import create_dependency_graph
 from astra.model.cross_correlate import cross_correlate
 
-ARTIFACTS_DIR = Path("../artifacts")
-TRACKING_URI = ARTIFACTS_DIR / "mlruns"
-DOWNLOAD_DIR = Path("../downloads")
-MODEL_CFG_PATH = Path("../cfg/model.yaml")
-TIME_COLUMN = "time"
+PathLike: TypeAlias = str | Path
 
 
-logging.basicConfig(level=logging.INFO)
+@dataclass(frozen=True)
+class Config:
+    ARTIFACTS_DIR: Final[Path] = Path("../artifacts")
+    TRACKING_URI: Final[Path] = ARTIFACTS_DIR / "mlruns"
+    DOWNLOAD_DIR: Final[Path] = Path("../downloads")
+    MODEL_CFG_PATH: Final[Path] = Path("../cfg/model.yaml")
+    TIME_COLUMN: Final[str] = "time"
+    COLUMNS_TO_DROP: Final[tuple[str, ...]] = ()
 
 
-def save_to_yaml(graph_data: dict, path: str | Path) -> None:
-    """Atomic write of graph data with YAML safety"""
-    Path(path).write_text(
-        yaml.safe_dump(
-            graph_data,
-            sort_keys=False,
-            default_flow_style=None,
-            allow_unicode=True,
-            width=80,
-        )
+def setup_logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
 
 
-def advanced_interpolation(df: pd.DataFrame) -> pd.DataFrame:
-    """Interpolate missing values using multiple methods, handling duplicates."""
-    # Ensure time column is datetime
-    df["time"] = pd.to_datetime(df["time"])
+def save_to_yaml(data: dict, path: PathLike) -> None:
+    """Atomically write data to YAML file with safety guarantees."""
+    Path(path).write_text(
+        yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=80)
+    )
 
-    # Remove duplicate timestamps by averaging values
-    df = df.groupby("time", as_index=False).mean()
 
-    # Set time as index for interpolation
-    df = df.set_index("time")
+def interpolate_timeseries(df: pd.DataFrame) -> pd.DataFrame:
+    """Handle missing values in time series data using multiple interpolation methods."""
+    return (
+        df.assign(time=lambda x: pd.to_datetime(x[Config.TIME_COLUMN]))
+        .groupby(Config.TIME_COLUMN, as_index=False)
+        .mean()
+        .set_index(Config.TIME_COLUMN)
+        .pipe(lambda x: x.interpolate(method="time").ffill().bfill())
+        .reset_index()
+    )
 
-    # Apply simpler interpolation methods that handle duplicates
-    df = (
-        df.interpolate(method="time")  # Time-based interpolation
-        .ffill()  # Forward fill remaining gaps
-        .bfill()
-    )  # Backward fill edge cases
 
-    return df.reset_index()
+def normalize_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize numeric columns while preserving time column."""
+    numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns
+    return pd.DataFrame(
+        StandardScaler().fit_transform(df[numeric_cols]),
+        columns=numeric_cols,
+        index=df.index,
+    ).assign(time=df[Config.TIME_COLUMN])
 
 
 def process_satellite_data(satellite_name: str) -> None:
-    mlflow.set_tracking_uri(TRACKING_URI)
-    mlflow.enable_system_metrics_logging()
-
-    mlflow.set_experiment(satellite_name)
-    artifacts_dir = (ARTIFACTS_DIR / satellite_name).absolute()
+    """Process satellite data and generate dependency graphs."""
+    artifacts_dir = (Config.ARTIFACTS_DIR / satellite_name).absolute()
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    mlflow.start_run(run_name="build_graph")
+    mlflow.set_tracking_uri(Config.TRACKING_URI)
+    mlflow.enable_system_metrics_logging()
+    mlflow.set_experiment(satellite_name)
 
-    dynamics = pd.read_csv(DOWNLOAD_DIR / f"{satellite_name}.csv").drop(
-        ["cumulative_sum", "uptime_total", "58261.mode"], axis=1
-    )
-
-    dynamics = advanced_interpolation(dynamics)
-
-    numeric_cols = dynamics.select_dtypes(include=["float64", "int64"]).columns
-    df_numeric = dynamics[numeric_cols]
-
-    scaler = StandardScaler()
-    df_normalized = pd.DataFrame(
-        scaler.fit_transform(df_numeric),
-        columns=numeric_cols,
-        index=dynamics.index,
-    )
-
-    # Add back time column
-    df_normalized["time"] = dynamics["time"]
-    dynamics = df_normalized
-
-    print(dynamics.info())
-
-    dynamics_file = artifacts_dir / f"{satellite_name}.csv"
-
-    mlflow.log_input(
-        mlflow.data.from_pandas(
-            dynamics,
-            name="Merged satellite and solar parameters",
+    with mlflow.start_run(run_name="build_graph"):
+        dynamics = (
+            pd.read_csv(Config.DOWNLOAD_DIR / f"{satellite_name}.csv")
+            .drop(list(Config.COLUMNS_TO_DROP), axis=1)
+            .pipe(interpolate_timeseries)
+            .pipe(normalize_numeric_columns)
         )
+
+        dynamics_file = artifacts_dir / f"{satellite_name}.csv"
+        mlflow.log_input(
+            mlflow.data.from_pandas(dynamics, name="satellite_parameters")
+        )
+        dynamics.to_csv(dynamics_file, index=False)
+        mlflow.log_artifact(str(dynamics_file), artifact_path="graph")
+
+        graph_file = artifacts_dir / f"{satellite_name}_graph.yaml"
+        graph_data = cross_correlate(
+            input_dataframe=dynamics,
+            index_column=Config.TIME_COLUMN,
+            xcorr_configuration_file=Config.MODEL_CFG_PATH,
+        )
+
+        save_to_yaml(graph_data, graph_file)
+        mlflow.log_artifact(str(graph_file), artifact_path="graph")
+
+        output_path = artifacts_dir / "graph.html"
+        create_dependency_graph(graph_file, {}).render(str(output_path))
+        logging.info(f"graph rendered: {output_path}")
+        mlflow.log_artifact(str(output_path), artifact_path="graph")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Satellite data processor and dependency graph generator",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    %(prog)s satellite-a     # Process data for satellite-a
+    %(prog)s satellite-b     # Process data for satellite-b
+        """,
     )
-    dynamics.to_csv(dynamics_file, index=False)
-    mlflow.log_artifact(str(dynamics_file), artifact_path="graph")
-
-    graph_file = artifacts_dir / f"{satellite_name}_graph.yaml"
-    graph_data = cross_correlate(
-        input_dataframe=dynamics,
-        index_column=TIME_COLUMN,
-        xcorr_configuration_file=MODEL_CFG_PATH,
+    parser.add_argument(
+        "satellite_name", help="satellite identifier to process"
     )
+    args = parser.parse_args()
 
-    save_to_yaml(graph_data, graph_file)
-
-    mlflow.log_artifact(str(graph_file), artifact_path="graph")
-
-    graph = create_dependency_graph(
-        graph_file,
-        {},
-    )
-    output_path = str(artifacts_dir / "graph.html")
-    graph.render(output_path)
-    print(f"Graph rendered successfully at {output_path}")
-
-    mlflow.log_artifact(output_path, artifact_path="graph")
-    mlflow.end_run()
+    setup_logging()
+    process_satellite_data(args.satellite_name)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process satellite data.")
-    parser.add_argument(
-        "satellite_name", type=str, help="Name of the satellite"
-    )
-    args = parser.parse_args()
-    process_satellite_data(args.satellite_name)
+    main()

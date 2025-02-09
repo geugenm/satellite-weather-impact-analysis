@@ -42,7 +42,7 @@ def load_config(args: argparse.Namespace) -> InfluxConfig:
         user=args.username or getenv("INFLUX_USER", "admin"),
         password=args.password or getenv("INFLUX_PASS", "admin"),
         org=getenv("INFLUX_ORG", "org"),
-        bucket=getenv("INFLUX_BUCKET", "telemetry"),
+        bucket=args.bucket or getenv("INFLUX_BUCKET", "unknown_bucket"),
     )
 
 
@@ -157,11 +157,18 @@ Notes:
     )
     parser.add_argument(
         "--username",
+        type=str,
         help="override .env username (in case you don't trust environment variables)",
     )
     parser.add_argument(
         "--password",
+        type=str,
         help="override .env password (store this in your shell history, I dare you)",
+    )
+    parser.add_argument(
+        "--bucket",
+        type=str,
+        help="override .env bucket",
     )
 
     args = parser.parse_args()
