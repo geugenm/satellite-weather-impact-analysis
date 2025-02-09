@@ -69,7 +69,7 @@ def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
     df = df.drop(columns=[col for col in DROP_COLUMNS if col in df.columns])
     df = df.rename(columns={"_time": "time"})
-    return df.set_index("time").sort_index(ascending=True)
+    return df.set_index("time").groupby("time").mean().sort_index()
 
 
 def get_all_data(
