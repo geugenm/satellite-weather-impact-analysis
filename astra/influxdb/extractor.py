@@ -50,7 +50,7 @@ def setup_logging() -> None:
     )
 
 
-def load_config() -> InfluxConfig:
+def load_config(args: argparse.Namespace) -> InfluxConfig:
     if not Path(".env").exists():
         raise FileNotFoundError("missing .env file")
 
@@ -60,7 +60,7 @@ def load_config() -> InfluxConfig:
         user=getenv("INFLUX_USER", "admin"),
         password=getenv("INFLUX_PASS", "admin"),
         org=getenv("INFLUX_ORG", "org"),
-        bucket=getenv("INFLUX_BUCKET", "bucket"),
+        bucket=args.bucket or getenv("INFLUX_BUCKET", "bucket"),
     )
 
 
@@ -69,7 +69,7 @@ def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
     df = df.drop(columns=[col for col in DROP_COLUMNS if col in df.columns])
     df = df.rename(columns={"_time": "time"})
-    return df.set_index("time")
+    return df.set_index("time").sort_index(ascending=True)
 
 
 def get_all_data(
@@ -137,6 +137,9 @@ Examples:
     # Get data since specific date
     %(prog)s --start 2024-01-01
 
+    # Get last hour of data from specific bucket
+    %(prog)s --bucket my_bucket --start -1h
+
 Environment:
     INFLUX_URL       InfluxDB URL (default: http://localhost:8086)
     INFLUX_USER      Username for your precious data
@@ -156,13 +159,17 @@ Environment:
         "--measurement",
         help="specific measurement to extract (default: all measurements)",
     )
+    parser.add_argument(
+        "--bucket",
+        help="bucket to query (overrides INFLUX_BUCKET from .env)",
+    )
 
     args = parser.parse_args()
     setup_logging()
     logger = logging.getLogger(__name__)
 
     try:
-        config = load_config()
+        config = load_config(args)
         with InfluxDBClient(
             url=config.url,
             username=config.user,
