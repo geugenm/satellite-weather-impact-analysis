@@ -105,7 +105,9 @@ def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
 
     df = pd.read_csv(file_path)
     if df.empty or df.columns.size < 2:
-        raise ValueError("invalid dataframe structure")
+        raise ValueError(
+            f"invalid dataframe structure, df.empty or df.columns.size < 2: {df.info()}"
+        )
 
     # Normalize time column
     df = df.rename(columns=lambda col: "time" if col.lower() == "time" else col)
@@ -137,6 +139,10 @@ def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
                 str.maketrans({c: "_" for c in " ,<>[]()#+"})
             )
         )
+
+    # Group by time and take mean of duplicate timestamps
+    df = df.groupby("time", as_index=False).agg("mean")
+    df = df.sort_values("time")
 
     return df
 
