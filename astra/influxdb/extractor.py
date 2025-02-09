@@ -38,7 +38,7 @@ class InfluxConfig:
     user: str
     password: str
     org: str
-    bucket: str
+    buckets: list[str]
 
 
 def setup_logging() -> None:
@@ -60,7 +60,11 @@ def load_config(args: argparse.Namespace) -> InfluxConfig:
         user=getenv("INFLUX_USER", "admin"),
         password=getenv("INFLUX_PASS", "admin"),
         org=getenv("INFLUX_ORG", "org"),
-        bucket=args.bucket or getenv("INFLUX_BUCKET", "bucket"),
+        buckets=(
+            args.buckets.split(",")
+            if args.buckets
+            else getenv("INFLUX_BUCKET", "bucket").split(",")
+        ),
     )
 
 
@@ -68,8 +72,7 @@ def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame()
     df = df.drop(columns=[col for col in DROP_COLUMNS if col in df.columns])
-    df = df.rename(columns={"_time": "time"})
-    return df.set_index("time").groupby("time").mean().sort_index()
+    return df.rename(columns={"_time": "time"}).set_index("time")
 
 
 def get_all_data(
@@ -89,21 +92,11 @@ def get_all_data(
             ),
         )
         result = client.query_api().query_data_frame(query)
-
-        if isinstance(result, list):
-            df = pd.concat(result) if result else pd.DataFrame()
-        else:
-            df = result
-
-        df = process_dataframe(df)
-        if not df.empty:
-            logger.info(
-                f"retrieved {len(df)} rows with {len(df.columns)} columns"
-            )
-        return df
-
+        return process_dataframe(
+            pd.concat(result) if isinstance(result, list) else result
+        )
     except Exception as e:
-        logger.error(f"query failed: {e}")
+        logger.error(f"query failed for bucket {client.bucket}: {e}")
         return pd.DataFrame()
 
 
@@ -125,11 +118,11 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    # Get everything (hope you have enough RAM)
+    # Get everything from all buckets
     %(prog)s
 
-    # Get last hour of data
-    %(prog)s --start -1h
+    # Get last hour of data from specific buckets
+    %(prog)s --buckets "bucket1,bucket2" --start -1h
 
     # Get specific measurement since yesterday
     %(prog)s --start -1d --measurement Battery_1739049680
@@ -137,15 +130,12 @@ Examples:
     # Get data since specific date
     %(prog)s --start 2024-01-01
 
-    # Get last hour of data from specific bucket
-    %(prog)s --bucket my_bucket --start -1h
-
 Environment:
     INFLUX_URL       InfluxDB URL (default: http://localhost:8086)
     INFLUX_USER      Username for your precious data
     INFLUX_PASS      Password (handle with care)
     INFLUX_ORG       Organization (default: org)
-    INFLUX_BUCKET    Bucket name (default: bucket)
+    INFLUX_BUCKET    Comma-separated bucket names (default: bucket)
     LOG_LEVEL        Logging level (default: INFO)
     """,
     )
@@ -160,8 +150,8 @@ Environment:
         help="specific measurement to extract (default: all measurements)",
     )
     parser.add_argument(
-        "--bucket",
-        help="bucket to query (overrides INFLUX_BUCKET from .env)",
+        "--buckets",
+        help="comma-separated bucket list (overrides INFLUX_BUCKET)",
     )
 
     args = parser.parse_args()
@@ -176,22 +166,38 @@ Environment:
             password=config.password,
             org=config.org,
         ) as client:
-            client.bucket = config.bucket
-            df = get_all_data(
-                client, measurement=args.measurement, start=args.start
-            )
+            all_data = pd.DataFrame()
 
-            if df.empty:
+            for bucket in config.buckets:
+                client.bucket = bucket.strip()
+                df = get_all_data(
+                    client, measurement=args.measurement, start=args.start
+                )
+                if not df.empty:
+                    all_data = pd.concat([all_data, df])
+                    logger.info(
+                        f"retrieved {len(df)} rows from {client.bucket} "
+                        f"with {len(df.columns)} columns"
+                    )
+
+            if all_data.empty:
                 logger.warning("no data retrieved")
                 return
 
-            print("\nFirst few rows:")
-            print(df.head())
-            print("\nColumns:", df.columns.tolist())
-            print("\nDataframe info:")
-            print(df.info())
+            # Merge and deduplicate time index
+            merged_data = all_data.groupby("time").mean().sort_index()
 
-            df.to_csv("out.csv", index=True)
+            print("\nMerged data summary:")
+            print(merged_data.head())
+            print("\nColumns:", merged_data.columns.tolist())
+            print("\nDataframe info:")
+            print(merged_data.info())
+
+            merged_data.to_csv("merged_output.csv", index=True)
+            logger.info(
+                f"saved {len(merged_data)} rows with {len(merged_data.columns)} "
+                f"columns to merged_output.csv"
+            )
 
     except Exception as e:
         logger.error(f"execution failed: {e}")
