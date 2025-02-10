@@ -32,7 +32,7 @@ class SndTotCsvProcessor(DataProcessor):
             ],
         )
 
-        df[self.config["time_column"]] = pd.to_datetime(
+        df[self.config.fetch.time_column] = pd.to_datetime(
             df[["year", "month", "day"]]
         )
 

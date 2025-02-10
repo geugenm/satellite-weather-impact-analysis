@@ -88,7 +88,7 @@ def process_satellite_data(satellite_name: str, data_cfg: DataConfig) -> None:
     mlflow.set_experiment(satellite_name)
 
     with mlflow.start_run(run_name="build_graph"):
-        raw_data_path = data_cfg.fetch.base_dir / f"{satellite_name}.csv"
+        raw_data_path = data_cfg.fetch.processed / f"{satellite_name}.csv"
         dynamics = (
             pd.read_csv(raw_data_path)
             .drop(list(data_cfg.format.exclude_columns), axis=1)

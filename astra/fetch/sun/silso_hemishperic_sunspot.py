@@ -34,7 +34,7 @@ class SndHemCsvProcessor(DataProcessor):
                 "total_error",
             ],
         )
-        df[self.config["time_column"]] = pd.to_datetime(
+        df[self.config.fetch.time_column] = pd.to_datetime(
             df[["year", "month", "day"]]
         )
         df.drop(columns=["year", "month", "day", "decimal_year"], inplace=True)

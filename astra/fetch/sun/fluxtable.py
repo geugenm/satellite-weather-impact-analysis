@@ -25,11 +25,13 @@ class FluxTableProcessor(DataProcessor):
         df = pd.read_csv(StringIO("\n".join(lines)), sep="\\s+")
 
         # Rename fluxdate to the configured time column
-        time_col = self.config["time_column"]
+        time_col = self.config.fetch.time_column
         df.rename(columns={"fluxdate": time_col}, inplace=True)
 
         # Parse the time column correctly
-        df[time_col] = pd.to_datetime(df[time_col], format="%Y%m%d")
+        df[time_col] = pd.to_datetime(
+            df[time_col], format=self.config.fetch.time_format
+        )
 
         return self.sanitize_columns(df)
 

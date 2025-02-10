@@ -10,17 +10,15 @@ class SwpcProcessor(DataProcessor):
     output_prefix = "swpc_ssn"
 
     def download(self, url: str) -> dict:
-        """Download SWPC JSON data"""
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
 
     def process(self, data: dict) -> pd.DataFrame:
-        """Process SWPC specific data"""
         df = pd.DataFrame(data)
 
         column_mappings = {
-            "Obsdate": self.config["time_column"],
+            "Obsdate": self.config.fetch.time_column,
             "SSN": "sunspot_number",
         }
 

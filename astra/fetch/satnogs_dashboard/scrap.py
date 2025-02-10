@@ -7,8 +7,8 @@ from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 from collections.abc import Mapping
 import yaml
 
-DOWNLOAD_BASE_DIR = Path("downloads/sat").absolute()
-CONFIG_DIR = Path("cfg").absolute()
+DOWNLOAD_BASE_DIR = Path("data/raw").absolute()
+CONFIG_DIR = Path("data/cfg").absolute()
 TIMEOUTS = {
     "page_load": 10000,
     "panel_wait": 10000,
@@ -110,7 +110,9 @@ def extract_panel_title(page) -> str:
 
 def download_panel_data(page, download_dir: Path) -> bool:
     """Hunt down and murder that download button regardless of its disguise"""
-    js_code = Path("download_panel.js").read_text(encoding="utf-8")
+    js_code = Path(
+        Path(__file__).resolve().parent / "download_panel.js"
+    ).read_text(encoding="utf-8")
 
     try:
         with page.expect_download(timeout=10000) as download_info:
@@ -138,7 +140,9 @@ def scan_grafana_panels(page, url: str) -> dict:
 
     page.goto(base_url, wait_until="networkidle")
     scripts = {
-        name: Path(f"{name}.js").read_text(encoding="utf-8")
+        name: Path(Path(__file__).resolve().parent / f"{name}.js").read_text(
+            encoding="utf-8"
+        )
         for name in ["expand_all", "get_all_panels"]
     }
 

@@ -5,7 +5,7 @@ import argparse
 import re
 from typing import Final
 
-DOWNLOAD_BASE = Path("downloads/sat").absolute()
+DOWNLOAD_BASE = Path("data/raw").absolute()
 RESTRICTED_FILES: Final = {"Ground_Stations", "Last_Frame_Received"}
 UNIT_PATTERN: Final = (
     r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c)$"
