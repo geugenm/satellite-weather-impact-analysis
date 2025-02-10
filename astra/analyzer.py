@@ -78,10 +78,10 @@ def process_satellite_data(satellite_name: str) -> None:
     mlflow.set_experiment(satellite_name)
 
     with mlflow.start_run(run_name="build_graph"):
+        # todo, add interpolate series if some flag set
         dynamics = (
             pd.read_csv(Config.DOWNLOAD_DIR / f"{satellite_name}.csv")
             .drop(list(Config.COLUMNS_TO_DROP), axis=1)
-            .pipe(interpolate_timeseries)
             .pipe(normalize_numeric_columns)
         )
 
