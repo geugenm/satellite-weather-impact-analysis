@@ -10,6 +10,7 @@ import pandas as pd
 from influxdb_client import InfluxDBClient
 from dotenv import load_dotenv
 from os import getenv
+import yaml
 
 # Constants
 QUERY_TEMPLATE: Final[
@@ -112,6 +113,28 @@ def parse_time(time_str: str) -> str:
         )
 
 
+def get_measurement_map(
+    client: InfluxDBClient, start: str = "-1h"
+) -> dict[str, str]:
+    query = """
+    from(bucket: "{}")
+        |> range(start: {})
+        |> group(columns: ["_field", "_measurement"])
+        |> distinct(column: "_field")
+    """.format(
+        client.bucket, start
+    )
+
+    result = client.query_api().query(query)
+
+    measurement_map = {}
+    for table in result:
+        for record in table.records:
+            measurement_map[record.get_value()] = record.values["_measurement"]
+
+    return measurement_map
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Extract data from InfluxDB like a boss",
@@ -153,6 +176,11 @@ Environment:
         "--buckets",
         help="comma-separated bucket list (overrides INFLUX_BUCKET)",
     )
+    parser.add_argument(
+        "--map",
+        action="store_true",
+        help="show measurement map instead of data",
+    )
 
     args = parser.parse_args()
     setup_logging()
@@ -166,6 +194,23 @@ Environment:
             password=config.password,
             org=config.org,
         ) as client:
+            if args.map:
+                for bucket in config.buckets:
+                    client.bucket = bucket.strip()
+                    mapping = get_measurement_map(client, start=args.start)
+                    if mapping:
+                        print(f"\nMeasurement map for bucket '{bucket}':")
+                        Path(f"{bucket}_mapping.yaml").write_text(
+                            yaml.safe_dump(
+                                mapping,
+                                sort_keys=False,
+                                allow_unicode=True,
+                                width=80,
+                            )
+                        )
+                        for field, measurement in mapping.items():
+                            print(f"  {field}: {measurement}")
+                return
             all_data = pd.DataFrame()
 
             for bucket in config.buckets:

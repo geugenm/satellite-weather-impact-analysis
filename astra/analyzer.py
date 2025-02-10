@@ -28,7 +28,7 @@ class Config:
     DOWNLOAD_DIR: Final[Path] = Path("../downloads")
     MODEL_CFG_PATH: Final[Path] = Path("../cfg/model.yaml")
     TIME_COLUMN: Final[str] = "time"
-    COLUMNS_TO_DROP: Final[tuple[str, ...]] = ()
+    COLUMNS_TO_DROP: Final[tuple[str, ...]] = ("40379.cumulative_sum",)
 
 
 def setup_logging() -> None:
@@ -103,7 +103,18 @@ def process_satellite_data(satellite_name: str) -> None:
         mlflow.log_artifact(str(graph_file), artifact_path="graph")
 
         output_path = artifacts_dir / "graph.html"
-        create_dependency_graph(graph_file, {}).render(str(output_path))
+
+        content = Path(
+            Config.DOWNLOAD_DIR / f"{satellite_name}_mapping.yaml"
+        ).read_text()
+        sat_map = yaml.safe_load(content)
+
+        content = Path(Config.DOWNLOAD_DIR / f"solar_mapping.yaml").read_text()
+        sun_map = yaml.safe_load(content)
+
+        create_dependency_graph(graph_file, sat_map | sun_map).render(
+            str(output_path)
+        )
         logging.info(f"graph rendered: {output_path}")
         mlflow.log_artifact(str(output_path), artifact_path="graph")
 
