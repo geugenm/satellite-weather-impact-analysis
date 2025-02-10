@@ -8,7 +8,6 @@ import pandas as pd
 
 import pytest
 from astra.fetch.sun.solar_indices import (
-    NoSpaceWeatherForIndex,
     extract_data_from_multiple,
     extract_data_regex,
     set_datetime_index,
@@ -93,18 +92,25 @@ def test_extract_data_regex_sad():
 def test_process_and_save_txt_files() -> None:
     """Process all txt files in directory and save merged results to csv"""
     output_filename: str = "merged_data.csv"
-    dfs = []
-    directory = FIXTURE_DIR
+    directory: Path = FIXTURE_DIR / "fetch-test"
 
-    for file in directory.glob("*.txt"):
-        index = file.stem[-3:]
-        df = extract_data_regex(index, str(file))
-        if isinstance(df, pd.DataFrame) and not df.empty:
-            dfs.append(df)
+    def get_dgd_files(directory: str | Path) -> list[Path]:
+        dir_path = Path(directory)
+        return sorted([f for f in dir_path.glob("*.txt") if "DGD" in f.name])
 
-    if not dfs:
-        raise ValueError("no valid dataframes extracted from txt files")
+    def get_dsd_files(directory: str | Path) -> list[Path]:
+        dir_path = Path(directory)
+        return sorted([f for f in dir_path.glob("*.txt") if "DSD" in f.name])
 
-    merged_df = pd.concat(dfs)
-    merged_df.rename(columns={"Date": "time"}, inplace=True)
-    merged_df.to_csv(directory / output_filename)
+    merged_df = extract_data_from_multiple("dgd", get_dgd_files(directory))
+    dsd = extract_data_from_multiple("dsd", get_dsd_files(directory))
+
+    merged_df = pd.merge(merged_df, dsd, on="time")
+
+    # todo, parse this adequately
+    merged_df.drop(
+        columns=["goes15_xray_background_flux", "stanford_solar_mean_field"],
+        inplace=True,
+    )
+
+    merged_df.to_csv(directory / ".." / output_filename)

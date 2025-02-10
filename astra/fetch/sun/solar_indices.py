@@ -87,74 +87,76 @@ def extract_data_regex(name, path_to_file):
     Returns:
         pd.DataFrame: DataFrame containing all the data
     """
-    date = r"^(\d{2} [a-zA-Z]{3} \d{2}|\d{4} *\d{2} *\d{2}) *"
+    time = r"^(\d{2} [a-zA-Z]{3} \d{2}|\d{4} *\d{2} *\d{2}) *"
 
     if name.strip().lower() == "dgd":
         column_dict = {
-            "Date": "",
-            "Fredericksburg A": "-1",
-            "Fredericksburg K 0-3": "-1",
-            "Fredericksburg K 3-6": "-1",
-            "Fredericksburg K 6-9": "-1",
-            "Fredericksburg K 9-12": "-1",
-            "Fredericksburg K 12-15": "-1",
-            "Fredericksburg K 15-18": "-1",
-            "Fredericksburg K 18-21": "-1",
-            "Fredericksburg K 21-24": "-1",
-            "College A": "-1",
-            "College K 0-3": "-1",
-            "College K 3-6": "-1",
-            "College K 6-9": "-1",
-            "College K 9-12": "-1",
-            "College K 12-15": "-1",
-            "College K 15-18": "-1",
-            "College K 18-21": "-1",
-            "College K 21-24": "-1",
-            "Planetary A": "-1",
-            "Planetary K 0-3": "-1",
-            "Planetary K 3-6": "-1",
-            "Planetary K 6-9": "-1",
-            "Planetary K 9-12": "-1",
-            "Planetary K 12-15": "-1",
-            "Planetary K 15-18": "-1",
-            "Planetary K 18-21": "-1",
-            "Planetary K 21-24": "-1",
+            "time": "",
+            "fredericksburg_amplitude_index": "-1",
+            "fredericksburg_k_0_3": "-1",
+            "fredericksburg_k_3_6": "-1",
+            "fredericksburg_k_6_9": "-1",
+            "fredericksburg_k_9_12": "-1",
+            "fredericksburg_k_12_15": "-1",
+            "fredericksburg_k_15_18": "-1",
+            "fredericksburg_k_18_21": "-1",
+            "fredericksburg_k_21_24": "-1",
+            "college_amplitude_index": "-1",
+            "college_k_0_3": "-1",
+            "college_k_3_6": "-1",
+            "college_k_6_9": "-1",
+            "college_k_9_12": "-1",
+            "college_k_12_15": "-1",
+            "college_k_15_18": "-1",
+            "college_k_18_21": "-1",
+            "college_k_21_24": "-1",
+            "planetary_amplitude_index": "-1",
+            "planetary_k_0_3": "-1",
+            "planetary_k_3_6": "-1",
+            "planetary_k_6_9": "-1",
+            "planetary_k_9_12": "-1",
+            "planetary_k_12_15": "-1",
+            "planetary_k_15_18": "-1",
+            "planetary_k_18_21": "-1",
+            "planetary_k_21_24": "-1",
         }
-        aindices = r"(-1|\d{1,3}) *"
-        kindices = r"(-1|\d{1}|\d{1}\.\d{2}) *"
-        regex = date + (aindices + kindices * 8) * 3 + r"$"
+        amplitude_indices = r"(-1|\d{1,3}) *"
+        k_indices = r"(-1|\d{1}|\d{1}\.\d{2}) *"
+        regex = time + (amplitude_indices + k_indices * 8) * 3 + r"$"
 
     elif name.strip().lower() == "dsd":
         column_dict = {
-            "Date": "",
-            "Radio Flux": "-1",
-            "SESC sunspot number": "*",
-            "Sunspot Area": "-1",
-            "New Regions": "-1",
-            "Solar Mean Field": "-999",
-            "X-ray Background Flux": "*",
-            "X-Ray C": "-1",
-            "X-Ray M": "-1",
-            "X-Ray X": "-1",
-            "X-Ray S": "-1",
-            "Optical 1": "-1",
-            "Optical 2": "-1",
-            "Optical 3": "-1",
+            "time": "",
+            "radio_flux_10_7cm": "-1",
+            "sesc_sunspot_number": "*",
+            "sunspot_area_hemisphere": "-1",
+            "new_regions_count": "-1",
+            "stanford_solar_mean_field": "-999",
+            "goes15_xray_background_flux": "*",
+            "xray_c_class_flares": "-1",
+            "xray_m_class_flares": "-1",
+            "xray_x_class_flares": "-1",
+            "xray_s_class_flares": "-1",
+            "optical_class1_flares": "-1",
+            "optical_class2_flares": "-1",
+            "optical_class3_flares": "-1",
         }
-        # Radio Flux, Sunspot Area, New regions, Flares
         type1 = r"(-1|\d+) *"
-        # SESC sunspot number,
         sunspot = r"(\*|\d+) *"
-        # X-ray bgnd flux
-        xrbflux = r"(\*|[AB]\d\.\d) *"
-        # Solar mean field
-        smfield = r"(-999|\d+) *"
+        xray_background_flux = r"(\*|[AB]\d\.\d) *"
+        solar_field = r"(-999|\d+) *"
         regex = (
-            date + type1 + sunspot + type1 * 2 + smfield + xrbflux + type1 * 7
+            time
+            + type1
+            + sunspot
+            + type1 * 2
+            + solar_field
+            + xray_background_flux
+            + type1 * 7
         )
 
     else:
-        raise ValueError("The data {} is not supported yet".format(name))
+        raise ValueError(f"dataset '{name}' not supported")
 
     data = []
     matches = None
@@ -180,7 +182,7 @@ def extract_data_regex(name, path_to_file):
         )
 
     dataframe = pd.DataFrame(data, columns=column_dict.keys())
-    dataframe = set_datetime_index(dataframe, "Date")
+    dataframe = set_datetime_index(dataframe, "time")
 
     null_value = ""
     for column in dataframe.columns:
