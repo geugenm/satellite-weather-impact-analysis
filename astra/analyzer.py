@@ -1,7 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, TypeAlias
+from typing import TypeAlias
 import argparse
 import logging
 
@@ -17,109 +16,124 @@ from sklearn.preprocessing import StandardScaler
 
 from astra.graph import create_dependency_graph
 from astra.model.cross_correlate import cross_correlate
+from astra.config.data import DataConfig
+
+from pydantic import ValidationError
 
 PathLike: TypeAlias = str | Path
 
 
-@dataclass(frozen=True)
-class Config:
-    ARTIFACTS_DIR: Final[Path] = Path("../artifacts")
-    TRACKING_URI: Final[Path] = ARTIFACTS_DIR / "mlruns"
-    DOWNLOAD_DIR: Final[Path] = Path("../downloads")
-    MODEL_CFG_PATH: Final[Path] = Path("../cfg/model.yaml")
-    TIME_COLUMN: Final[str] = "time"
-    COLUMNS_TO_DROP: Final[tuple[str, ...]] = ("40379.cumulative_sum",)
-
-
 def setup_logging() -> None:
+    """Configure logging with production-ready settings."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.FileHandler("processing.log"),
+            logging.StreamHandler(),
+        ],
     )
 
 
-def save_to_yaml(data: dict, path: PathLike) -> None:
-    """Atomically write data to YAML file with safety guarantees."""
-    Path(path).write_text(
-        yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=80)
-    )
+def load_configurations() -> DataConfig:
+    """Load and validate all application configurations."""
+    try:
+        data_cfg = DataConfig.from_yaml(Path("cfg/data.yaml"))
+        return data_cfg
+    except ValidationError as e:
+        logging.error(f"Configuration error: {e}")
+        raise SystemExit(1) from e
 
 
-def interpolate_timeseries(df: pd.DataFrame) -> pd.DataFrame:
-    """Handle missing values in time series data using multiple interpolation methods."""
+def interpolate_timeseries(
+    df: pd.DataFrame, data_cfg: DataConfig
+) -> pd.DataFrame:
+    """Handle missing values using configured time parameters."""
+    fmt_cfg = data_cfg.format
     return (
-        df.assign(time=lambda x: pd.to_datetime(x[Config.TIME_COLUMN]))
-        .groupby(Config.TIME_COLUMN, as_index=False)
+        df.assign(time=lambda x: pd.to_datetime(x[fmt_cfg.time_column]))
+        .groupby(fmt_cfg.time_column, as_index=False)
         .mean()
-        .set_index(Config.TIME_COLUMN)
+        .set_index(fmt_cfg.time_column)
         .pipe(lambda x: x.interpolate(method="time").ffill().bfill())
         .reset_index()
     )
 
 
-def normalize_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Normalize numeric columns while preserving time column."""
-    numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns
+def normalize_numeric_columns(
+    df: pd.DataFrame, data_cfg: DataConfig
+) -> pd.DataFrame:
+    """Normalize data using configured numeric precision."""
+    fmt_cfg = data_cfg.format
+    numeric_cols = [
+        col
+        for col in df.select_dtypes(include=["float64", "int64"]).columns
+        if col not in fmt_cfg.exclude_columns
+    ]
     return pd.DataFrame(
         StandardScaler().fit_transform(df[numeric_cols]),
         columns=numeric_cols,
         index=df.index,
-    ).assign(time=df[Config.TIME_COLUMN])
+    ).assign(**{fmt_cfg.time_column: df[fmt_cfg.time_column]})
 
 
-def process_satellite_data(satellite_name: str) -> None:
-    """Process satellite data and generate dependency graphs."""
-    artifacts_dir = (Config.ARTIFACTS_DIR / satellite_name).absolute()
+def process_satellite_data(satellite_name: str, data_cfg: DataConfig) -> None:
+    """Process satellite data using validated configurations."""
+    artifacts_dir = data_cfg.artifacts.dir / satellite_name
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    mlflow.set_tracking_uri(Config.TRACKING_URI)
+    mlflow.set_tracking_uri(str(data_cfg.artifacts.dir / "mlruns"))
     mlflow.enable_system_metrics_logging()
     mlflow.set_experiment(satellite_name)
 
     with mlflow.start_run(run_name="build_graph"):
-        # todo, add interpolate series if some flag set
+        raw_data_path = data_cfg.fetch.base_dir / f"{satellite_name}.csv"
         dynamics = (
-            pd.read_csv(Config.DOWNLOAD_DIR / f"{satellite_name}.csv")
-            .drop(list(Config.COLUMNS_TO_DROP), axis=1)
-            .pipe(normalize_numeric_columns)
+            pd.read_csv(raw_data_path)
+            .drop(list(data_cfg.format.exclude_columns), axis=1)
+            .pipe(interpolate_timeseries, data_cfg)
+            .pipe(normalize_numeric_columns, data_cfg)
         )
 
-        dynamics_file = artifacts_dir / f"{satellite_name}.csv"
+        processed_path = artifacts_dir / f"{satellite_name}.csv"
         mlflow.log_input(
             mlflow.data.from_pandas(dynamics, name="satellite_parameters")
         )
-        dynamics.to_csv(dynamics_file, index=False)
-        mlflow.log_artifact(str(dynamics_file), artifact_path="graph")
+        dynamics.to_csv(processed_path, index=False)
+        mlflow.log_artifact(str(processed_path), artifact_path="graph")
 
         graph_file = artifacts_dir / f"{satellite_name}_graph.yaml"
         graph_data = cross_correlate(
             input_dataframe=dynamics,
-            index_column=Config.TIME_COLUMN,
-            xcorr_configuration_file=Config.MODEL_CFG_PATH,
+            index_column=data_cfg.format.time_column,
+            xcorr_configuration_file=Path("cfg/model.yaml"),
         )
 
-        save_to_yaml(graph_data, graph_file)
+        with graph_file.open("w") as f:
+            yaml.safe_dump(graph_data, f, sort_keys=False)
         mlflow.log_artifact(str(graph_file), artifact_path="graph")
 
+        mapping_path = (
+            data_cfg.fetch.base_dir / f"{satellite_name}_mapping.yaml"
+        )
+        with mapping_path.open() as f:
+            sat_map = yaml.safe_load(f)
+
+        sun_mapping_path = data_cfg.fetch.base_dir / "solar_mapping.yaml"
+        with sun_mapping_path.open() as f:
+            sun_map = yaml.safe_load(f)
+
         output_path = artifacts_dir / "graph.html"
-
-        content = Path(
-            Config.DOWNLOAD_DIR / f"{satellite_name}_mapping.yaml"
-        ).read_text()
-        sat_map = yaml.safe_load(content)
-
-        content = Path(Config.DOWNLOAD_DIR / f"solar_mapping.yaml").read_text()
-        sun_map = yaml.safe_load(content)
-
         create_dependency_graph(graph_file, sat_map | sun_map).render(
             str(output_path)
         )
-        logging.info(f"graph rendered: {output_path}")
+        logging.info(f"Rendered dependency graph: {output_path}")
         mlflow.log_artifact(str(output_path), artifact_path="graph")
 
 
 def main() -> None:
+    """Main execution flow with configuration-driven processing."""
     parser = argparse.ArgumentParser(
         description="Satellite data processor and dependency graph generator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -130,12 +144,16 @@ Examples:
         """,
     )
     parser.add_argument(
-        "satellite_name", help="satellite identifier to process"
+        "satellite_name", help="Satellite identifier to process"
     )
     args = parser.parse_args()
 
     setup_logging()
-    process_satellite_data(args.satellite_name)
+    data_cfg = load_configurations()
+
+    logging.info(f"Using data directory: {data_cfg.fetch.base_dir}")
+
+    process_satellite_data(args.satellite_name, data_cfg)
 
 
 if __name__ == "__main__":
