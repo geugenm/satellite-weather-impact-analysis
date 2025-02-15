@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 from typing import Any
 from pathlib import Path
+import logging
 
 from astra.config.data import DataConfig, FormatConfig
 
@@ -19,7 +20,7 @@ class DataProcessor(ABC):
         self.config: DataConfig = DataConfig.from_yaml(config_path)
 
     @abstractmethod
-    def download(self, url: str) -> Any:
+    def download(self) -> Any:
         """Download data from source"""
         pass
 
@@ -47,7 +48,7 @@ class DataProcessor(ABC):
         timestamp = datetime.now().strftime(self.config.format.time_format)
         compression = self.config.format.save.compression
 
-        match self.config.save.type:
+        match self.config.format.save.type:
             case "json":
                 data = df.to_dict(orient="records")
                 with open(f"{self.output_prefix}_{timestamp}.json", "w") as f:
@@ -55,7 +56,7 @@ class DataProcessor(ABC):
             case "csv":
                 df.to_csv(
                     f"{self.output_prefix}_{timestamp}.csv",
-                    sep=self.config.fetch.separator,
+                    sep=self.config.format.separator,
                     index=False,
                     compression=compression,
                 )
@@ -71,14 +72,14 @@ class DataProcessor(ABC):
                 )
             case _:
                 raise ValueError(
-                    f"Unsupported save type: {self.config.save.type}"
+                    f"Unsupported save type: {self.config.format.save.type}"
                 )
 
     def run(self) -> None:
         """Execute the processing pipeline"""
         try:
-            data = self.download(self.url)
+            data = self.download()
             df = self.process(data)
             self.save(df)
         except Exception as e:
-            print(f"error: {str(e)}")
+            logging.exception(f"error while running: {str(e)}")

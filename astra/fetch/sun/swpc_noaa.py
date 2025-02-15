@@ -12,8 +12,8 @@ class SwpcProcessor(DataProcessor):
         "https://services.swpc.noaa.gov/json/solar-cycle/swpc_observed_ssn.json"
     )
 
-    def download(self, url: str) -> dict:
-        response = requests.get(url, timeout=10)
+    def download(self) -> dict:
+        response = requests.get(self.url, timeout=10)
         response.raise_for_status()
         return response.json()
 

@@ -92,7 +92,6 @@ def process_satellite_data(satellite_name: str, data_cfg: DataConfig) -> None:
         dynamics = (
             pd.read_csv(raw_data_path)
             .drop(list(data_cfg.format.exclude_columns), axis=1)
-            .pipe(interpolate_timeseries, data_cfg)
             .pipe(normalize_numeric_columns, data_cfg)
         )
 
@@ -115,7 +114,7 @@ def process_satellite_data(satellite_name: str, data_cfg: DataConfig) -> None:
         mlflow.log_artifact(str(graph_file), artifact_path="graph")
 
         mapping_path = (
-            data_cfg.fetch.base_dir / f"{satellite_name}_mapping.yaml"
+            data_cfg.fetch.base_dir / f"cfg/{satellite_name}_mapping.yaml"
         )
         with mapping_path.open() as f:
             sat_map = yaml.safe_load(f)

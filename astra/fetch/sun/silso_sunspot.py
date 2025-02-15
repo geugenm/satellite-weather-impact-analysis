@@ -11,8 +11,8 @@ class SndTotCsvProcessor(DataProcessor):
     output_prefix = "silso_daily_total_sunspot_number"
     url = "https://www.sidc.be/SILSO/INFO/sndtotcsv.php"
 
-    def download(self, url: str) -> str:
-        response = requests.get(url, timeout=10)
+    def download(self) -> str:
+        response = requests.get(self.url, timeout=10)
         response.raise_for_status()
         return response.text
 

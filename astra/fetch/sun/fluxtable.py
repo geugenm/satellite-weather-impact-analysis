@@ -10,9 +10,9 @@ class FluxTableProcessor(DataProcessor):
     output_prefix = "swpc_solar_flux"
     url = "https://spaceweather.gc.ca/solar_flux_data/daily_flux_values/fluxtable.txt"
 
-    def download(self, url: str) -> str:
+    def download(self) -> str:
         """Download flux table data"""
-        response = requests.get(url, timeout=10)
+        response = requests.get(self.url, timeout=10)
         response.raise_for_status()
         return response.text
 
