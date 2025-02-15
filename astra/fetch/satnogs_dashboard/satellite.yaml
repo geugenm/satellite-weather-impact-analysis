@@ -1,0 +1,30 @@
+paths:
+    base_dir: data
+    raw: raw
+    filtered: filtered
+    formatted: formatted
+
+units:
+    pattern: ^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c)$
+    mapping:
+        c: celsius
+        °c: celsius
+        v: volts
+        mv: millivolts
+        ma: milliamps
+        ms: milliseconds
+        s: seconds
+        m: meters
+        kg: kilograms
+        hz: hertz
+        db: decibels
+        rpm: rpm
+
+processing:
+    time_column: time
+    restricted_files:
+        - Ground_Stations
+        - Last_Frame_Received
+    strict_mode: false
+    min_columns: 2
+    sample_size: 100

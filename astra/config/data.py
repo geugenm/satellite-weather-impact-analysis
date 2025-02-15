@@ -3,230 +3,241 @@ from pydantic import (
     ConfigDict,
     Field,
     ValidationError,
-    model_validator,
+    field_validator,
+    ValidationInfo,
+    StringConstraints,
+    conlist,
 )
 from pathlib import Path
 import yaml
+from typing import Literal, List, Annotated, Union
+import logging
+import pandas as pd
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 class FetchConfig(BaseModel):
-    """
-    Configuration for data storage directories.
+    """Configuration for data storage directories."""
 
-    Attributes:
-        base_dir (Path): Base directory for all data storage. Default is 'data'.
-        raw (Path): Directory for raw data. Automatically resolved as `base_dir/raw`.
-        processed (Path): Directory for processed data. Automatically resolved as `base_dir/processed`.
-    """
+    base_dir: Union[str, Path] = Field(
+        default="data", description="Base directory for data storage"
+    )
+    raw: Union[str, Path] = Field(
+        default="data/raw", description="Directory for raw data"
+    )
+    processed: Union[str, Path] = Field(
+        default="data/processed", description="Directory for processed data"
+    )
 
-    base_dir: Path = Path("data")  # Base directory for data storage
-    raw: Path = Field(exclude=True)  # Derived field: raw data directory
-    processed: Path = Field(
-        exclude=True
-    )  # Derived field: processed data directory
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, strict=True
+    )
 
-    @model_validator(mode="after")
-    def _resolve_paths(self) -> "FetchConfig":
-        """
-        Resolve derived paths (raw and processed) based on the base_dir.
-        """
-        self.raw = self.base_dir / "raw"
-        self.processed = self.base_dir / "processed"
-        return self
+    @field_validator("base_dir", "raw", "processed")
+    @classmethod
+    def convert_to_path(cls, v: Union[str, Path]) -> Path:
+        """Convert string to Path object."""
+        return Path(v) if isinstance(v, str) else v
 
-    model_config = ConfigDict(extra="forbid")  # Forbid extra fields in the YAML
+    @field_validator("base_dir")
+    @classmethod
+    def base_dir_must_exist(cls, v: Path) -> Path:
+        """Validate that base_dir exists."""
+        if not v.exists():
+            logging.warning(
+                f"Base directory '{v}' does not exist, creating it."
+            )
+            v.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+        return v
+
+    @field_validator("raw", "processed")
+    @classmethod
+    def ensure_subdirectories(cls, v: Path, info: ValidationInfo) -> Path:
+        """Ensure raw and processed directories exist, relative to base_dir."""
+        base_dir = (
+            Path(info.data["base_dir"])
+            if "base_dir" in info.data
+            else Path("data")
+        )
+        full_path = base_dir / v
+
+        if not full_path.exists():
+            logging.warning(
+                f"Directory '{full_path}' does not exist, creating it."
+            )
+            full_path.mkdir(parents=True, exist_ok=True)
+        return v
+
+
+class SaveConfig(BaseModel):
+    """Configuration for file saving options."""
+
+    type: Literal["csv", "parquet", "feather", "json"] = Field(
+        default="csv", description="Output file type"
+    )
+    compression: Literal["", "infer", "bz2", "gzip", "xz", "zip", "zstd"] = (
+        Field(default="infer", description="Compression method")
+    )
+
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, strict=True
+    )
+
+
+class SanitizationConfig(BaseModel):
+    """Configuration for column name sanitization."""
+
+    patterns: conlist(str, min_length=1) = Field(
+        default=[" ", "-", "(", ")", "/", ".", "[", "]"],
+        description="Symbols to replace in column names",
+    )
+    replacement: Annotated[
+        str, StringConstraints(min_length=1, max_length=1)
+    ] = Field(default="_", description="Replacement character for symbols")
+
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, strict=True
+    )
 
 
 class FormatConfig(BaseModel):
-    """
-    Configuration for data formatting and sanitization.
+    """Configuration for data formatting and sanitization."""
 
-    Attributes:
-        time_column (str): Name of the column containing timestamps. Default is 'time'.
-        time_format (str): Format of timestamps (strftime format). Default is '%Y-%m-%d'.
-        timezone (str): Timezone for datetime operations. Default is 'UTC'.
-        separator (str): CSV delimiter. Default is ','.
-        numeric_precision (str): Numeric precision type. Options: 'float32', 'float64', etc.
-        exclude_columns (list[str]): List of columns to exclude during processing.
-    """
-
-    time_column: str = "time"  # Column name containing timestamps
-    time_format: str = "%Y-%m-%d"  # Timestamp format
-    timezone: str = "UTC"  # Timezone for datetime operations
-    separator: str = ","  # CSV delimiter
-    numeric_precision: str = "float64"  # Numeric precision type
-    exclude_columns: list[str] = Field(
-        default_factory=list
-    )  # Columns to exclude
-
-    class SaveConfig(BaseModel):
-        """
-        Configuration for file saving options.
-
-        Attributes:
-            type (str): Output file type. Options: 'csv', 'parquet', etc. Default is 'csv'.
-            compression (str): Compression method. Options: '', 'infer', 'gzip', etc.
-        """
-
-        type: str = "csv"  # Output file type
-        compression: str = "infer"  # Compression method
-
-        @model_validator(mode="after")
-        def validate_save_config(self) -> "SaveConfig":
-            """
-            Validate save configuration.
-            Ensure that only supported file types and compression methods are used.
-            """
-            valid_types = {"csv", "parquet", "feather", "json"}
-            valid_compressions = {
-                "",
-                "infer",
-                "bz2",
-                "gzip",
-                "xz",
-                "zip",
-                "zstd",
-            }
-
-            if self.type not in valid_types:
-                raise ValueError(
-                    f"Invalid file type '{self.type}'. Must be one of {valid_types}."
-                )
-            if self.compression not in valid_compressions:
-                raise ValueError(
-                    f"Invalid compression method '{self.compression}'. Must be one of {valid_compressions}."
-                )
-            return self
-
+    time_column: Annotated[str, StringConstraints(min_length=1)] = Field(
+        default="time", description="Column name containing timestamps"
+    )
+    time_format: Annotated[str, StringConstraints(min_length=1)] = Field(
+        default="%Y-%m-%d", description="Timestamp format (Python strftime)"
+    )
+    timezone: str = Field(
+        default="UTC", description="Timezone for all datetime operations"
+    )
+    separator: Annotated[str, StringConstraints(min_length=1, max_length=1)] = (
+        Field(default=",", description="CSV delimiter")
+    )
+    numeric_precision: Literal["float32", "float64"] = Field(
+        default="float64", description="Numeric precision"
+    )
+    exclude_columns: List[str] = Field(
+        default_factory=list, description="Columns to exclude"
+    )
     save: SaveConfig = Field(
-        default_factory=SaveConfig
-    )  # Nested save configuration
-
-    class SanitizationConfig(BaseModel):
-        """
-        Configuration for column name sanitization.
-
-        Attributes:
-            patterns (list[str]): List of special symbols to replace in column names.
-            replacement (str): Character to replace special symbols with.
-        """
-
-        patterns: list[str] = [
-            " ",
-            "-",
-            "(",
-            ")",
-            "/",
-            ".",
-            "[",
-            "]",
-        ]  # Symbols to replace
-        replacement: str = "_"  # Replacement character
-
+        default_factory=SaveConfig, description="Nested save configuration"
+    )
     special_symbols: SanitizationConfig = Field(
         default_factory=SanitizationConfig
     )
 
-    model_config = ConfigDict(extra="forbid")  # Forbid extra fields in the YAML
+    @field_validator("exclude_columns")
+    @classmethod
+    def time_column_not_excluded(
+        cls, v: List[str], info: ValidationInfo
+    ) -> List[str]:
+        """Ensure time_column is not in exclude_columns."""
+        time_column = info.data.get("time_column")
+        if time_column and time_column in v:
+            raise ValueError(
+                f"time_column ('{time_column}') cannot be in exclude_columns."
+            )
+        return v
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, v: str) -> str:
+        """Validate the timezone by attempting to use it in a pandas operation."""
+        try:
+            pd.Timestamp.now(tz=v)
+            return v
+        except Exception as e:
+            raise ValueError(
+                f"Invalid timezone: {v}. Please ensure it is a valid tz database name."
+            ) from e
+
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, strict=True
+    )
 
 
 class ArtifactsConfig(BaseModel):
-    """
-    Configuration for artifact storage.
+    """Configuration for artifact storage."""
 
-    Attributes:
-        dir (Path): Directory to store artifacts. Default is 'artifacts'.
-    """
+    dir: Union[str, Path] = Field(
+        default="mlflow", description="Directory for artifacts"
+    )
 
-    dir: Path = Path("artifacts")  # Directory for artifacts
+    @field_validator("dir")
+    @classmethod
+    def convert_dir_to_path(cls, v: Union[str, Path]) -> Path:
+        """Convert string to Path object."""
+        return Path(v) if isinstance(v, str) else v
 
-    @model_validator(mode="after")
-    def validate_artifacts_dir(self) -> "ArtifactsConfig":
-        """
-        Validate that the artifacts directory exists or can be created.
-        """
-        if not self.dir.exists():
-            try:
-                self.dir.mkdir(parents=True)
-            except Exception as e:
-                raise ValueError(
-                    f"Failed to create artifacts directory '{self.dir}': {e}"
-                )
-        return self
+    @field_validator("dir")
+    @classmethod
+    def artifacts_dir_must_exist(cls, v: Path) -> Path:
+        """Validate that the artifacts directory exists or can be created."""
+        if not v.exists():
+            logging.warning(
+                f"Artifacts directory '{v}' does not exist, creating it."
+            )
+            v.mkdir(parents=True, exist_ok=True)
+        return v
 
-    model_config = ConfigDict(extra="forbid")  # Forbid extra fields in the YAML
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, strict=True
+    )
 
 
 class DataConfig(BaseModel):
-    """
-    Main configuration class that combines all sub-configurations.
+    """Main configuration class that combines all sub-configurations."""
 
-    Attributes:
-        fetch (FetchConfig): Configuration for data directories.
-        format (FormatConfig): Configuration for formatting and sanitization.
-        artifacts (ArtifactsConfig): Configuration for artifact storage.
-
-    Methods:
-        from_yaml(cls, path): Loads configuration from a YAML file.
-    """
-
-    fetch: FetchConfig = Field(default_factory=FetchConfig)
-    format: FormatConfig = Field(default_factory=FormatConfig)
-    artifacts: ArtifactsConfig = Field(default_factory=ArtifactsConfig)
+    fetch: FetchConfig = Field(
+        default_factory=FetchConfig,
+        description="Configuration for data directories",
+    )
+    format: FormatConfig = Field(
+        default_factory=FormatConfig,
+        description="Configuration for formatting and sanitization",
+    )
+    artifacts: ArtifactsConfig = Field(
+        default_factory=ArtifactsConfig,
+        description="Configuration for artifact storage",
+    )
 
     @classmethod
     def from_yaml(cls, path: Path) -> "DataConfig":
-        """
-        Load configuration from a YAML file.
+        """Load configuration from a YAML file."""
+        try:
+            content = path.read_text(encoding="utf-8", errors="strict")
+            data = yaml.safe_load(content)
+            return cls.model_validate(data)
+        except FileNotFoundError:
+            logging.error(f"Configuration file not found: {path}")
+            raise
+        except yaml.YAMLError as e:
+            logging.error(f"Error parsing YAML file: {e}")
+            raise
+        except ValidationError as e:
+            logging.error(f"Configuration validation error: {e}")
+            raise
 
-        Args:
-            path (Path): Path to the YAML configuration file.
-
-        Returns:
-            DataConfig: An instance of the configuration class populated with values from the file.
-
-        Example:
-            config = DataConfig.from_yaml(Path('data.yaml'))
-            print(config.fetch.base_dir)
-        """
-        content = path.read_text(encoding="utf-8", errors="strict")
-        return cls.model_validate(yaml.safe_load(content))
-
-    @model_validator(mode="after")
-    def validate_test_config(self) -> "DataConfig":
-        """
-        Perform high-level validation across all configurations.
-
-        Example checks:
-          - Ensure `fetch.base_dir` is not empty.
-          - Validate that numeric precision is supported.
-          - Ensure no overlap between excluded columns and required columns like `time_column`.
-
-          Raises ValueError if any validation fails.
-        """
-
-        if self.format.numeric_precision not in {"float32", "float64"}:
-            raise ValueError(
-                f"Unsupported numeric precision '{self.format.numeric_precision}'."
-            )
-
-        if self.format.time_column in self.format.exclude_columns:
-            raise ValueError(
-                f"`time_column` ('{self.format.time_column}') cannot be in `exclude_columns`."
-            )
-
-        return self
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, strict=True
+    )
 
 
-if __name__ == "__main__":
+def get_project_config() -> DataConfig:
     from astra.paths import CONFIG_PATH
 
     config_path = CONFIG_PATH / "data.yaml"
+    return DataConfig.from_yaml(config_path)
 
+
+if __name__ == "__main__":
     try:
-        config = DataConfig.from_yaml(config_path)
-
+        config = get_project_config()
         print(config.model_dump_json(indent=2))
-
     except ValidationError as e:
         print("Validation Error:", e)

@@ -27,4 +27,4 @@ format:
     exclude_columns: []
 
 artifacts:
-    dir: artifacts
+    dir: mlflow

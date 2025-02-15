@@ -7,6 +7,7 @@ from pathlib import Path
 import logging
 
 from astra.config.data import DataConfig, FormatConfig
+from astra.paths import CONFIG_PATH
 
 
 class DataProcessor(ABC):
@@ -15,8 +16,7 @@ class DataProcessor(ABC):
     output_prefix: str
     url: str
 
-    def __init__(self, config_path: Path = Path("data.yaml")):
-        config_path = Path(config_path)
+    def __init__(self, config_path: Path = CONFIG_PATH / "data.yaml"):
         self.config: DataConfig = DataConfig.from_yaml(config_path)
 
     @abstractmethod

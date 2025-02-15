@@ -3,150 +3,109 @@ from pydantic import (
     ConfigDict,
     Field,
     ValidationError,
-    model_validator,
+    field_validator,
+    ValidationInfo,
+    conint,
+    confloat,
 )
 from pathlib import Path
 import yaml
+from typing import Literal, Annotated, Optional
+import logging
 
 
 class DatasetCleaningParamsConfig(BaseModel):
-    """
-    Configuration for dataset cleaning parameters.
+    """Configuration for dataset cleaning parameters."""
 
-    Attributes:
-        col_max_na_percentage (int): Maximum allowed percentage of missing values in a column. Default is 80.
-        row_max_na_percentage (int): Maximum allowed percentage of missing values in a row. Default is 80.
-    """
+    col_max_na_percentage: Annotated[int, conint(ge=0, le=100)] = Field(
+        default=80, description="Max NA percentage per column"
+    )
+    row_max_na_percentage: Annotated[int, conint(ge=0, le=100)] = Field(
+        default=80, description="Max NA percentage per row"
+    )
 
-    col_max_na_percentage: int = 80  # Max NA percentage per column
-    row_max_na_percentage: int = 80  # Max NA percentage per row
-
-    @model_validator(mode="after")
-    def validate_na_percentages(self) -> "DatasetCleaningParamsConfig":
-        """Validate NA percentage values are within valid range (0-100)."""
-        if not 0 <= self.col_max_na_percentage <= 100:
-            raise ValueError("col_max_na_percentage must be between 0 and 100")
-        if not 0 <= self.row_max_na_percentage <= 100:
-            raise ValueError("row_max_na_percentage must be between 0 and 100")
-        return self
-
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", strict=True, populate_by_name=True
+    )
 
 
 class ModelParamsConfig(BaseModel):
-    """
-    Configuration for model hyperparameters.
-    """
+    """Configuration for model hyperparameters."""
 
-    objective: str = "reg:squarederror"
-    n_estimators: int = 81
-    learning_rate: float = 0.1
-    n_jobs: int = 1
-    tree_method: str = "auto"
-    max_depth: int = 12
-    device: str = "gpu"
-    base_score: float = 0.5
-    booster: str = "gbtree"
-    colsample_bylevel: float = 1
-    colsample_bynode: float = 1
-    colsample_bytree: float = 1
-    eval_metric: str = "rmse"
-    gamma: float = 0.2
-    grow_policy: str = "depthwise"
+    objective: str = Field(default="reg:squarederror")
+    n_estimators: Annotated[int, conint(ge=1)] = Field(default=81)
+    learning_rate: Annotated[float, confloat(gt=0)] = Field(default=0.1)
+    n_jobs: int = Field(default=1)
+    tree_method: Literal["auto", "exact", "approx", "hist", "gpu_hist"] = Field(
+        default="auto"
+    )
+    max_depth: Annotated[int, conint(ge=1)] = Field(default=12)
+    device: Literal["cpu", "gpu"] = Field(default="gpu")
+    base_score: float = Field(default=0.5)
+    booster: Literal["gbtree", "gblinear", "dart"] = Field(default="gbtree")
+    colsample_bylevel: Annotated[float, confloat(gt=0, le=1)] = Field(default=1)
+    colsample_bynode: Annotated[float, confloat(gt=0, le=1)] = Field(default=1)
+    colsample_bytree: Annotated[float, confloat(gt=0, le=1)] = Field(default=1)
+    eval_metric: str = Field(default="rmse")
+    gamma: float = Field(default=0.2)
+    grow_policy: Literal["depthwise", "lossguide"] = Field(default="depthwise")
 
     # Optional fields
-    interaction_constraints: str | None = None
-    max_bin: int | None = None
-    max_cat_threshold: int | None = None
-    max_cat_to_onehot: int | None = None
-    max_delta_step: float = 0
-    max_leaves: int | None = None
-    min_child_weight: float = 1
-    monotone_constraints: str | None = None
-    multi_strategy: str | None = None
-    num_parallel_tree: int = 1
-    reg_alpha: float = 0
-    reg_lambda: float = 1
-    sampling_method: str | None = None
-    scale_pos_weight: float = 1
-    subsample: float = 1
-    validate_parameters: bool = False
-    verbosity: int = 1
-    early_stopping_rounds: int | None = None
+    interaction_constraints: Optional[str] = Field(default=None)
+    max_bin: Optional[int] = Field(default=None)
+    max_cat_threshold: Optional[int] = Field(default=None)
+    max_cat_to_onehot: Optional[int] = Field(default=None)
+    max_delta_step: float = Field(default=0)
+    max_leaves: Optional[int] = Field(default=None)
+    min_child_weight: float = Field(default=1)
+    monotone_constraints: Optional[str] = Field(default=None)
+    multi_strategy: Optional[str] = Field(default=None)
+    num_parallel_tree: int = Field(default=1)
+    reg_alpha: float = Field(default=0)
+    reg_lambda: float = Field(default=1)
+    sampling_method: Optional[str] = Field(default=None)
+    scale_pos_weight: float = Field(default=1)
+    subsample: Annotated[float, confloat(gt=0, le=1)] = Field(default=1)
+    validate_parameters: bool = Field(default=False)
+    verbosity: int = Field(default=1)
+    early_stopping_rounds: Optional[int] = Field(default=None)
 
-    @model_validator(mode="after")
-    def validate_model_params(self) -> "ModelParamsConfig":
-        """Validate model parameters consistency."""
-        valid_tree_methods = {"auto", "exact", "approx", "hist", "gpu_hist"}
-        valid_grow_policies = {"depthwise", "lossguide"}
-        valid_boosters = {"gbtree", "gblinear", "dart"}
-        valid_devices = {"cpu", "gpu"}
+    model_config = ConfigDict(
+        extra="forbid", strict=True, populate_by_name=True
+    )
 
-        # Validate parameter ranges
-        if self.learning_rate <= 0:
-            raise ValueError("learning_rate must be > 0")
-        if self.n_estimators < 1:
-            raise ValueError("n_estimators must be ≥ 1")
-        if self.max_depth < 1:
-            raise ValueError("max_depth must be ≥ 1")
-        if self.tree_method not in valid_tree_methods:
-            raise ValueError(f"Invalid tree_method: {self.tree_method}")
-        if self.grow_policy not in valid_grow_policies:
-            raise ValueError(f"Invalid grow_policy: {self.grow_policy}")
-        if self.booster not in valid_boosters:
-            raise ValueError(f"Invalid booster: {self.booster}")
-        if self.device not in valid_devices:
-            raise ValueError(f"Invalid device: {self.device}")
-        if self.subsample <= 0 or self.subsample > 1:
-            raise ValueError("subsample must be in (0, 1]")
-        if any(
-            colsample > 1 or colsample <= 0
-            for colsample in [
-                self.colsample_bytree,
-                self.colsample_bylevel,
-                self.colsample_bynode,
-            ]
-        ):
-            raise ValueError("All colsample parameters must be in (0, 1]")
-
-        # Validate metric consistency
-        if "reg" in self.objective and self.eval_metric not in {
-            "rmse",
-            "mae",
-            "rmsle",
-        }:
+    @field_validator("eval_metric")
+    @classmethod
+    def validate_metric_consistency(cls, v: str, info: ValidationInfo) -> str:
+        """Validate metric consistency with objective."""
+        objective = info.data.get("objective", "")
+        if "reg" in objective and v not in {"rmse", "mae", "rmsle"}:
             raise ValueError(
-                f"Invalid eval_metric '{self.eval_metric}' for regression objective"
+                f"Invalid eval_metric '{v}' for regression objective"
             )
-
-        return self
-
-    model_config = ConfigDict(extra="forbid")
+        return v
 
 
 class GraphConfig(BaseModel):
-    """
-    Configuration for graph-related settings.
-    """
+    """Configuration for graph-related settings."""
 
-    graph_link_threshold: float = 0.2
+    graph_link_threshold: Annotated[float, confloat(ge=0, le=1)] = Field(
+        default=0.2, description="Graph link threshold"
+    )
 
-    @model_validator(mode="after")
-    def validate_graph_threshold(self) -> "GraphConfig":
-        """Validate graph link threshold is in [0,1] range."""
-        if not 0 <= self.graph_link_threshold <= 1:
-            raise ValueError("graph_link_threshold must be between 0 and 1")
-        return self
+    model_config = ConfigDict(
+        extra="forbid", strict=True, populate_by_name=True
+    )
 
 
 class ModelConfig(BaseModel):
-    """
-    Main configuration class that combines all sub-configurations.
-    """
+    """Main configuration class that combines all sub-configurations."""
 
-    random_state: int = 43
-    test_size: float = 0.2
-    regressor_name: str = "XGBoosting"
+    random_state: int = Field(default=43)
+    test_size: Annotated[float, confloat(gt=0, lt=1)] = Field(default=0.2)
+    regressor_name: Literal["XGBoosting", "XGBoost"] = Field(
+        default="XGBoosting"
+    )
 
     dataset_cleaning_params: DatasetCleaningParamsConfig = Field(
         default_factory=DatasetCleaningParamsConfig
@@ -154,29 +113,49 @@ class ModelConfig(BaseModel):
     model_params: ModelParamsConfig = Field(default_factory=ModelParamsConfig)
     graph: GraphConfig = Field(default_factory=GraphConfig)
 
-    @model_validator(mode="after")
-    def validate_main_config(self) -> "ModelConfig":
-        """Validate cross-parameter consistency."""
-        if not 0 < self.test_size < 1:
-            raise ValueError("test_size must be between 0 and 1")
-        if self.regressor_name.lower() not in {"xgboosting", "xgboost"}:
-            raise ValueError("Unsupported regressor type")
-        return self
+    model_config = ConfigDict(
+        extra="forbid", strict=True, populate_by_name=True
+    )
 
     @classmethod
     def from_yaml(cls, path: Path) -> "ModelConfig":
-        with path.open() as f:
-            raw_config = yaml.safe_load(f)
-            return cls.model_validate(raw_config)
+        """Load configuration from a YAML file."""
+        try:
+            content = path.read_text(encoding="utf-8", errors="strict")
+            data = yaml.safe_load(content)
+
+            # Convert null values to None
+            def replace_nulls(obj):
+                if isinstance(obj, dict):
+                    return {k: replace_nulls(v) for k, v in obj.items()}
+                if obj == "null":
+                    return None
+                return obj
+
+            data = replace_nulls(data)
+
+            return cls.model_validate(data)
+        except FileNotFoundError:
+            logging.error(f"Configuration file not found: {path}")
+            raise
+        except yaml.YAMLError as e:
+            logging.error(f"Error parsing YAML file: {e}")
+            raise
+        except ValidationError as e:
+            logging.error(f"Configuration validation error: {e}")
+            raise
 
 
-if __name__ == "__main__":
+def get_project_config() -> ModelConfig:
     from astra.paths import CONFIG_PATH
 
     config_path = CONFIG_PATH / "model.yaml"
+    return ModelConfig.from_yaml(config_path)
 
+
+if __name__ == "__main__":
     try:
-        config = ModelConfig.from_yaml(config_path)
+        config = get_project_config()
         print(config.model_dump_json(indent=2))
     except ValidationError as e:
         print(f"Configuration validation failed:\n{e}")
