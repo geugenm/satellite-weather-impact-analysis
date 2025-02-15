@@ -171,7 +171,9 @@ class ModelConfig(BaseModel):
 
 
 if __name__ == "__main__":
-    config_path = Path("model.yaml")
+    from astra.paths import CONFIG_PATH
+
+    config_path = CONFIG_PATH / "model.yaml"
 
     try:
         config = ModelConfig.from_yaml(config_path)

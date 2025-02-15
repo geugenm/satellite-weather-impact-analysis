@@ -219,8 +219,9 @@ class DataConfig(BaseModel):
 
 
 if __name__ == "__main__":
+    from astra.paths import CONFIG_PATH
 
-    config_path = Path("data.yaml")
+    config_path = CONFIG_PATH / "data.yaml"
 
     try:
         config = DataConfig.from_yaml(config_path)
