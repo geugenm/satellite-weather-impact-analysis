@@ -7,7 +7,10 @@ import pandas as pd
 class SwpcProcessor(DataProcessor):
     """Processor for SWPC NOAA sunspot data"""
 
-    output_prefix = "swpc_ssn"
+    output_prefix = "swpc_noaa_observed_ssn"
+    url = (
+        "https://services.swpc.noaa.gov/json/solar-cycle/swpc_observed_ssn.json"
+    )
 
     def download(self, url: str) -> dict:
         response = requests.get(url, timeout=10)
@@ -27,8 +30,5 @@ class SwpcProcessor(DataProcessor):
 
 
 if __name__ == "__main__":
-    url = (
-        "https://services.swpc.noaa.gov/json/solar-cycle/swpc_observed_ssn.json"
-    )
     processor = SwpcProcessor()
-    processor.run(url)
+    processor.run()

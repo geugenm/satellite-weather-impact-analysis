@@ -8,6 +8,7 @@ class FluxTableProcessor(DataProcessor):
     """Processor for solar flux table data"""
 
     output_prefix = "swpc_solar_flux"
+    url = "https://spaceweather.gc.ca/solar_flux_data/daily_flux_values/fluxtable.txt"
 
     def download(self, url: str) -> str:
         """Download flux table data"""
@@ -37,6 +38,5 @@ class FluxTableProcessor(DataProcessor):
 
 
 if __name__ == "__main__":
-    url = "https://spaceweather.gc.ca/solar_flux_data/daily_flux_values/fluxtable.txt"
     processor = FluxTableProcessor()
-    processor.run(url)
+    processor.run()

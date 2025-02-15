@@ -1,22 +1,22 @@
 from abc import ABC, abstractmethod
-import yaml
 import json
 import pandas as pd
 from datetime import datetime
 from typing import Any
+from pathlib import Path
+
+from astra.config.data import DataConfig, FormatConfig
 
 
 class DataProcessor(ABC):
     """Base class for data processing pipelines"""
 
-    def __init__(self, config_path: str = "schema.yaml"):
-        self.config = self.load_config(config_path)
+    output_prefix: str
+    url: str
 
-    @staticmethod
-    def load_config(path: str) -> dict:
-        """Load YAML configuration"""
-        with open(path, "r") as f:
-            return yaml.safe_load(f)
+    def __init__(self, config_path: Path = Path("data.yaml")):
+        config_path = Path(config_path)
+        self.config: DataConfig = DataConfig.from_yaml(config_path)
 
     @abstractmethod
     def download(self, url: str) -> Any:
@@ -30,24 +30,24 @@ class DataProcessor(ABC):
 
     def sanitize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Apply column name sanitization"""
-        special_symbols = self.config["special_symbols"]
-        for pattern in special_symbols["patterns"]:
+        special_symbols: FormatConfig = self.config.format.special_symbols
+        for pattern in special_symbols.patterns:
             df.columns = df.columns.str.replace(
-                pattern, special_symbols["replacement"]
+                pattern, special_symbols.replacement
             )
         return df.rename(columns=str.lower)
 
     def save(self, df: pd.DataFrame) -> None:
         """Save processed data"""
-        time_col = self.config["time_column"]
+        time_col = self.config.format.time_column
         df[time_col] = pd.to_datetime(df[time_col]).dt.strftime(
-            self.config["time_format"]
+            self.config.format.time_format
         )
 
-        timestamp = datetime.now().strftime(self.config["time_format"])
-        compression = self.config["save"].get("compression")
+        timestamp = datetime.now().strftime(self.config.format.time_format)
+        compression = self.config.format.save.compression
 
-        match self.config["save"]["type"]:
+        match self.config.save.type:
             case "json":
                 data = df.to_dict(orient="records")
                 with open(f"{self.output_prefix}_{timestamp}.json", "w") as f:
@@ -55,7 +55,7 @@ class DataProcessor(ABC):
             case "csv":
                 df.to_csv(
                     f"{self.output_prefix}_{timestamp}.csv",
-                    sep=self.config["separator"],
+                    sep=self.config.fetch.separator,
                     index=False,
                     compression=compression,
                 )
@@ -71,13 +71,13 @@ class DataProcessor(ABC):
                 )
             case _:
                 raise ValueError(
-                    f'Unsupported save type: {self.config["save"]["type"]}'
+                    f"Unsupported save type: {self.config.save.type}"
                 )
 
-    def run(self, url: str) -> None:
+    def run(self) -> None:
         """Execute the processing pipeline"""
         try:
-            data = self.download(url)
+            data = self.download(self.url)
             df = self.process(data)
             self.save(df)
         except Exception as e:
