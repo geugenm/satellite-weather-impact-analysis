@@ -1,7 +1,7 @@
 fetch:
     base_dir: data # Base directory for data storage
-    raw: ${fetch.base_dir}/raw # Directory for raw data
-    processed: ${fetch.base_dir}/processed # Directory for processed data
+    raw: raw # Directory for raw data
+    processed: processed # Directory for processed data
 
 format:
     # Time handling settings

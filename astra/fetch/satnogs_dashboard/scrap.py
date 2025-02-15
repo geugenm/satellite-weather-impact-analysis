@@ -7,10 +7,12 @@ from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 from collections.abc import Mapping
 import yaml
 
-from astra.paths import PROJECT_ROOT
+from astra.config.data import DataConfig, get_project_config
 
-DOWNLOAD_BASE_DIR = PROJECT_ROOT / "data/raw"
-CONFIG_DIR = PROJECT_ROOT / "data/mapping"
+config: DataConfig = get_project_config()
+
+DOWNLOAD_BASE_DIR = config.fetch.raw
+CONFIG_DIR = config.fetch.base_dir / "map"
 TIMEOUTS = {
     "page_load": 10000,
     "panel_wait": 10000,

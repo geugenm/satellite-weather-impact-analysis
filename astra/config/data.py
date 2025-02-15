@@ -57,19 +57,15 @@ class FetchConfig(BaseModel):
     @classmethod
     def ensure_subdirectories(cls, v: Path, info: ValidationInfo) -> Path:
         """Ensure raw and processed directories exist, relative to base_dir."""
-        base_dir = (
-            Path(info.data["base_dir"])
-            if "base_dir" in info.data
-            else Path("data")
-        )
-        full_path = base_dir / v
+        base_dir = info.data.get("base_dir", Path("data"))
+        resolved_path = (Path(base_dir) / v).resolve()
 
-        if not full_path.exists():
-            logging.warning(
-                f"Directory '{full_path}' does not exist, creating it."
+        # Ensure the resolved path is within the base_dir
+        if not resolved_path.is_relative_to(base_dir.resolve()):
+            raise ValueError(
+                f"Path '{resolved_path}' must be within the base directory '{base_dir}'."
             )
-            full_path.mkdir(parents=True, exist_ok=True)
-        return v
+        return resolved_path
 
 
 class SaveConfig(BaseModel):
