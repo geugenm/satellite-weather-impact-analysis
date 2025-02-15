@@ -119,3 +119,5 @@ docs/latex/*.{fdb_latexmk,aux,toc,blg,bbl,pdf,out,gz}
 artifacts
 data
 mlflow
+
+.env
