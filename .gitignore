@@ -117,4 +117,5 @@ docs/latex/*.{fdb_latexmk,aux,toc,blg,bbl,pdf,out,gz}
 
 # Project-specific
 artifacts
-data/
+data
+mlflow
