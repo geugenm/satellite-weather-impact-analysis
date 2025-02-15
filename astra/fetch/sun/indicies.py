@@ -1,9 +1,8 @@
-from data_processor import DataProcessor
+from .data_processor import DataProcessor
 import pandas as pd
 import ftplib
 from urllib.parse import urlparse
 import re
-from datetime import datetime
 import numpy as np
 import logging
 
@@ -47,8 +46,6 @@ def fetch_filtered_files_and_content(
 def set_datetime_index(
     dataframe: pd.DataFrame, field_name: str = "EPOCH"
 ) -> pd.DataFrame:
-    logging.info(f"Setting datetime index using field: {field_name}")
-
     if isinstance(dataframe.index, pd.DatetimeIndex):
         return dataframe
 
@@ -70,7 +67,6 @@ def set_datetime_index(
 
 
 def extract_data_regex(name: str, content: str) -> pd.DataFrame:
-    logging.info(f"Extracting data using regex for dataset: {name}")
     time: str = r"^(\d{2} [a-zA-Z]{3} \d{2}|\d{4} *\d{2} *\d{2}) *"
 
     column_dict: dict[str, str]

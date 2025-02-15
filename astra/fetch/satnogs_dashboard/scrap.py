@@ -184,7 +184,7 @@ def scan_grafana_panels(page, url: str) -> dict:
     return panel_info
 
 
-def process_grafana_url(url: str, study_mode: bool = False):
+def process_grafana_url(url: str, study_mode: bool = False) -> None:
     """Process Grafana URL like a boss"""
     parsed = urlparse(url)
     sat_name = parsed.path.split("/")[-1]
@@ -224,7 +224,7 @@ def process_grafana_url(url: str, study_mode: bool = False):
             browser.close()
 
 
-def process_config_file(config_path: Path):
+def process_config_file(config_path: Path) -> None:
     """Process all panels from a config file because you're too lazy to do it manually"""
     try:
         config = yaml.safe_load(config_path.read_text())

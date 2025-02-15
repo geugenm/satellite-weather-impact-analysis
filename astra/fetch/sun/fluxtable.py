@@ -1,4 +1,4 @@
-from data_processor import DataProcessor
+from .data_processor import DataProcessor
 import requests
 import pandas as pd
 from io import StringIO
