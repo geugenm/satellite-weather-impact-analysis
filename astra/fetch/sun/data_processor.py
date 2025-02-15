@@ -44,6 +44,7 @@ class DataProcessor(ABC):
         df[time_col] = pd.to_datetime(df[time_col]).dt.strftime(
             self.config.format.time_format
         )
+        df = df.sort_values(by="time").reset_index(drop=True)
 
         timestamp = datetime.now().strftime(self.config.format.time_format)
         compression = self.config.format.save.compression
