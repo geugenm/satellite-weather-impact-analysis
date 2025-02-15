@@ -7,8 +7,10 @@ from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 from collections.abc import Mapping
 import yaml
 
-DOWNLOAD_BASE_DIR = Path("data/raw").absolute()
-CONFIG_DIR = Path("data/cfg").absolute()
+from astra.paths import PROJECT_ROOT
+
+DOWNLOAD_BASE_DIR = PROJECT_ROOT / "data/raw"
+CONFIG_DIR = PROJECT_ROOT / "data/mapping"
 TIMEOUTS = {
     "page_load": 10000,
     "panel_wait": 10000,
