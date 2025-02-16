@@ -11,7 +11,7 @@ from astra.config.data import DataConfig, get_project_config
 config: DataConfig = get_project_config()
 
 DOWNLOAD_BASE_DIR = config.fetch.raw
-CONFIG_DIR = config.fetch.base_dir / "map"
+MAP_DIR = config.fetch.base_dir / "map"
 TIMEOUTS = {
     "page_load": 10000,
     "panel_wait": 10000,
@@ -142,8 +142,8 @@ def process_grafana_url(url: str, study_mode: bool = False) -> None:
     sat_name = parsed.path.split("/")[-1]
 
     if study_mode:
-        CONFIG_DIR.mkdir(exist_ok=True)
-        output_file = CONFIG_DIR / f"{sat_name}.yaml"
+        MAP_DIR.mkdir(exist_ok=True)
+        output_file = MAP_DIR / f"{sat_name}.yaml"
     else:
         download_dir = DOWNLOAD_BASE_DIR / sat_name
         download_dir.mkdir(parents=True, exist_ok=True)

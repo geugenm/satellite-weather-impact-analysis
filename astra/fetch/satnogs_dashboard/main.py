@@ -13,7 +13,7 @@ def process_satellite(url: str, output_dir: Path) -> None:
 
     try:
         sat_name = url.split("/")[-1].split("?")[0]
-        config_file = scrap.CONFIG_DIR / f"{sat_name}.yaml"
+        config_file = scrap.MAP_DIR / f"{sat_name}.yaml"
         output_dir = output_dir / sat_name
 
         if not config_file.exists():
