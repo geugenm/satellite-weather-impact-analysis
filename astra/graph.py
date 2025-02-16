@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Any
 import numpy as np
 from pyecharts import options as opts
 from pyecharts.charts import Graph
@@ -46,7 +45,7 @@ def create_color(
 def create_dependency_graph(
     data: dict, descriptions: dict, style: GraphStyle = GraphStyle()
 ) -> Graph:
-    """Create interactive dependency graph with synchronized color legend"""
+    """Create interactive dependency graph with clear correlation visualization"""
     try:
         links = [
             {
@@ -64,6 +63,14 @@ def create_dependency_graph(
         values = [link["value"] for link in links]
         min_val, max_val = min(values), max(values)
 
+        stats = {
+            "nodes": len(nodes),
+            "connections": len(links),
+            "max_correlation": f"{max_val:.3f}",
+            "min_correlation": f"{min_val:.3f}",
+            "avg_correlation": f"{np.mean(values):.3f}",
+        }
+
         connections = Counter(
             node for link in links for node in (link["source"], link["target"])
         )
@@ -71,18 +78,6 @@ def create_dependency_graph(
         color_func = partial(
             create_color, min_val=min_val, max_val=max_val, style=style
         )
-
-        # Generate color pieces for visual map
-        pieces = [
-            {
-                "min": min_val,
-                "max": max_val,
-                "color": [
-                    create_color(min_val, min_val, max_val, style),
-                    create_color(max_val, min_val, max_val, style),
-                ],
-            }
-        ]
 
         return (
             Graph(
@@ -104,8 +99,13 @@ def create_dependency_graph(
                             "borderRadius": 5,
                             "padding": [5, 10],
                         },
+                        "itemStyle": {"color": "#000000"},
                         "tooltip": {
-                            "formatter": f"{node}: {connections[node]} connection(s)<br/>{descriptions.get(node, 'No description')}"
+                            "formatter": (
+                                f"<b>{node}</b><br/>"
+                                f"Connections: {connections[node]}<br/>"
+                                f"Description: {descriptions.get(node, 'No description')}"
+                            )
                         },
                     }
                     for node in nodes
@@ -115,10 +115,18 @@ def create_dependency_graph(
                         "source": link["source"],
                         "target": link["target"],
                         "value": link["value"],
+                        "symbolSize": 0,
                         "lineStyle": {
                             "color": color_func(link["value"]),
                             "width": style.edge_width,
                             "curveness": style.edge_curveness,
+                        },
+                        "tooltip": {
+                            "formatter": (
+                                f"<b>{link['source']} → {link['target']}</b><br/>"
+                                f"Correlation: {link['value']:.3f}<br/>"
+                                f"Strength: {abs(link['value']):.2%}"
+                            )
                         },
                         "label": {"show": False},
                     }
@@ -133,30 +141,51 @@ def create_dependency_graph(
             )
             .set_global_opts(
                 title_opts=opts.TitleOpts(
-                    title="2D Dependency Graph",
+                    title="Correlation Analysis Graph",
+                    subtitle=(
+                        f"Nodes: {stats['nodes']} | "
+                        f"Connections: {stats['connections']} | "
+                        f"Correlation range: [{stats['min_correlation']}, {stats['max_correlation']}]"
+                    ),
                     pos_left="center",
                     pos_top="top",
+                    title_textstyle_opts=opts.TextStyleOpts(
+                        font_size=20, font_weight="bold"
+                    ),
+                    subtitle_textstyle_opts=opts.TextStyleOpts(font_size=14),
                 ),
                 visualmap_opts=opts.VisualMapOpts(
                     min_=min_val,
                     max_=max_val,
-                    range_text=["High Correlation", "Low Correlation"],
+                    range_text=["Strong", "Weak"],
                     dimension=2,
                     pos_left="left",
                     pos_top="center",
                     is_calculable=True,
+                    split_number=20,
                     range_color=[
-                        f"rgb({style.color_blue[0]},{style.color_green[0]},{style.color_red_max})",  # Blue for low
-                        f"rgb({style.color_red_max},{style.color_green[1]},{style.color_blue[1]})",  # Red for high
+                        f"rgb({style.color_blue[0]},{style.color_green[0]},{style.color_red_max})",  # Blue for weak
+                        f"rgb({style.color_red_max},{style.color_green[1]},{style.color_blue[1]})",  # Red for strong
                     ],
                 ),
-                tooltip_opts=opts.TooltipOpts(trigger="item"),
+                tooltip_opts=opts.TooltipOpts(
+                    trigger="item",
+                    background_color="rgba(255,255,255,0.9)",
+                    border_color="#333",
+                    border_width=1,
+                ),
                 toolbox_opts=opts.ToolboxOpts(
+                    pos_left="right",
+                    pos_top="top",
                     feature={
-                        "saveAsImage": {},
-                        "dataView": {"readOnly": True},
-                        "restore": {},
-                    }
+                        "saveAsImage": {
+                            "type": "png",
+                            "title": "Save",
+                            "pixel_ratio": 2,
+                        },
+                        "restore": {"title": "Reset"},
+                        "dataZoom": {"title": "Zoom"},
+                    },
                 ),
             )
         )
