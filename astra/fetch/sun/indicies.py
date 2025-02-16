@@ -1,4 +1,4 @@
-from .data_processor import DataProcessor
+from astra.fetch.sun.data_processor import DataProcessor
 import pandas as pd
 import ftplib
 from urllib.parse import urlparse
@@ -173,7 +173,7 @@ def extract_data_regex(name: str, content: str) -> pd.DataFrame:
 
 
 class IndiciesProcessor(DataProcessor):
-    output_prefix = "swpc_noaa_dgd_dsd_indexes"
+    output_prefix = "swpc_noaa_dgd_dsd_indicies"
     url = "ftp://ftp.swpc.noaa.gov/pub/indices/old_indices/"
 
     year_from: int = 2022

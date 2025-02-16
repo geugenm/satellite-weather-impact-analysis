@@ -31,7 +31,7 @@ class DataProcessor(ABC):
 
     def sanitize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Apply column name sanitization"""
-        special_symbols: FormatConfig = self.config.format.special_symbols
+        special_symbols = self.config.format.special_symbols
         for pattern in special_symbols.patterns:
             df.columns = df.columns.str.replace(
                 pattern, special_symbols.replacement
@@ -48,29 +48,30 @@ class DataProcessor(ABC):
 
         timestamp = datetime.now().strftime(self.config.format.time_format)
         compression = self.config.format.save.compression
+        save_type = self.config.format.save.type
 
-        match self.config.format.save.type:
+        file_name = (
+            self.config.fetch.base_dir
+            / f"{self.output_prefix}_{timestamp}.{save_type}"
+        )
+        logging.info(f"Saving file: '{file_name.absolute()}'")
+
+        match save_type:
             case "json":
                 data = df.to_dict(orient="records")
-                with open(f"{self.output_prefix}_{timestamp}.json", "w") as f:
+                with open(file_name, "w") as f:
                     json.dump(data, f, indent=4)
             case "csv":
                 df.to_csv(
-                    f"{self.output_prefix}_{timestamp}.csv",
+                    file_name,
                     sep=self.config.format.separator,
                     index=False,
                     compression=compression,
                 )
             case "parquet":
-                df.to_parquet(
-                    f"{self.output_prefix}_{timestamp}.parquet",
-                    compression=compression,
-                )
+                df.to_parquet(file_name, compression=compression)
             case "feather":
-                df.to_feather(
-                    f"{self.output_prefix}_{timestamp}.feather",
-                    compression=compression,
-                )
+                df.to_feather(file_name, compression=compression)
             case _:
                 raise ValueError(
                     f"Unsupported save type: {self.config.format.save.type}"

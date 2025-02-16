@@ -1,4 +1,4 @@
-from .data_processor import DataProcessor
+from astra.fetch.sun.data_processor import DataProcessor
 
 import requests
 import pandas as pd
@@ -21,7 +21,7 @@ class SwpcProcessor(DataProcessor):
         df = pd.DataFrame(data)
 
         column_mappings = {
-            "Obsdate": self.config.fetch.time_column,
+            "Obsdate": self.config.format.time_column,
             "SSN": "sunspot_number",
         }
 

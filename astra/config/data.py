@@ -14,6 +14,7 @@ import yaml
 from typing import Literal, List, Annotated, Union
 import logging
 import pandas as pd
+from astra.paths import PROJECT_ROOT
 
 
 class FetchConfig(BaseModel):
@@ -34,13 +35,7 @@ class FetchConfig(BaseModel):
         extra="forbid", populate_by_name=True, strict=True
     )
 
-    @model_validator(mode="before")
-    def convert_to_paths(cls, values: dict) -> dict:
-        return {
-            k: Path(v) if isinstance(v, str) else v for k, v in values.items()
-        }
-
-    @field_validator("base_dir", "raw", "processed")
+    @field_validator("base_dir", "raw", "processed", mode="before")
     @classmethod
     def convert_to_path(cls, v: Union[str, Path]) -> Path:
         """Convert string to Path object."""
@@ -50,6 +45,7 @@ class FetchConfig(BaseModel):
     @classmethod
     def base_dir_must_exist(cls, v: Path) -> Path:
         """Validate that base_dir exists."""
+        v = PROJECT_ROOT / v
         if not v.exists():
             logging.warning(
                 f"Base directory '{v}' does not exist, creating it."

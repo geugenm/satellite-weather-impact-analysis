@@ -6,7 +6,7 @@ from pathlib import Path
 import astra.fetch.satnogs_dashboard.format as format
 import astra.fetch.satnogs_dashboard.scrap as scrap
 
-__version__ = "1.0.0"
+from astra.config.data import get_project_config, DataConfig
 
 LOG_FORMAT = "%(asctime)s [%(module)s] %(levelname).1s: %(message)s"
 DATE_FORMAT = "%Y%m%d-%H%M%S"
@@ -30,34 +30,22 @@ def init_argparse() -> argparse.ArgumentParser:
         help="Grafana dashboard URL (e.g. https://grafana.satnogs.org/d/SATNOGS-<ID>)",
     )
 
-    output_group = parser.add_argument_group("Output control")
-    output_group.add_argument(
-        "-o",
-        "--output",
-        type=Path,
-        default=Path("formatted"),
-        help="Output directory for processed files",
-    )
-    output_group.add_argument(
-        "--strict", action="store_true", help="Enable strict validation mode"
-    )
-
     dev_group = parser.add_argument_group("Developer options")
     dev_group.add_argument(
         "-v", "--verbose", action="store_true", help="Enable debug logging"
-    )
-    dev_group.add_argument(
-        "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
     return parser
 
 
-def process_satellite(url: str, output_dir: Path, strict: bool = False) -> None:
+def process_satellite(url: str, output_dir: Path) -> None:
     """Core processing pipeline with error containment"""
+    strict: bool = True
+
     try:
         sat_name = url.split("/")[-1].split("?")[0]
         config_file = scrap.CONFIG_DIR / f"{sat_name}.yaml"
+        output_dir = output_dir / sat_name
 
         if not config_file.exists():
             logging.warning(
@@ -88,7 +76,9 @@ def main() -> None:
         stream=sys.stdout,
     )
 
-    process_satellite(args.url, args.output, args.strict)
+    config: DataConfig = get_project_config()
+
+    process_satellite(args.url, config.fetch.base_dir)
 
 
 if __name__ == "__main__":

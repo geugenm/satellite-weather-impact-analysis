@@ -1,4 +1,4 @@
-from .data_processor import DataProcessor
+from astra.fetch.sun.data_processor import DataProcessor
 
 import requests
 import pandas as pd
@@ -33,7 +33,7 @@ class SndTotCsvProcessor(DataProcessor):
             ],
         )
 
-        df[self.config.fetch.time_column] = pd.to_datetime(
+        df[self.config.format.time_column] = pd.to_datetime(
             df[["year", "month", "day"]]
         )
 

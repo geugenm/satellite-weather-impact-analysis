@@ -1,4 +1,4 @@
-from .data_processor import DataProcessor
+from astra.fetch.sun.data_processor import DataProcessor
 import requests
 import pandas as pd
 from io import StringIO
@@ -26,13 +26,11 @@ class FluxTableProcessor(DataProcessor):
         df = pd.read_csv(StringIO("\n".join(lines)), sep="\\s+")
 
         # Rename fluxdate to the configured time column
-        time_col = self.config.fetch.time_column
+        time_col = self.config.format.time_column
         df.rename(columns={"fluxdate": time_col}, inplace=True)
 
         # Parse the time column correctly
-        df[time_col] = pd.to_datetime(
-            df[time_col], format=self.config.fetch.time_format
-        )
+        df[time_col] = pd.to_datetime(df[time_col], format="%Y%m%d")
 
         return self.sanitize_columns(df)
 
