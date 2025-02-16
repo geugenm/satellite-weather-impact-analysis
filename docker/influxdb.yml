@@ -1,4 +1,7 @@
-version: "3.9"
+# Fail if .env is missing
+x-env-file: &env-file
+    env_file:
+        - ./../.env
 
 networks:
     default:
@@ -6,6 +9,7 @@ networks:
 
 services:
     influxdb:
+        <<: *env-file # Include env file check
         image: influxdb:latest
         container_name: influxdb
         restart: unless-stopped
@@ -16,8 +20,11 @@ services:
             - ./influxdb/data:/var/lib/influxdb2:Z
         environment:
             - DOCKER_INFLUXDB_INIT_MODE=setup
-            - DOCKER_INFLUXDB_INIT_USERNAME=ejk
-            - DOCKER_INFLUXDB_INIT_PASSWORD=11111111
-            - DOCKER_INFLUXDB_INIT_ORG=org
-            - DOCKER_INFLUXDB_INIT_BUCKET=default-bucket
-            - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=my_super_secret_token
+            - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUX_USER:-admin}
+            - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUX_PASS:-admin}
+            - DOCKER_INFLUXDB_INIT_ORG=${INFLUX_ORG:-default_org}
+            - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUX_BUCKET:-default_bucket}
+            - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN:-super_secret_token}
+            - DOCKER_INFLUXDB_INIT_RETENTION=${INFLUX_RETENTION:-0}
+            - DOCKER_INFLUXDB_INIT_HOST=${INFLUX_URL:-http://localhost:8086}
+            - LOG_LEVEL=${LOG_LEVEL:-INFO}

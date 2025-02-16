@@ -35,7 +35,7 @@ sudo chmod -R 777 ./influxdb
 3. Start InfluxDB (from project root):
 
 ```bash
-docker compose -f influxdb.yml up -d
+docker compose -f docker/influxdb.yml up -d
 ```
 
 ## Management Commands
@@ -43,23 +43,23 @@ docker compose -f influxdb.yml up -d
 - Stop the service:
 
 ```bash
-docker compose -f influxdb.yml down
+docker compose -f docker/influxdb.yml down
 ```
 
 - View logs:
 
 ```bash
-docker compose -f influxdb.yml logs -f
+docker compose -f docker/influxdb.yml logs -f
 ```
 
 ## Access
 
 - UI: `http://localhost:8086`
 - Default credentials:
-    - Username: ejk
-    - Password: 11111111
-    - Organization: org
-    - Default bucket: default-bucket
+  - Username: ejk
+  - Password: 11111111
+  - Organization: org
+  - Default bucket: default-bucket
 
 ## Important Notes
 
