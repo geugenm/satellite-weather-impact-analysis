@@ -7,6 +7,7 @@ from pydantic import (
     ValidationInfo,
     StringConstraints,
     conlist,
+    model_validator,
 )
 from pathlib import Path
 import yaml
@@ -14,27 +15,30 @@ from typing import Literal, List, Annotated, Union
 import logging
 import pandas as pd
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
 
 class FetchConfig(BaseModel):
     """Configuration for data storage directories."""
 
-    base_dir: Union[str, Path] = Field(
-        default="data", description="Base directory for data storage"
+    base_dir: Path = Field(
+        default=Path("data"), description="Base directory for data storage"
     )
-    raw: Union[str, Path] = Field(
-        default="data/raw", description="Directory for raw data"
+    raw: Path = Field(
+        default=Path("data/raw"), description="Directory for raw data"
     )
-    processed: Union[str, Path] = Field(
-        default="data/processed", description="Directory for processed data"
+    processed: Path = Field(
+        default=Path("data/processed"),
+        description="Directory for processed data",
     )
 
     model_config = ConfigDict(
         extra="forbid", populate_by_name=True, strict=True
     )
+
+    @model_validator(mode="before")
+    def convert_to_paths(cls, values: dict) -> dict:
+        return {
+            k: Path(v) if isinstance(v, str) else v for k, v in values.items()
+        }
 
     @field_validator("base_dir", "raw", "processed")
     @classmethod
