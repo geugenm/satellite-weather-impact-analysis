@@ -39,7 +39,7 @@ UNIT_MAP = {
 }
 
 
-async def extract_base_url(url: str) -> str:
+def extract_base_url(url: str) -> str:
     """Extract canonical base URL without query parameters or fragments"""
     parsed = urlparse(url)
     # Clean path by removing any existing viewPanel params in path (defense in depth)
@@ -56,17 +56,54 @@ async def extract_base_url(url: str) -> str:
     )
 
 
+def build_panel_url(base_url: str, panel_id: str) -> str:
+    """Construct panel URL with required inspection parameters"""
+    parsed = urlparse(base_url)
+    existing_params = parse_qs(parsed.query)
+
+    # Preserve existing variables and add inspection params
+    clean_params = {
+        k: v
+        for k, v in existing_params.items()
+        if k.startswith("var-") or k in ["from", "to"]
+    }
+
+    # Add mandatory inspection parameters
+    clean_params.update(
+        {
+            "inspect": [panel_id],
+            "inspectTab": ["data"],
+            "viewPanel": [panel_id],
+            "orgId": ["1"],  # Default Grafana org ID
+        }
+    )
+
+    return urlunparse(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            parsed.params,
+            urlencode(clean_params, doseq=True),
+            "",  # fragment
+        )
+    )
+
+
 async def _load_script(script_path: Path) -> str:
     return script_path.read_text(encoding="utf-8")
 
 
-async def _transform_url(url: str, panel_id: int) -> str:
+async def _transform_url(url: str) -> str:
     """Mangle Grafana URL into data inspection view"""
     parsed = urlparse(url)
     params = parse_qs(parsed.query, keep_blank_values=True)
 
+    if not (params.get("viewPanel")):
+        params["viewPanel"] = ["0"]  # Default to first panel
+
     data_params = {
-        "inspect": panel_id,
+        "inspect": params["viewPanel"],
         "inspectTab": ["data"],
         "orgId": ["1"],
         "from": params.get("from", ["now-2y"]),
@@ -164,7 +201,7 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
         # Rate limited processing
         tasks = []
         for idx, panel in enumerate(p for p in panels if p["type"] == "panel"):
-            panel_url = await _transform_url(url, panel["id"])
+            panel_url = build_panel_url(url, panel["id"])
             logging.info("panel URL: %s", panel_url)
 
             # Add jittered delay before each task
@@ -218,7 +255,7 @@ async def grafana_fetch(url: str, output_dir: Path):
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    transformed_url = await extract_base_url(url)
+    transformed_url = await _transform_url(url)
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -247,4 +284,4 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    asyncio.run(grafana_fetch(args.url, args.output_dir))
+    asyncio.run(grafana_fetch(extract_base_url(args.url), args.output_dir))
