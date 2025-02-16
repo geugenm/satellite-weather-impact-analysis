@@ -19,6 +19,8 @@ from astra.graph import create_dependency_graph
 from astra.model.cross_correlate import cross_correlate
 from astra.config.data import DataConfig
 from astra.paths import CONFIG_PATH
+from astra.influxdb.extractor import extract_data
+
 
 console = Console()
 app = typer.Typer(rich_markup_mode="rich")
@@ -111,7 +113,7 @@ def process_satellite(
             mlflow.log_dict(graph_data, "graph/graph.yaml")
 
             sat_map = load_mapping(
-                config.fetch.base_dir / f"cfg/{satellite_name}_mapping.yaml"
+                config.fetch.base_dir / f"{satellite_name}_mapping.yaml"
             )
             sun_map = load_mapping(config.fetch.base_dir / "solar_mapping.yaml")
 

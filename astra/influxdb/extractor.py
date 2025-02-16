@@ -42,15 +42,6 @@ class InfluxConfig:
     buckets: list[str]
 
 
-def setup_logging() -> None:
-    logging.basicConfig(
-        level=getenv("LOG_LEVEL", "INFO"),
-        format="%(asctime)s [%(levelname).1s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        stream=sys.stdout,
-    )
-
-
 def load_config(args: argparse.Namespace) -> InfluxConfig:
     if not Path(".env").exists():
         raise FileNotFoundError("missing .env file")
@@ -183,8 +174,6 @@ Environment:
     )
 
     args = parser.parse_args()
-    setup_logging()
-    logger = logging.getLogger(__name__)
 
     try:
         config = load_config(args)
@@ -220,13 +209,13 @@ Environment:
                 )
                 if not df.empty:
                     all_data = pd.concat([all_data, df])
-                    logger.info(
+                    logging.info(
                         f"retrieved {len(df)} rows from {client.bucket} "
                         f"with {len(df.columns)} columns"
                     )
 
             if all_data.empty:
-                logger.warning("no data retrieved")
+                logging.warning("no data retrieved")
                 return
 
             # Merge and deduplicate time index
@@ -239,13 +228,13 @@ Environment:
             print(merged_data.info())
 
             merged_data.to_csv("merged_output.csv", index=True)
-            logger.info(
+            logging.info(
                 f"saved {len(merged_data)} rows with {len(merged_data.columns)} "
                 f"columns to merged_output.csv"
             )
 
     except Exception as e:
-        logger.error(f"execution failed: {e}")
+        logging.error(f"execution failed: {e}")
         sys.exit(1)
 
 
