@@ -176,7 +176,7 @@ class IndiciesProcessor(DataProcessor):
     output_prefix = "swpc_noaa_dgd_dsd_indicies"
     url = "ftp://ftp.swpc.noaa.gov/pub/indices/old_indices/"
 
-    year_from: int = 2022
+    year_from: int = 2014
 
     def download(self) -> pd.DataFrame:
         dgd_df: pd.DataFrame = fetch_filtered_files_and_content(

@@ -52,7 +52,7 @@ class DataProcessor(ABC):
 
         file_name = (
             self.config.fetch.base_dir
-            / f"{self.output_prefix}_{timestamp}.{save_type}"
+            / f"sun/{self.output_prefix}_{timestamp}.{save_type}"
         )
         logging.info(f"Saving file: '{file_name.absolute()}'")
 
