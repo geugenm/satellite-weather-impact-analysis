@@ -25,6 +25,3 @@ format:
     numeric_precision: float64 # Numeric precision (float32, float64)
 
     exclude_columns: []
-
-artifacts:
-    dir: mlflow

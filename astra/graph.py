@@ -34,30 +34,21 @@ def _color_from_value(value: float, min_val: float, max_val: float) -> str:
     return f"rgba({red},{green},{blue},{GRAPH_CONFIG['color']['alpha']})"
 
 
-def _parse_dependency_graph(yaml_path: Path) -> list[dict]:
-    try:
-        with yaml_path.open("r") as f:
-            data = yaml.safe_load(f)
-
-        return [
-            {
-                "source": link["source"],
-                "target": link["target"],
-                "value": float(link["coefficient"]),  # Standardize to float
-            }
-            for link in data.get("links", [])
-            if "coefficient" in link
-        ]
-    except (yaml.YAMLError, KeyError) as e:
-        print(f"🚨 Failed parsing {yaml_path.name}: {str(e)}")
-        return []
+def _parse_dependency_graph(data: dict) -> list[dict]:
+    return [
+        {
+            "source": link["source"],
+            "target": link["target"],
+            "value": float(link["coefficient"]),  # Standardize to float
+        }
+        for link in data.get("links", [])
+        if "coefficient" in link
+    ]
 
 
-def create_dependency_graph(graph_yaml: Path, descriptions: dict) -> Graph:
-    # Load and process data
-    links = _parse_dependency_graph(graph_yaml)
-
+def create_dependency_graph(data: dict, descriptions: dict) -> Graph:
     # Process nodes and values in a single pass
+    links = _parse_dependency_graph(data)
     nodes = set()
     values = []
     for link in links:

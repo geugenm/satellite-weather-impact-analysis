@@ -157,35 +157,6 @@ class FormatConfig(BaseModel):
     )
 
 
-class ArtifactsConfig(BaseModel):
-    """Configuration for artifact storage."""
-
-    dir: Union[str, Path] = Field(
-        default="mlflow", description="Directory for artifacts"
-    )
-
-    @field_validator("dir")
-    @classmethod
-    def convert_dir_to_path(cls, v: Union[str, Path]) -> Path:
-        """Convert string to Path object."""
-        return Path(v) if isinstance(v, str) else v
-
-    @field_validator("dir")
-    @classmethod
-    def artifacts_dir_must_exist(cls, v: Path) -> Path:
-        """Validate that the artifacts directory exists or can be created."""
-        if not v.exists():
-            logging.warning(
-                f"Artifacts directory '{v}' does not exist, creating it."
-            )
-            v.mkdir(parents=True, exist_ok=True)
-        return v
-
-    model_config = ConfigDict(
-        extra="forbid", populate_by_name=True, strict=True
-    )
-
-
 class DataConfig(BaseModel):
     """Main configuration class that combines all sub-configurations."""
 
@@ -196,10 +167,6 @@ class DataConfig(BaseModel):
     format: FormatConfig = Field(
         default_factory=FormatConfig,
         description="Configuration for formatting and sanitization",
-    )
-    artifacts: ArtifactsConfig = Field(
-        default_factory=ArtifactsConfig,
-        description="Configuration for artifact storage",
     )
 
     @classmethod

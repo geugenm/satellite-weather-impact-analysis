@@ -80,10 +80,7 @@ def normalize_numeric_columns(
 
 def process_satellite_data(satellite_name: str, data_cfg: DataConfig) -> None:
     """Process satellite data using validated configurations."""
-    artifacts_dir = data_cfg.artifacts.dir / satellite_name
-    artifacts_dir.mkdir(parents=True, exist_ok=True)
-
-    mlflow.set_tracking_uri(str(data_cfg.artifacts.dir / "mlruns"))
+    mlflow.set_tracking_uri("http://localhost:5000")
     mlflow.enable_system_metrics_logging()
     mlflow.set_experiment(satellite_name)
 
@@ -95,23 +92,16 @@ def process_satellite_data(satellite_name: str, data_cfg: DataConfig) -> None:
             .pipe(normalize_numeric_columns, data_cfg)
         )
 
-        processed_path = artifacts_dir / f"{satellite_name}.csv"
         mlflow.log_input(
             mlflow.data.from_pandas(dynamics, name="satellite_parameters")
         )
-        dynamics.to_csv(processed_path, index=False)
-        mlflow.log_artifact(str(processed_path), artifact_path="graph")
 
-        graph_file = artifacts_dir / f"{satellite_name}_graph.yaml"
         graph_data = cross_correlate(
             input_dataframe=dynamics,
             index_column=data_cfg.format.time_column,
             xcorr_configuration_file=Path("cfg/model.yaml"),
         )
-
-        with graph_file.open("w") as f:
-            yaml.safe_dump(graph_data, f, sort_keys=False)
-        mlflow.log_artifact(str(graph_file), artifact_path="graph")
+        mlflow.log_dict(graph_data, artifact_file="graph/graph.yaml")
 
         mapping_path = (
             data_cfg.fetch.base_dir / f"cfg/{satellite_name}_mapping.yaml"
@@ -123,12 +113,10 @@ def process_satellite_data(satellite_name: str, data_cfg: DataConfig) -> None:
         with sun_mapping_path.open() as f:
             sun_map = yaml.safe_load(f)
 
-        output_path = artifacts_dir / "graph.html"
-        create_dependency_graph(graph_file, sat_map | sun_map).render(
-            str(output_path)
-        )
-        logging.info(f"Rendered dependency graph: {output_path}")
-        mlflow.log_artifact(str(output_path), artifact_path="graph")
+        content = create_dependency_graph(
+            graph_data, sat_map | sun_map
+        ).render_embed()
+        mlflow.log_text(content, artifact_file="graph/graph.html")
 
 
 def main() -> None:

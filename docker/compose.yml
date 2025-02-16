@@ -1,0 +1,32 @@
+networks:
+    default:
+        driver: bridge
+
+services:
+    influxdb:
+        image: influxdb:latest
+        container_name: influxdb
+        restart: unless-stopped
+        ports:
+            - "8086:8086"
+        volumes:
+            - ./influxdb/config:/etc/influxdb2:Z
+            - ./influxdb/data:/var/lib/influxdb2:Z
+        env_file:
+            - path: ./default.env
+              required: true
+
+    mlflow:
+        image: ghcr.io/mlflow/mlflow:latest
+        container_name: mlflow
+        restart: unless-stopped
+        ports:
+            - "5000:5000"
+        volumes:
+            - ./mlruns:/mlruns:Z
+        command: >
+            bash -c "
+
+            mlflow server
+            --host 0.0.0.0
+            --port 5000"
