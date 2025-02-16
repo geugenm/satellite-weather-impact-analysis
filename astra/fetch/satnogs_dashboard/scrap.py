@@ -1,4 +1,3 @@
-import argparse
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 import logging
@@ -19,56 +18,6 @@ TIMEOUTS = {
     "download": 10000,
     "animation": 500,
 }
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname).1s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
-
-
-def init_argparse() -> argparse.ArgumentParser:
-    """Initialize argument parser with examples that even a monkey could understand"""
-    parser = argparse.ArgumentParser(
-        description="Extract data from Grafana or die trying",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples that won't make you look stupid:
-
-Study Mode (saves panel info to cfg/<satellite>.yaml):
-    %(prog)s --study "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"
-    %(prog)s --study "https://dashboard.satnogs.org/d/TauG79dWz/grifex"
-
-Download Specific Panel:
-    %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=26&orgId=1"
-    %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=11&from=now-5y&to=now"
-
-Download All Panels from Config:
-    %(prog)s --config cfg/veronika.yaml
-
-How to Fail:
-    %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"  # Missing --study or viewPanel
-    %(prog)s --config nonexistent.yaml  # Being a moron with file paths
-    """,
-    )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "url",
-        nargs="?",
-        help="Grafana dashboard URL. For fuck's sake, make sure it's valid",
-    )
-    group.add_argument(
-        "--config",
-        type=Path,
-        help="YAML config file with panel definitions. Use --study first",
-    )
-    parser.add_argument(
-        "--study",
-        action="store_true",
-        help="Just study the panels without downloading.",
-    )
-    return parser
 
 
 def transform_to_data_view(url: str) -> str:
@@ -108,7 +57,7 @@ def extract_panel_title(page) -> str:
         title_element = page.locator(".panel-title-text").first
         return title_element.inner_text() if title_element else "untitled_panel"
     except Exception as e:
-        logger.warning(f"Failed to extract panel title: {str(e)}")
+        logging.warning(f"Failed to extract panel title: {str(e)}")
         return "unknown_panel"
 
 
@@ -129,11 +78,11 @@ def download_panel_data(page, download_dir: Path) -> bool:
         file_path = download_dir / f"{sanitized_name}_{timestamp}.csv"
 
         download.save_as(file_path)
-        logger.info(f"Successfully downloaded to {file_path}")
+        logging.info(f"Successfully downloaded to {file_path}")
         return True
 
     except Exception as e:
-        logger.error(f"Download failed with error: {str(e)}")
+        logging.error(f"Download failed with error: {str(e)}")
         return False
 
 
@@ -152,7 +101,7 @@ def scan_grafana_panels(page, url: str) -> dict:
 
     page.wait_for_selector("div.react-grid-layout", timeout=10000)
     expanded = page.evaluate(scripts["expand_all"])
-    logger.info(f"expanded {expanded} collapsed rows")
+    logging.info(f"expanded {expanded} collapsed rows")
     time.sleep(1)  # Wait for expansion
 
     panels = page.evaluate(scripts["get_all_panels"])
@@ -170,11 +119,11 @@ def scan_grafana_panels(page, url: str) -> dict:
                 processed_panels.append(
                     {"id": panel["id"], "name": actual_title, "type": "panel"}
                 )
-                logger.info(
+                logging.info(
                     f"discovered panel '{actual_title}' [id={panel['id']}]"
                 )
             except Exception as e:
-                logger.exception(
+                logging.exception(
                     f"failed to extract title for panel [id={panel['id']}]: {str(e)}"
                 )
                 processed_panels.append(panel)
@@ -189,7 +138,6 @@ def scan_grafana_panels(page, url: str) -> dict:
 
 
 def process_grafana_url(url: str, study_mode: bool = False) -> None:
-    """Process Grafana URL like a boss"""
     parsed = urlparse(url)
     sat_name = parsed.path.split("/")[-1]
 
@@ -216,13 +164,13 @@ def process_grafana_url(url: str, study_mode: bool = False) -> None:
                     panel_info, sort_keys=False, allow_unicode=True
                 )
                 output_file.write_text(yaml_content)
-                logger.info(f"saved config to '{output_file}'")
+                logging.info(f"saved config to '{output_file}'")
             else:
                 page.goto(url, wait_until="networkidle")
                 download_panel_data(page, download_dir)
 
         except Exception as e:
-            logger.error(f"operation failed: {str(e)}")
+            logging.error(f"operation failed: {str(e)}")
         finally:
             context.close()
             browser.close()
@@ -236,21 +184,60 @@ def process_config_file(config_path: Path) -> None:
 
         for panel in config["panels"]:
             panel_url = f"{base_url}?viewPanel={panel['id']}"
-            logger.info(f"processing '{panel['name']}' [id={panel['id']}]")
+            logging.info(f"processing '{panel['name']}' [id={panel['id']}]")
             process_grafana_url(panel_url, study_mode=False)
             time.sleep(1)  # Don't DoS their server, asshole
 
     except Exception as e:
-        logger.error(f"config '{config_path}' processing failed: {str(e)}")
+        logging.error(f"config '{config_path}' processing failed: {str(e)}")
 
 
 if __name__ == "__main__":
-    parser = init_argparse()
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Extract data from Grafana or die trying",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+                Examples that won't make you look stupid:
+
+                Study Mode (saves panel info to cfg/<satellite>.yaml):
+                    %(prog)s --study "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"
+                    %(prog)s --study "https://dashboard.satnogs.org/d/TauG79dWz/grifex"
+
+                Download Specific Panel:
+                    %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=26&orgId=1"
+                    %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?viewPanel=11&from=now-5y&to=now"
+
+                Download All Panels from Config:
+                    %(prog)s --config cfg/veronika.yaml
+
+                How to Fail:
+                    %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"  # Missing --study or viewPanel
+                    %(prog)s --config nonexistent.yaml  # Being a moron with file paths
+                    """,
+    )
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "url",
+        nargs="?",
+        help="Grafana dashboard URL. For fuck's sake, make sure it's valid",
+    )
+    group.add_argument(
+        "--config",
+        type=Path,
+        help="YAML config file with panel definitions. Use --study first",
+    )
+    parser.add_argument(
+        "--study",
+        action="store_true",
+        help="Just study the panels without downloading.",
+    )
     args = parser.parse_args()
 
     if args.config:
         if not args.config.exists():
-            logger.error(f"Config file {args.config} doesn't exist, genius")
+            logging.error(f"Config file {args.config} doesn't exist, genius")
             exit(1)
         process_config_file(args.config)
     else:

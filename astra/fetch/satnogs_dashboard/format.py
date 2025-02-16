@@ -25,80 +25,13 @@ UNIT_MAP: Final = {
     "rpm": "rpm",
 }
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname).1s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
-
 
 def get_available_satellites() -> list:
     """Get list of satellites that haven't failed yet"""
     return [d.name for d in DOWNLOAD_BASE.iterdir() if d.is_dir()]
 
 
-def init_argparse() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Filter and normalize satellite data because engineers can't agree on standards",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Operations:
-    Filter Mode
-        Cleans up your messy CSV files and normalizes units
-        Output: filtered/<original_filename>.csv
-
-    Format Mode
-        Enforces specific column formats (because standards exist)
-        Output: formatted/<original_filename>.csv
-
-    List Mode
-        Shows available satellites (for your goldfish memory)
-
-Usage Examples:
-    # Filter specific satellite data
-    %(prog)s --filter veronika --output filtered
-
-    # Format all satellites with strict rules
-    %(prog)s --format all --strict --output formatted
-
-    # List available satellites
-    %(prog)s --list
-    """,
-    )
-
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "--filter",
-        help="satellite name or 'all' to clean everything",
-        metavar="NAME",
-    )
-    group.add_argument(
-        "--format",
-        help="satellite name or 'all' to format everything",
-        metavar="NAME",
-    )
-    group.add_argument(
-        "--list",
-        action="store_true",
-        help="list available satellites",
-    )
-
-    parser.add_argument(
-        "--output",
-        type=Path,
-        help="output directory for processed files",
-        default=Path("filtered"),
-    )
-    parser.add_argument(
-        "--strict",
-        action="store_true",
-        help="enforce strict formatting rules",
-    )
-    return parser
-
-
-def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
+def custom_parse(file_path: Path) -> pd.DataFrame:
     """Parse CSV and normalize units"""
     if any(r in file_path.name for r in RESTRICTED_FILES):
         raise ValueError("restricted files")
@@ -132,13 +65,11 @@ def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
     if df.columns.size < 2:
         raise ValueError("insufficient numeric columns")
 
-    # Apply strict naming if requested
-    if strict:
-        df = df.rename(
-            columns=lambda col: col.lower().translate(
-                str.maketrans({c: "_" for c in " ,<>[]()#+"})
-            )
+    df = df.rename(
+        columns=lambda col: col.lower().translate(
+            str.maketrans({c: "_" for c in " ,<>[]()#+"})
         )
+    )
 
     # Group by time and take mean of duplicate timestamps
     df = df.groupby("time", as_index=False).agg("mean")
@@ -146,37 +77,88 @@ def custom_parse(file_path: Path, strict: bool = False) -> pd.DataFrame:
     return df
 
 
-def process_satellites(
-    satellites: list, output_dir: Path, strict: bool = False
-) -> None:
+def process_satellites(satellites: list, output_dir: Path) -> None:
     output_dir.mkdir(exist_ok=True)
 
     for sat in satellites:
-        logger.info(f"processing '{sat}'")
+        logging.info(f"processing '{sat}'")
         sat_dir = DOWNLOAD_BASE / sat
 
         if not sat_dir.exists():
-            logger.error(f"satellite '{sat}' not found in {DOWNLOAD_BASE}")
+            logging.error(f"satellite '{sat}' not found in {DOWNLOAD_BASE}")
             continue
 
         for file in sat_dir.glob("*.csv"):
             try:
-                df = custom_parse(file, strict)
+                df = custom_parse(file)
                 output_file = output_dir / file.name
                 df.to_csv(output_file, index=False)
-                logger.info(f"processed '{file.name}' -> '{output_file}'")
+                logging.info(f"processed '{file.name}' -> '{output_file}'")
             except Exception as e:
-                logger.error(f"failed to process {file}, skipping, error: {e}")
+                logging.error(f"failed to process {file}, skipping, error: {e}")
 
 
-def main() -> None:
-    parser = init_argparse()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Filter and normalize satellite data because engineers can't agree on standards",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+                Operations:
+                    Filter Mode
+                        Cleans up your messy CSV files and normalizes units
+                        Output: filtered/<original_filename>.csv
+
+                    Format Mode
+                        Enforces specific column formats (because standards exist)
+                        Output: formatted/<original_filename>.csv
+
+                    List Mode
+                        Shows available satellites (for your goldfish memory)
+
+                Usage Examples:
+                    # Filter specific satellite data
+                    %(prog)s --filter veronika --output filtered
+
+                    # Format all satellites with strict rules
+                    %(prog)s --format all --strict --output formatted
+
+                    # List available satellites
+                    %(prog)s --list
+                    """,
+    )
+
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "--filter",
+        help="satellite name or 'all' to clean everything",
+        metavar="NAME",
+    )
+    group.add_argument(
+        "--format",
+        help="satellite name or 'all' to format everything",
+        metavar="NAME",
+    )
+    group.add_argument(
+        "--list",
+        action="store_true",
+        help="list available satellites",
+    )
+
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="output directory for processed files",
+        default=Path("filtered"),
+    )
+
     args = parser.parse_args()
 
     if args.list:
         sats = get_available_satellites()
         if not sats:
-            logger.error("no satellites found. try downloading some data first")
+            logging.error(
+                "no satellites found. try downloading some data first"
+            )
             return
         print("\nAvailable satellites:")
         for sat in sats:
@@ -188,8 +170,4 @@ def main() -> None:
         if args.filter == "all" or args.format == "all"
         else [args.filter or args.format]
     )
-    process_satellites(satellites, args.output, args.strict)
-
-
-if __name__ == "__main__":
-    main()
+    process_satellites(satellites, args.output)
