@@ -1,15 +1,11 @@
 import argparse
 import logging
-import sys
 from pathlib import Path
 
 import astra.fetch.satnogs_dashboard.format as format
 import astra.fetch.satnogs_dashboard.scrap as scrap
 
 from astra.config.data import get_project_config, DataConfig
-
-LOG_FORMAT = "%(asctime)s [%(module)s] %(levelname).1s: %(message)s"
-DATE_FORMAT = "%Y%m%d-%H%M%S"
 
 
 def init_argparse() -> argparse.ArgumentParser:
@@ -64,22 +60,10 @@ def process_satellite(url: str, output_dir: Path) -> None:
         raise
 
 
-def main() -> None:
-    """Entry point with proper error handling"""
+if __name__ == "__main__":
     parser = init_argparse()
     args = parser.parse_args()
-
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format=LOG_FORMAT,
-        datefmt=DATE_FORMAT,
-        stream=sys.stdout,
-    )
 
     config: DataConfig = get_project_config()
 
     process_satellite(args.url, config.fetch.base_dir)
-
-
-if __name__ == "__main__":
-    main()
