@@ -9,8 +9,6 @@ from astra.config.data import get_project_config, DataConfig
 
 def process_satellite(url: str, output_dir: Path) -> None:
     """Core processing pipeline with error containment"""
-    strict: bool = True
-
     try:
         sat_name = url.split("/")[-1].split("?")[0]
         config_file = scrap.MAP_DIR / f"{sat_name}.yaml"
@@ -26,7 +24,7 @@ def process_satellite(url: str, output_dir: Path) -> None:
 
         scrap.process_config_file(config_file)
         output_dir.mkdir(parents=True, exist_ok=True)
-        format.process_satellites([sat_name], output_dir, strict)
+        format.process_satellites([sat_name], output_dir)
 
     except Exception as e:
         logging.critical("Processing failure: %s", str(e))
@@ -42,7 +40,6 @@ if __name__ == "__main__":
         epilog=f"""Examples:
                 %(prog)s https://grafana.satnogs.org/d/SATNOGS-1234
                 %(prog)s https://network.satnogs.org/d/SATNOGS-5678 --output /var/lib/satdata \\
-                    --strict
                 """,
     )
 
