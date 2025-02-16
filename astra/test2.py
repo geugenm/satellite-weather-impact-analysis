@@ -1,46 +1,28 @@
-from dataclasses import dataclass
-import dash
-from dash import html, Input, Output, callback
+from dash import Dash, html, Input, Output
 import dash_cytoscape as cyto
 import yaml
-from pathlib import Path
-from typing import Dict, Any
+import dash
 
 
-@dataclass(frozen=True)
-class GraphStyle:
-    """Styling configuration for the graph"""
+def load_graph_data(yaml_path):
+    """Load and parse graph data from YAML file."""
+    with open(yaml_path, "r") as f:
+        data = yaml.safe_load(f)
 
-    node_base_size: int = 15
-    node_size_multiplier: int = 3
-    edge_width: int = 2
-    arrow_size: int = 15
+    if not isinstance(data, dict) or "links" not in data:
+        raise ValueError("Invalid YAML structure: must contain 'links' key")
 
+    for link in data["links"]:
+        if not all(k in link for k in ("source", "target", "coefficient")):
+            raise ValueError(
+                "Each link must have source, target, and coefficient"
+            )
 
-def load_graph_data(yaml_path: str | Path) -> Dict[str, Any]:
-    """Load and parse graph data from YAML file"""
-    try:
-        with open(yaml_path, "r") as f:
-            data = yaml.safe_load(f)
-
-        if not isinstance(data, dict) or "links" not in data:
-            raise ValueError("Invalid YAML structure: must contain 'links' key")
-
-        for link in data["links"]:
-            if not all(k in link for k in ("source", "target", "coefficient")):
-                raise ValueError(
-                    "Each link must have source, target, and coefficient"
-                )
-
-        return data
-    except yaml.YAMLError as e:
-        raise ValueError(f"Failed to parse YAML: {e}")
-    except Exception as e:
-        raise ValueError(f"Error loading graph data: {e}")
+    return data
 
 
-def create_elements(data: dict) -> list:
-    """Convert raw data to Cytoscape elements"""
+def create_elements(data):
+    """Convert raw data to Cytoscape elements."""
     elements = []
     for link in data["links"]:
         elements.extend(
@@ -57,7 +39,6 @@ def create_elements(data: dict) -> list:
                 },
             ]
         )
-    # Deduplicate nodes while keeping edges intact
     return list(
         {
             element["data"]["id"]: element
@@ -67,39 +48,36 @@ def create_elements(data: dict) -> list:
     ) + [element for element in elements if "source" in element["data"]]
 
 
-def generate_stylesheet(
-    style: GraphStyle, min_val: float, max_val: float
-) -> list:
-    """Generate Cytoscape stylesheet with gradient-based edge coloring"""
+def generate_stylesheet(min_val, max_val):
+    """Generate Cytoscape stylesheet with a light theme."""
     return [
         # Node styling
         {
             "selector": "node",
             "style": {
-                "width": f"mapData(connections, 0, 10, {style.node_base_size}, "
-                f"{style.node_base_size + 10 * style.node_size_multiplier})",
-                "height": f"mapData(connections, 0, 10, {style.node_base_size}, "
-                f"{style.node_base_size + 10 * style.node_size_multiplier})",
+                "width": 25,
+                "height": 25,
                 "content": "data(label)",
                 "font-size": "14px",
-                "background-color": "#4A90E2",
-                "color": "#FFFFFF",
+                "background-color": "#007AFF",
+                "color": "#000000",
                 "text-valign": "center",
                 "text-halign": "center",
                 "border-width": 2,
-                "border-color": "#333",
+                "border-color": "#CCCCCC",
+                "transition-property": "background-color",
+                "transition-duration": "0.3s",
             },
         },
         # Edge styling with gradient coloring (purple to red)
         {
             "selector": "edge",
             "style": {
-                "width": style.edge_width,
-                "line-color": f"mapData(value, {min_val}, {max_val}, purple, red)",
+                "width": 2,
+                "line-color": f"mapData(value, {min_val}, {max_val}, #D1C4E9, #FF5252)",
                 "curve-style": "bezier",
                 "target-arrow-shape": "triangle",
-                "target-arrow-color": f"mapData(value, {min_val}, {max_val}, purple, red)",
-                "arrow-scale": style.arrow_size / 10,
+                "target-arrow-color": f"mapData(value, {min_val}, {max_val}, #D1C4E9, #FF5252)",
                 "opacity": 0.8,
             },
         },
@@ -110,11 +88,11 @@ def generate_stylesheet(
                 "label": "data(label)",
                 "font-size": "12px",
                 "text-background-opacity": 1,
-                "text-background-color": "#000000",
+                "text-background-color": "#FFFFFF",
                 "text-background-padding": "3px",
                 "text-border-opacity": 1,
                 "text-border-width": 1,
-                "text-border-color": "#FFFFFF",
+                "text-border-color": "#CCCCCC",
             },
         },
         # Tooltip styling for nodes (on hover)
@@ -128,13 +106,11 @@ def generate_stylesheet(
     ]
 
 
-app = dash.Dash(__name__)
+app = Dash(__name__)
 
 
-def create_layout(
-    elements: list, style: GraphStyle, min_val: float, max_val: float
-):
-    """Create Dash layout with Cytoscape graph and heatmap legend"""
+def create_layout(elements, min_val, max_val):
+    """Create Dash layout with Cytoscape graph and heatmap legend."""
     return html.Div(
         [
             html.Div(
@@ -144,7 +120,11 @@ def create_layout(
                         elements=elements,
                         layout={"name": "cose", "animate": True},
                         style={"width": "100vw", "height": "90vh"},
-                        stylesheet=generate_stylesheet(style, min_val, max_val),
+                        stylesheet=generate_stylesheet(min_val, max_val),
+                        zoomingEnabled=True,
+                        userZoomingEnabled=True,
+                        userPanningEnabled=True,
+                        responsive=True,
                     ),
                 ],
                 style={"display": "flex", "justify-content": "center"},
@@ -156,7 +136,7 @@ def create_layout(
                         style={
                             "font-weight": "bold",
                             "margin-bottom": "5px",
-                            "color": "#FFFFFF",
+                            "color": "#000000",
                         },
                     ),
                     html.Div(
@@ -165,7 +145,7 @@ def create_layout(
                                 "Low",
                                 style={
                                     "margin-right": "10px",
-                                    "color": "#FFFFFF",
+                                    "color": "#000000",
                                 },
                             ),
                             html.Div(
@@ -173,14 +153,14 @@ def create_layout(
                                     "display": "inline-block",
                                     "width": "200px",
                                     "height": "20px",
-                                    "background-image": f"linear-gradient(to right, purple , red)",
+                                    "background-image": f"linear-gradient(to right, #D1C4E9 , #FF5252)",
                                 }
                             ),
                             html.Span(
                                 "High",
                                 style={
                                     "margin-left": "10px",
-                                    "color": "#FFFFFF",
+                                    "color": "#000000",
                                 },
                             ),
                         ],
@@ -191,12 +171,7 @@ def create_layout(
             ),
             html.Div(
                 children=[
-                    html.Button(
-                        "Re-align Nodes", id="realign-button", n_clicks=0
-                    ),
-                    html.Button(
-                        "Export as Image", id="export-button", n_clicks=0
-                    ),
+                    html.Button("Export as PNG", id="export-button", n_clicks=0)
                 ],
                 style={
                     "display": "flex",
@@ -206,16 +181,8 @@ def create_layout(
                 },
             ),
         ],
-        style={"background-color": "#000000"},
+        style={"background-color": "#F9F9F9"},
     )
-
-
-@app.callback(
-    Output("dependency-graph", "layout"), Input("realign-button", "n_clicks")
-)
-def realign_nodes(n_clicks):
-    """Reapply layout to realign nodes"""
-    return {"name": "cose", "animate": True}
 
 
 @app.callback(
@@ -223,7 +190,7 @@ def realign_nodes(n_clicks):
     Input("export-button", "n_clicks"),
 )
 def export_graph(n_clicks):
-    """Export the graph as an image"""
+    """Export the graph as a PNG image."""
     if n_clicks > 0:
         return {"type": "png", "action": "download"}
     return dash.no_update
@@ -235,7 +202,7 @@ def main():
     values = [link["coefficient"] for link in data["links"]]
     min_val, max_val = min(values), max(values)
 
-    app.layout = create_layout(elements, GraphStyle(), min_val, max_val)
+    app.layout = create_layout(elements, min_val, max_val)
     app.run_server(debug=True)
 
 
