@@ -1,136 +1,165 @@
+from dataclasses import dataclass
+from typing import Any
 import numpy as np
 from pyecharts import options as opts
 from pyecharts.charts import Graph
 from collections import Counter
+from rich.console import Console
+import typer
+from functools import partial
 
-# Constants as a frozen dataclass would be ideal in 3.13, but keeping as dict for compatibility
-GRAPH_CONFIG = {
-    "node": {"base_size": 10, "size_multiplier": 2},
-    "edge": {"width": 2, "curveness": 0.3},
-    "force": {"repulsion": 1200, "gravity": 0.2, "friction": 0.5, "length": 40},
-    "dimensions": {"width": "100vw", "height": "100vh"},
-    "color": {
-        "alpha": 0.9,
-        "red_max": 255,
-        "green": (128, 50),  # (base, offset)
-        "blue": (200, 30),  # (base, offset)
-    },
-}
+console = Console()
+app = typer.Typer()
 
 
-def _color_from_value(value: float, min_val: float, max_val: float) -> str:
+@dataclass(frozen=True)
+class GraphStyle:
+    """Graph styling configuration"""
+
+    node_base_size: int = 10
+    node_size_multiplier: int = 2
+    edge_width: int = 2
+    edge_curveness: float = 0.3
+    force_repulsion: int = 1200
+    force_gravity: float = 0.2
+    force_friction: float = 0.5
+    force_length: int = 40
+    width: str = "100vw"
+    height: str = "100vh"
+    color_alpha: float = 0.9
+    color_red_max: int = 255
+    color_green: tuple[int, int] = (128, 50)
+    color_blue: tuple[int, int] = (200, 30)
+
+
+def create_color(
+    value: float, min_val: float, max_val: float, style: GraphStyle
+) -> str:
+    """Generate RGBA color based on value - blue for low, red for high"""
     norm = np.clip((value - min_val) / (max_val - min_val), 0, 1)
-    red = int(norm * GRAPH_CONFIG["color"]["red_max"])
-    green = int(
-        (1 - norm) * GRAPH_CONFIG["color"]["green"][0]
-        + norm * GRAPH_CONFIG["color"]["green"][1]
-    )
-    blue = int(
-        (1 - norm) * GRAPH_CONFIG["color"]["blue"][0]
-        + norm * GRAPH_CONFIG["color"]["blue"][1]
-    )
-    return f"rgba({red},{green},{blue},{GRAPH_CONFIG['color']['alpha']})"
+    red = int(norm * style.color_red_max)
+    green = int((1 - norm) * style.color_green[0] + norm * style.color_green[1])
+    blue = int((1 - norm) * style.color_blue[0] + norm * style.color_blue[1])
+    return f"rgba({red},{green},{blue},{style.color_alpha})"
 
 
-def _parse_dependency_graph(data: dict) -> list[dict]:
-    return [
-        {
-            "source": link["source"],
-            "target": link["target"],
-            "value": float(link["coefficient"]),  # Standardize to float
+def create_dependency_graph(
+    data: dict, descriptions: dict, style: GraphStyle = GraphStyle()
+) -> Graph:
+    """Create interactive dependency graph with synchronized color legend"""
+    try:
+        links = [
+            {
+                "source": link["source"],
+                "target": link["target"],
+                "value": float(link["coefficient"]),
+            }
+            for link in data.get("links", [])
+            if "coefficient" in link
+        ]
+
+        nodes = {link["source"] for link in links} | {
+            link["target"] for link in links
         }
-        for link in data.get("links", [])
-        if "coefficient" in link
-    ]
+        values = [link["value"] for link in links]
+        min_val, max_val = min(values), max(values)
 
-
-def create_dependency_graph(data: dict, descriptions: dict) -> Graph:
-    # Process nodes and values in a single pass
-    links = _parse_dependency_graph(data)
-    nodes = set()
-    values = []
-    for link in links:
-        nodes.update([link["source"], link["target"]])
-        values.append(link["value"])
-
-    # Calculate connections using Counter
-    connections = Counter(
-        node for link in links for node in (link["source"], link["target"])
-    )
-
-    # Create node configurations
-    node_list = [
-        {
-            "name": node,
-            "symbolSize": GRAPH_CONFIG["node"]["base_size"]
-            + connections[node] * GRAPH_CONFIG["node"]["size_multiplier"],
-            "label": {
-                "show": True,
-                "formatter": "{b}",
-                "color": "#FFFFFF",
-                "fontSize": 12,
-                "backgroundColor": "#000000",
-                "borderRadius": 5,
-                "padding": [5, 10],
-            },
-            "tooltip": {
-                "formatter": f"{node}: {connections[node]} connection(s)<br/>{descriptions.get(node, 'No description')}"
-            },
-        }
-        for node in nodes
-    ]
-
-    # Create edge configurations
-    min_val, max_val = min(values), max(values)
-    edge_list = [
-        {
-            "source": link["source"],
-            "target": link["target"],
-            "value": link["value"],
-            "lineStyle": {
-                "color": _color_from_value(link["value"], min_val, max_val),
-                "width": GRAPH_CONFIG["edge"]["width"],
-                "curveness": GRAPH_CONFIG["edge"]["curveness"],
-            },
-            "label": {"show": False},
-        }
-        for link in links
-    ]
-
-    # Create and configure graph
-    return (
-        Graph(init_opts=opts.InitOpts(**GRAPH_CONFIG["dimensions"]))
-        .add(
-            "Dependencies",
-            node_list,
-            edge_list,
-            repulsion=GRAPH_CONFIG["force"]["repulsion"],
-            gravity=GRAPH_CONFIG["force"]["gravity"],
-            friction=GRAPH_CONFIG["force"]["friction"],
-            edge_length=GRAPH_CONFIG["force"]["length"],
-            is_draggable=True,
-            layout="force",
-            label_opts=opts.LabelOpts(is_show=False),
+        connections = Counter(
+            node for link in links for node in (link["source"], link["target"])
         )
-        .set_global_opts(
-            title_opts=opts.TitleOpts(
-                title="2D Dependency Graph",
-                pos_left="center",
-                pos_top="top",
-                title_textstyle_opts=opts.TextStyleOpts(
-                    font_family="Arial",
-                    font_size=20,
-                    font_weight="bold",
-                    color="#000",
+
+        color_func = partial(
+            create_color, min_val=min_val, max_val=max_val, style=style
+        )
+
+        # Generate color pieces for visual map
+        pieces = [
+            {
+                "min": min_val,
+                "max": max_val,
+                "color": [
+                    create_color(min_val, min_val, max_val, style),
+                    create_color(max_val, min_val, max_val, style),
+                ],
+            }
+        ]
+
+        return (
+            Graph(
+                init_opts=opts.InitOpts(width=style.width, height=style.height)
+            )
+            .add(
+                "Dependencies",
+                [
+                    {
+                        "name": node,
+                        "symbolSize": style.node_base_size
+                        + connections[node] * style.node_size_multiplier,
+                        "label": {
+                            "show": True,
+                            "formatter": "{b}",
+                            "color": "#FFFFFF",
+                            "fontSize": 12,
+                            "backgroundColor": "#000000",
+                            "borderRadius": 5,
+                            "padding": [5, 10],
+                        },
+                        "tooltip": {
+                            "formatter": f"{node}: {connections[node]} connection(s)<br/>{descriptions.get(node, 'No description')}"
+                        },
+                    }
+                    for node in nodes
+                ],
+                [
+                    {
+                        "source": link["source"],
+                        "target": link["target"],
+                        "value": link["value"],
+                        "lineStyle": {
+                            "color": color_func(link["value"]),
+                            "width": style.edge_width,
+                            "curveness": style.edge_curveness,
+                        },
+                        "label": {"show": False},
+                    }
+                    for link in links
+                ],
+                repulsion=style.force_repulsion,
+                gravity=style.force_gravity,
+                friction=style.force_friction,
+                edge_length=style.force_length,
+                is_draggable=True,
+                layout="force",
+            )
+            .set_global_opts(
+                title_opts=opts.TitleOpts(
+                    title="2D Dependency Graph",
+                    pos_left="center",
+                    pos_top="top",
                 ),
-            ),
-            tooltip_opts=opts.TooltipOpts(trigger="item"),
-            toolbox_opts=opts.ToolboxOpts(
-                feature={
-                    "saveAsImage": {"title": "Save as Image"},
-                    "dataView": {"title": "View Data", "readOnly": True},
-                    "restore": {"title": "Reset"},
-                }
-            ),
+                visualmap_opts=opts.VisualMapOpts(
+                    min_=min_val,
+                    max_=max_val,
+                    range_text=["High Correlation", "Low Correlation"],
+                    dimension=2,
+                    pos_left="left",
+                    pos_top="center",
+                    is_calculable=True,
+                    range_color=[
+                        f"rgb({style.color_blue[0]},{style.color_green[0]},{style.color_red_max})",  # Blue for low
+                        f"rgb({style.color_red_max},{style.color_green[1]},{style.color_blue[1]})",  # Red for high
+                    ],
+                ),
+                tooltip_opts=opts.TooltipOpts(trigger="item"),
+                toolbox_opts=opts.ToolboxOpts(
+                    feature={
+                        "saveAsImage": {},
+                        "dataView": {"readOnly": True},
+                        "restore": {},
+                    }
+                ),
+            )
         )
-    )
+    except Exception as e:
+        console.print(f"[red]Error creating dependency graph: {str(e)}[/red]")
+        raise
