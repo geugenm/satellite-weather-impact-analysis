@@ -19,7 +19,7 @@ from astra.graph import create_dependency_graph
 from astra.model.cross_correlate import cross_correlate
 from astra.config.data import DataConfig
 from astra.paths import CONFIG_PATH
-from astra.influxdb.extractor import extract_data
+from astra.influxdb.wrapper import InfluxWrapper
 
 
 console = Console()
@@ -98,8 +98,21 @@ def process_satellite(
         mlflow.set_experiment(satellite_name)
 
         with mlflow.start_run(run_name="build_graph"):
-            raw_data_path = config.fetch.processed / f"{satellite_name}.csv"
-            dynamics = pd.read_csv(raw_data_path).pipe(process_data, config)
+            influx = InfluxWrapper(
+                url="http://localhost:8086",
+                token="tTwNTA_g8Kt2QuyvcJEyxb0Pg2HqmlRkGun0syMsBFZf8KTQgZhjX7AyUzVlbC13GJNBcEuI-ZNqC2iIBb9oCg==",
+                org="org",
+            )
+
+            dynamics = (
+                influx.get_bucket_df(
+                    time_from="-2y",
+                    time_to="now()",
+                    bucket_list=["solar", satellite_name],
+                )
+                .reset_index()
+                .pipe(process_data, config)
+            )
 
             mlflow.log_input(
                 mlflow.data.from_pandas(dynamics, name="satellite_parameters")
@@ -112,13 +125,10 @@ def process_satellite(
             )
             mlflow.log_dict(graph_data, "graph/graph.yaml")
 
-            sat_map = load_mapping(
-                config.fetch.base_dir / f"{satellite_name}_mapping.yaml"
-            )
-            sun_map = load_mapping(config.fetch.base_dir / "solar_mapping.yaml")
+            map = influx.get_bucket_sources(["solar", satellite_name])
 
             graph_content = create_dependency_graph(
-                graph_data, sat_map | sun_map
+                graph_data, map
             ).render_embed()
             mlflow.log_text(graph_content, "graph/graph.html")
 

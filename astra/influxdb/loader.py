@@ -25,15 +25,6 @@ class InfluxConfig:
     bucket: str
 
 
-def setup_logging() -> None:
-    logging.basicConfig(
-        level=getenv("LOG_LEVEL", "INFO"),
-        format="%(asctime)s [%(levelname).1s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        stream=sys.stdout,
-    )
-
-
 def load_config(args: argparse.Namespace) -> InfluxConfig:
     load_dotenv()
 
@@ -172,8 +163,6 @@ Notes:
     )
 
     args = parser.parse_args()
-
-    setup_logging()
 
     try:
         config = load_config(args)
