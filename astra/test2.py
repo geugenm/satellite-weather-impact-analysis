@@ -70,7 +70,7 @@ def create_elements(data: dict) -> list:
 def generate_stylesheet(
     style: GraphStyle, min_val: float, max_val: float
 ) -> list:
-    """Generate Cytoscape stylesheet with heatmap-based edge coloring"""
+    """Generate Cytoscape stylesheet with gradient-based edge coloring"""
     return [
         # Node styling
         {
@@ -90,17 +90,16 @@ def generate_stylesheet(
                 "border-color": "#333",
             },
         },
-        # Edge styling with heatmap coloring
+        # Edge styling with gradient coloring (purple to red)
         {
             "selector": "edge",
             "style": {
                 "width": style.edge_width,
-                "line-color": f"mapData(value, {min_val}, {max_val}, yellow, red)",
+                "line-color": f"mapData(value, {min_val}, {max_val}, purple, red)",
                 "curve-style": "bezier",
                 "target-arrow-shape": "triangle",
-                "target-arrow-color": f"mapData(value, {min_val}, {max_val}, yellow, red)",
+                "target-arrow-color": f"mapData(value, {min_val}, {max_val}, purple, red)",
                 "arrow-scale": style.arrow_size / 10,
-                "label": "",
                 "opacity": 0.8,
             },
         },
@@ -111,11 +110,11 @@ def generate_stylesheet(
                 "label": "data(label)",
                 "font-size": "12px",
                 "text-background-opacity": 1,
-                "text-background-color": "#FFFFFF",
+                "text-background-color": "#000000",
                 "text-background-padding": "3px",
                 "text-border-opacity": 1,
                 "text-border-width": 1,
-                "text-border-color": "#333",
+                "text-border-color": "#FFFFFF",
             },
         },
         # Tooltip styling for nodes (on hover)
@@ -144,11 +143,7 @@ def create_layout(
                         id="dependency-graph",
                         elements=elements,
                         layout={"name": "cose", "animate": True},
-                        style={
-                            "width": "85vw",
-                            "height": "85vh",
-                            "margin": "auto",
-                        },
+                        style={"width": "100vw", "height": "90vh"},
                         stylesheet=generate_stylesheet(style, min_val, max_val),
                     ),
                 ],
@@ -158,28 +153,80 @@ def create_layout(
                 children=[
                     html.Div(
                         "Heatmap Legend:",
-                        style={"font-weight": "bold", "margin-bottom": "5px"},
+                        style={
+                            "font-weight": "bold",
+                            "margin-bottom": "5px",
+                            "color": "#FFFFFF",
+                        },
                     ),
                     html.Div(
                         children=[
-                            html.Span("Low", style={"margin-right": "10px"}),
+                            html.Span(
+                                "Low",
+                                style={
+                                    "margin-right": "10px",
+                                    "color": "#FFFFFF",
+                                },
+                            ),
                             html.Div(
                                 style={
                                     "display": "inline-block",
                                     "width": "200px",
                                     "height": "20px",
-                                    "background-image": f"linear-gradient(to right, yellow , red)",
+                                    "background-image": f"linear-gradient(to right, purple , red)",
                                 }
                             ),
-                            html.Span("High", style={"margin-left": "10px"}),
+                            html.Span(
+                                "High",
+                                style={
+                                    "margin-left": "10px",
+                                    "color": "#FFFFFF",
+                                },
+                            ),
                         ],
                         style={"display": "flex", "align-items": "center"},
                     ),
                 ],
                 style={"text-align": "center", "margin-top": "20px"},
             ),
-        ]
+            html.Div(
+                children=[
+                    html.Button(
+                        "Re-align Nodes", id="realign-button", n_clicks=0
+                    ),
+                    html.Button(
+                        "Export as Image", id="export-button", n_clicks=0
+                    ),
+                ],
+                style={
+                    "display": "flex",
+                    "justify-content": "center",
+                    "gap": "20px",
+                    "margin-top": "20px",
+                },
+            ),
+        ],
+        style={"background-color": "#000000"},
     )
+
+
+@app.callback(
+    Output("dependency-graph", "layout"), Input("realign-button", "n_clicks")
+)
+def realign_nodes(n_clicks):
+    """Reapply layout to realign nodes"""
+    return {"name": "cose", "animate": True}
+
+
+@app.callback(
+    Output("dependency-graph", "generateImage"),
+    Input("export-button", "n_clicks"),
+)
+def export_graph(n_clicks):
+    """Export the graph as an image"""
+    if n_clicks > 0:
+        return {"type": "png", "action": "download"}
+    return dash.no_update
 
 
 def main():
