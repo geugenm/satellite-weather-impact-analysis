@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 import pandas as pd
 from influxdb_client import InfluxDBClient
+from influxdb_client.client.flux_table import FluxTable
+import logging
 
 
 @dataclass
@@ -90,3 +92,30 @@ class InfluxWrapper:
                 }
             )
         return result
+
+    def get_all_buckets(self) -> list[str]:
+        """
+        Retrieve all buckets from InfluxDB that do not start with an underscore.
+
+        Returns:
+            list[str]: A list of bucket names that do not start with an underscore.
+
+        Raises:
+            Exception: If there's an error querying the InfluxDB for buckets.
+        """
+        query = """
+            buckets()
+                |> filter(fn: (r) => r.name !~ /^_/)
+                |> keep(columns: ["name"])
+        """
+        try:
+            tables: list[FluxTable] = self.query_api.query(query)
+            buckets = [
+                record.values["name"]
+                for table in tables
+                for record in table.records
+            ]
+            return buckets
+        except Exception as e:
+            logging.exception(f"Failed to retrieve buckets: {e}")
+            raise
