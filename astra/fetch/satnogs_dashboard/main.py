@@ -9,7 +9,7 @@ from playwright.async_api import async_playwright
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 import os
 import time
-from typing import Set
+from typing import Set, Optional
 
 # Execution control
 MAX_WORKERS = os.cpu_count() or 4
@@ -64,23 +64,54 @@ logger = logging.getLogger("engine")
 browser_log = logging.getLogger("browser")
 
 
-def parse_grafana_url(url: str) -> str:
-    """Sanitize and normalize dashboard URL"""
+def parse_grafana_url(url: str) -> dict:
+    """
+    Parse and extract components from a Grafana dashboard URL.
+
+    Args:
+        url (str): The Grafana dashboard URL.
+
+    Returns:
+        dict: A dictionary containing the base URL, `from` time, and `to` time.
+    """
     parsed = urlparse(url)
     if not parsed.scheme or not parsed.netloc:
-        raise ValueError(f"invalid URL structure: {url}")
+        raise ValueError(f"Invalid URL structure: {url}")
 
-    clean_path = parsed.path.split("?")[0].rstrip("/")
-    return urlunparse((parsed.scheme, parsed.netloc, clean_path, "", "", ""))
+    query_params = parse_qs(parsed.query)
+    base_url = urlunparse(
+        (parsed.scheme, parsed.netloc, parsed.path, "", "", "")
+    )
+    time_from = query_params.get("from", ["now-1h"])[0]
+    time_to = query_params.get("to", ["now"])[0]
+
+    logger.info(
+        f"Parsed URL -> Base: {base_url}, From: {time_from}, To: {time_to}"
+    )
+    return {"base_url": base_url, "from": time_from, "to": time_to}
 
 
-def build_inspection_url(base_url: str, panel_id: str) -> str:
-    """Construct panel-specific inspection URL"""
+def build_inspection_url(
+    base_url: str,
+    panel_id: str,
+    time_from: Optional[str] = None,
+    time_to: Optional[str] = None,
+) -> str:
+    """
+    Construct a panel-specific inspection URL with optional time range.
+
+    Args:
+        base_url (str): The base Grafana dashboard URL.
+        panel_id (str): The panel ID.
+        time_from (Optional[str]): Start of the time range (default is None).
+        time_to (Optional[str]): End of the time range (default is None).
+
+    Returns:
+        str: The constructed inspection URL.
+    """
     parsed = urlparse(base_url)
     params = {
-        k: v
-        for k, v in parse_qs(parsed.query).items()
-        if k.startswith("var-") or k in ["from", "to"]
+        k: v for k, v in parse_qs(parsed.query).items() if k.startswith("var-")
     }
 
     params.update(
@@ -89,10 +120,12 @@ def build_inspection_url(base_url: str, panel_id: str) -> str:
             "inspectTab": ["data"],
             "viewPanel": [panel_id],
             "orgId": ["1"],
+            "from": [time_from] if time_from else ["now-1h"],
+            "to": [time_to] if time_to else ["now"],
         }
     )
 
-    return urlunparse(
+    constructed_url = urlunparse(
         (
             parsed.scheme,
             parsed.netloc,
@@ -102,6 +135,8 @@ def build_inspection_url(base_url: str, panel_id: str) -> str:
             "",
         )
     )
+    logger.debug(f"Constructed inspection URL: {constructed_url}")
+    return constructed_url
 
 
 async def _load_script(script_path: Path) -> str:
@@ -222,7 +257,17 @@ async def _process_panel(context, panel_url: str, output_dir: Path):
 
 
 async def _scrape_panels(browser, url: str, output_dir: Path):
-    """Orchestrated parallel scraping engine"""
+    """
+    Orchestrated parallel scraping engine with enhanced URL handling.
+
+    Args:
+        browser: Playwright browser instance.
+        url (str): Dashboard URL to scrape.
+        output_dir (Path): Directory to save downloaded data.
+
+    Returns:
+        List of results from processed panels.
+    """
     context = await browser.new_context(
         accept_downloads=True,
         user_agent="Mozilla/5.0 (X11; Linux x86_64) Playwright/Scraper",
@@ -234,7 +279,7 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
 
         await page.evaluate(await _load_script(EXPAND_JS))
         panels = await page.evaluate(await _load_script(PANELS_JS))
-        logger.info("discovered %d panels", len(panels))
+        logger.info("Discovered %d panels", len(panels))
 
         sem = asyncio.Semaphore(CONCURRENCY)
 
@@ -244,23 +289,33 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
                     return
                 SEEN_PANELS.add(panel["id"])
 
-                panel_url = build_inspection_url(url, panel["id"])
-                logger.debug("processing panel '%s'", panel["title"])
+                parsed_url_data = parse_grafana_url(url)
+                panel_url = build_inspection_url(
+                    parsed_url_data["base_url"],
+                    panel["id"],
+                    parsed_url_data["from"],
+                    parsed_url_data["to"],
+                )
+                logger.debug(
+                    "Processing panel '%s' with URL '%s'",
+                    panel["title"],
+                    panel_url,
+                )
 
                 try:
                     return await _process_panel(context, panel_url, output_dir)
                 except Exception as e:
                     logger.error(
-                        "panel '%s' failed: %s", panel["title"], str(e)
+                        "Panel '%s' failed: %s", panel["title"], str(e)
                     )
                 finally:
                     await asyncio.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
 
-        # Batch processing with cooling periods
+        # Process panels in parallel with concurrency control
         results = []
         for i in range(0, len(panels), BATCH_SIZE):
             batch = panels[i : i + BATCH_SIZE]
-            logger.info("processing batch %d-%d", i + 1, i + len(batch))
+            logger.info("Processing batch %d-%d", i + 1, i + len(batch))
 
             batch_tasks = [worker(p) for p in batch if p["type"] == "panel"]
             batch_results = await asyncio.gather(
@@ -279,44 +334,59 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
 
 
 async def grafana_fetch(url: str, output_dir: Path):
-    """Main entrypoint with resource management"""
+    """
+    Main entrypoint with enhanced URL handling and resource management.
+
+    Args:
+        url (str): Grafana dashboard URL.
+        output_dir (Path): Directory to save downloaded data.
+
+    Returns:
+        None
+    """
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    base_url = parse_grafana_url(url)
-    logger.info("operation 'scrape' started for '%s'", base_url)
+    logger.info("Operation 'scrape' started for '%s'", url)
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=True, args=["--disable-gpu", "--no-sandbox"]
+            headless=True,
+            args=["--disable-gpu", "--no-sandbox"],
         )
 
         start_time = time.monotonic()
         try:
-            await _scrape_panels(browser, base_url, output_dir)
+            await _scrape_panels(browser, url, output_dir)
         finally:
             await browser.close()
 
-    logger.info(
-        "operation 'scrape' completed in %.2fs with %d panels",
-        time.monotonic() - start_time,
-        len(SEEN_PANELS),
-    )
+        logger.info(
+            "Operation 'scrape' completed in %.2fs with %d panels",
+            time.monotonic() - start_time,
+            len(SEEN_PANELS),
+        )
 
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Enterprise Grafana Scraper",
+        description="Enterprise Grafana Scraper with Enhanced Time Handling",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
-  %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika" ./output
-  %(prog)s "https://network.satnogs.org/d/SATNOGS-5678" /var/lib/satdata
-""",
+  %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&from=now-2y&to=now" ./output
+  %(prog)s --url "https://dashboard.satnogs.org/d/abEVHMIIk/veronika" --output-dir ./output --from now-7d --to now-1h""",
     )
+
     parser.add_argument("url", help="Dashboard URL")
-    parser.add_argument("output_dir", help="Output directory")
+    parser.add_argument("output_dir", help="Directory for processed CSVs")
+
+    parser.add_argument(
+        "--from", dest="time_from", help="Start of the time range"
+    )
+    parser.add_argument("--to", dest="time_to", help="End of the time range")
+
     parser.add_argument(
         "--debug", action="store_true", help="Enable debug logging"
     )
@@ -325,6 +395,16 @@ if __name__ == "__main__":
 
     if args.debug:
         logger.setLevel(logging.DEBUG)
-        browser_log.setLevel(logging.DEBUG)
+
+    # Update URL with manual `from` and `to` parameters if provided
+    if args.time_from or args.time_to:
+        parsed_data = parse_grafana_url(args.url)
+
+        args.url = build_inspection_url(
+            base_url=parsed_data["base_url"],
+            panel_id="",  # Empty since this is the main dashboard URL
+            time_from=args.time_from or parsed_data["from"],
+            time_to=args.time_to or parsed_data["to"],
+        )
 
     asyncio.run(grafana_fetch(args.url, args.output_dir))
