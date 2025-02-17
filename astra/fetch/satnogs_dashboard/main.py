@@ -34,7 +34,9 @@ RESTRICTED_FILES = {"Ground_Stations", "Last_Frame_Received"}
 SEEN_PANELS: Set[str] = set()
 
 # Measurement patterns
-UNIT_PATTERN = r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c)$"
+UNIT_PATTERN = (
+    r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c|days|day)$"
+)
 UNIT_MAP = {
     "c": "celsius",
     "°c": "celsius",
