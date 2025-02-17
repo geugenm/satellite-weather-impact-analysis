@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "astra"
 version = "2.0.0"
 description = "Polaris 2.0 Satellite Weather Impact Analysis Model"
-authors = [{ name = "Eugene M" }]
+authors = [{ name = "e_gleba" }]
 readme = "readme.md"
 requires-python = ">=3.13"
 license = { text = "MIT" }
@@ -87,7 +87,9 @@ include = ["astra"]
 exclude = [
     "**/node_modules",
     "**/__pycache__",
-    "tests/data"
+    "tests/data",
+    "data",
+    "tests/src"
 ]
 strict = ["astra"]
 typeCheckingMode = "strict"
