@@ -117,4 +117,7 @@ docs/latex/*.{fdb_latexmk,aux,toc,blg,bbl,pdf,out,gz}
 
 # Project-specific
 artifacts
-downloads/
+data
+mlflow
+
+.env

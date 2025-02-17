@@ -1,0 +1,27 @@
+fetch:
+    base_dir: data # Base directory for data storage
+    raw: raw # Directory for raw data
+    processed: processed # Directory for processed data
+
+format:
+    # Time handling settings
+    time_column: time # Column name containing timestamps
+    time_format: "%Y-%m-%d" # Timestamp format (Python strftime)
+    timezone: UTC # Timezone for all datetime operations
+
+    # File output settings
+    separator: "," # CSV delimiter
+
+    save:
+        type: csv # Output file type: csv, parquet, feather, json
+        compression: infer # Compression method: '', infer, bz2, gzip, tar, xz, zip, zstd
+
+    # Column name sanitization settings
+    special_symbols:
+        patterns: [" ", "-", "(", ")", "/", ".", "[", "]"] # Symbols to replace in column names
+        replacement: "_" # Replacement character for symbols
+
+    # Data type precision settings
+    numeric_precision: float64 # Numeric precision (float32, float64)
+
+    exclude_columns: []

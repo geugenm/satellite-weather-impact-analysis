@@ -1,0 +1,8 @@
+{
+    "include": ["astra", "tests"],
+    "exclude": ["**/node_modules", "**/__pycache__"],
+    "venv": "astra-dev",
+    "venvPath": "/home/.conda/envs/astra-dev",
+    "reportMissingImports": true,
+    "typeCheckingMode": "basic"
+}
