@@ -30,7 +30,7 @@ ASTRA is a high-performance analytical platform designed to uncover correlations
 
 - **Core**: Python 3.13+, NumPy, Pandas
 - **ML**: mlflow, xgboost, scikit-learn
-- **Visualization**: Plotly, pyecharts
+- **Visualization**: Plotly, pyecharts, influxdb
 - **Documentation**: LuaTeX, markdown, mermaid
 
 ## 📊 Preview
@@ -97,17 +97,37 @@ poetry install --with dev
 
 Using [satnogs-decoders](https://gitlab.com/librespacefoundation/satnogs/satnogs-decoders):
 
-```bash
-# Fetch satellite frames
-satnogs-decoders-master/contrib/manage/fetch_frames_from_network.py \
+#### Fetch Satellite Frames
+
+```
+python ./satnogs-decoders/contrib/manage/fetch_frames_from_network.py \
     40967 \
     2018-10-26T00:00:00 \
     2018-10-26T01:00:00 \
-    ./fox1a/
-
-# Decode frames
-decode_frame fox1a fox1a/data_XXXX
+    ./fox/
 ```
+
+#### Decode Frames
+
+```
+decode_frame fox fox/data_XXXX
+```
+
+#### Push Data to InfluxDB (Local Docker from current repo after processing it)
+
+1. Start the InfluxDB container using Docker Compose:
+
+    ```
+    sudo docker compose -f docker/compose.yml up
+    ```
+
+2. Push the decoded data to the InfluxDB bucket:
+
+    ```
+    influx write -b <bucket_name> -o <organization_name> -f ./fox/decoded_data.csv --token <your_token>
+    ```
+
+Replace `<bucket_name>`, `<organization_name>`, and `<your_token>` with your actual InfluxDB configuration values.
 
 ## 🤝 Contributing
 
