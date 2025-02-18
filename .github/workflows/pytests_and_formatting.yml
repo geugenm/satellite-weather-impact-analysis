@@ -3,6 +3,13 @@ name: ci/cd assurance pipeline
 on:
     push:
         branches: ["main"]
+        paths-ignore:
+            - "readme.md"
+            - "license.md"
+            - "img/**"
+            - "docker/**"
+            - ".github/CODE_OF_CONDUCT.md"
+            - ".github/SECURITY.md"
     pull_request:
         branches: ["main"]
     workflow_dispatch:
