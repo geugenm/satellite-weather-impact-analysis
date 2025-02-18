@@ -19,9 +19,9 @@ CPU_EXECUTOR = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 # Traffic shaping
 MIN_DELAY = 0.3  # 300ms minimum between requests
 MAX_DELAY = 1.8  # Max jittered delay
-BATCH_SIZE = 8  # Panels per batch
+BATCH_SIZE = 16  # Panels per batch
 BATCH_DELAY = 1.5  # Cool-off between batches
-CONCURRENCY = 6  # Max parallel panel processing
+CONCURRENCY = 8  # Max parallel panel processing
 
 # Path resolution
 _JS_DIR = Path(__file__).parent.resolve()
