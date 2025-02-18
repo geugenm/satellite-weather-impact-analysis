@@ -93,43 +93,46 @@ poetry install --with dev
 
 > The `-e` flag enables editable mode - source changes reflect immediately
 
-3. **Start docker compose**
+3. **Start Docker Compose**
 
-```bash
+```
 sudo docker compose -f docker/compose.yml up
 ```
 
-4. **Parse data**
+4. **Parse Data**
 
-Solar
+**Solar Data:**
 
-```bash
-mkdir data && cd data
-mkdir sun && cd sun
-python ../astra/fetch/sun/fluxtable.py
-... # call other scripts in sun except data_processor.py
+```
+mkdir -p data/sun && cd data/sun
+python ../../astra/fetch/sun/fluxtable.py
+# Execute other scripts in the 'sun' directory except 'data_processor.py'
 ```
 
-Satellite (example):
+**Satellite Data (Example):**
 
-```bash
+```
 cd ..
-python ../astra/fetch/satnogs_dashboard/main.py https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1 -o veronika --from="-2y" --to="now"
+python ../astra/fetch/satnogs_dashboard/main.py \
+    https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1 \
+    -o veronika --from="-2y" --to="now"
 ```
 
-5. Push to influx db (from docker container):
+5. **Push to InfluxDB (from Docker Container)**
 
-```bash
-python ../astra/influxdb/loader.py ./sun --bucket="solar" --token="<your-influxdb-token>"
-python ../astra/influxdb/loader.py ./veronika --bucket="veronika" --token="<your-influxdb-token>"
+```
+python ../../astra/influxdb/loader.py ./sun --bucket="solar" --token="<your-influxdb-token>"
+python ../../astra/influxdb/loader.py ./veronika --bucket="veronika" --token="<your-influxdb-token>"
 ```
 
-6. Analyze:
+6. **Analyze Data**
 
-```bash
+```
 cd ..
 python astra/analyzer.py veronika
 ```
+
+> **Note:** This workflow is in development and subject to changes.
 
 ### 🛰️ Satellite Data Tools
 
