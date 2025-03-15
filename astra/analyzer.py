@@ -19,7 +19,7 @@ from astra.graph import create_dependency_graph
 from astra.model.cross_correlate import cross_correlate
 from astra.config.data import DataConfig
 from astra.paths import CONFIG_PATH
-from astra.influxdb.retreive_wrapper import RetreiveWrapper
+from astra.influxdb.pull_wrapper import PullWrapper
 
 
 console = Console()
@@ -97,7 +97,7 @@ def process_satellite(
         mlflow.set_experiment(satellite_name)
 
         with mlflow.start_run(run_name="build_graph"):
-            influx = RetreiveWrapper(
+            influx = PullWrapper(
                 url="http://localhost:8086",
                 token="my_super_secret_token",
                 org="org",
