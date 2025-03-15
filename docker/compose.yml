@@ -22,7 +22,7 @@ services:
         restart: unless-stopped
         volumes:
             - ./telegraf.toml:/etc/telegraf/telegraf.conf:Z
-            - ./../data/sun:/data/sun:Z
+            - ./../data:/data:Z
         depends_on:
             - influxdb
         env_file:

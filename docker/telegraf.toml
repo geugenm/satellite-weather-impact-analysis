@@ -11,7 +11,7 @@
 ##   "/var/log/log[^1-2]*  -> identical behavior as above
 ## See https://github.com/gobwas/glob for more examples
 ##
-files = ["/data/sun/**.csv"]
+files = ["/data/*/*.csv"]
 
 ## Offset to start reading at
 ## The following methods are available:
@@ -193,12 +193,20 @@ def apply(metric):
     # Get the full filename from the path tag
     full_filename = metric.tags["path"]
 
-    # Extract just the filename without path and extension
-    # Example: "/data/sun/sunspot_data.csv" -> "sunspot_data"
-    filename = full_filename.split("/")[-1].split(".")[0]
+    # Split the path
+    path_parts = full_filename.split("/")
+
+    # Extract the filename without extension
+    filename = path_parts[-1].split(".")[0]
+
+    # Extract the parent directory (if it exists)
+    parent_dir = path_parts[-2] if len(path_parts) > 1 else "unknown"
 
     # Set the measurement name to the filename
     metric.name = filename
+
+    # Add parent directory as a tag
+    metric.tags["parent_dir"] = parent_dir
 
     return metric
 '''
