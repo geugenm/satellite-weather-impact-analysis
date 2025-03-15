@@ -368,7 +368,7 @@ async def grafana_fetch(url: str, output_dir: Path):
         )
 
 
-if __name__ == "__main__":
+def main():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -408,3 +408,7 @@ if __name__ == "__main__":
         )
 
     asyncio.run(grafana_fetch(args.url, args.output_dir))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "astra"
-version = "2.0.0"
+dynamic = ["version"]
 description = "Polaris 2.0 Satellite Weather Impact Analysis Model"
 authors = [{ name = "e_gleba" }]
 readme = "readme.md"
@@ -16,8 +16,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: Physics",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+
 
 dependencies = [
     # Core Scientific Stack
@@ -50,6 +51,12 @@ dependencies = [
     "rich>=13.9.4",
 ]
 
+[project.scripts]
+astra = "astra.cli:app"
+
+[tool.hatch.version]
+source = "vcs"
+
 [project.optional-dependencies]
 dev = [
     # Development Tools
@@ -68,7 +75,7 @@ addopts = [
     "--strict-markers",
     "--cov=astra",
     "--cov-report=term-missing",
-    "--cov-report=html"
+    "--cov-report=html",
 ]
 
 [tool.black]
@@ -88,7 +95,7 @@ exclude = [
     "**/__pycache__",
     "tests/data",
     "data",
-    "tests/src"
+    "tests/src",
 ]
 strict = ["astra"]
 typeCheckingMode = "strict"
@@ -102,4 +109,3 @@ warn_unused_configs = true
 ignore_missing_imports = true
 disallow_untyped_defs = true
 check_untyped_defs = true
-

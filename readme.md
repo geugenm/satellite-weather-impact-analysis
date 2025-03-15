@@ -3,7 +3,7 @@
 # 🛰️ ASTRA: Satellite Weather Impact Analysis
 
 [![GitHub Issues](https://img.shields.io/github/issues/geugenm/satellite-weather-impact-analysis?style=for-the-badge&color=171b20&labelColor=171b20)](https://github.com/geugenm/satellite-weather-impact-analysis/issues)
-[![Python](https://img.shields.io/badge/python-3.12+-171b20?style=for-the-badge&logo=python&logoColor=38bdae&labelColor=171b20)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.13+-171b20?style=for-the-badge&logo=python&logoColor=38bdae&labelColor=171b20)](https://www.python.org/downloads/)
 [![Latex](https://img.shields.io/badge/LuaTeX-ready-171b20?style=for-the-badge&logo=latex&logoColor=38bdae&labelColor=171b20)](https://www.latex-project.org/)
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/geugenm/satellite-weather-impact-analysis/pytests_and_formatting.yml?style=for-the-badge&labelColor=171b20)](https://github.com/geugenm/satellite-weather-impact-analysis/actions)
 [![Codecov](https://img.shields.io/codecov/c/github/geugenm/satellite-weather-impact-analysis?style=for-the-badge&logoColor=38bdae&labelColor=171b20)](https://app.codecov.io/gh/geugenm/satellite-weather-impact-analysis)
@@ -115,7 +115,7 @@ python ../../astra/fetch/sun/fluxtable.py
 cd ..
 python ../astra/fetch/satnogs_dashboard/main.py \
     https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1 \
-    -o veronika --from="-2y" --to="now"
+    veronika --from="-2y" --to="now"
 ```
 
 5. **Push to InfluxDB (from Docker Container)**
