@@ -93,7 +93,7 @@ def process_satellite(
         config = load_config(config_path)
 
         mlflow.set_tracking_uri("http://localhost:5000")
-        mlflow.enable_system_metrics_logging()
+        # mlflow.enable_system_metrics_logging() - enable for profiling
         mlflow.set_experiment(satellite_name)
 
         with mlflow.start_run(run_name="build_graph"):

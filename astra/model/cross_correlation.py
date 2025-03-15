@@ -18,7 +18,7 @@ from xgboost import XGBRegressor
 from astra.model.cleaner import Cleaner
 
 
-mlflow.xgboost.autolog(model_format="json")
+# mlflow.xgboost.autolog(model_format="json")
 
 
 class XCorr(BaseEstimator, TransformerMixin):
@@ -69,6 +69,8 @@ class XCorr(BaseEstimator, TransformerMixin):
         self._importances_map = importances_map
 
     def fit(self, x_dataframe: pd.DataFrame) -> None:
+        import concurrent.futures
+
         if self.models:
             logging.warning("Models already trained. Skipping re-training.")
             return
@@ -83,14 +85,40 @@ class XCorr(BaseEstimator, TransformerMixin):
         self.reset_importance_map(x_dataframe.columns)
         parameters = self.__build_parameters(x_dataframe)
 
-        for column in parameters:
+        # Helper function to train a single model
+        def train_model(column: str):
             logging.info(f"Training model for {column}")
-            model_instance = self.method(
+            return self.method(
                 df_in=x_dataframe.drop([column], axis=1),
                 target_series=x_dataframe[column],
                 model_params=self.model_params["current"],
             )
-            self.models.append(model_instance)
+
+        # Use ThreadPoolExecutor to train models in parallel
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Submit all training tasks and store the future objects
+            future_to_column = {
+                executor.submit(train_model, column): column
+                for column in parameters
+            }
+
+            # Initialize empty models list with the right size
+            self.models = [None] * len(parameters)
+
+            # As each future completes, store the model in the correct position
+            for i, (future, column) in enumerate(
+                zip(
+                    concurrent.futures.as_completed(future_to_column),
+                    parameters,
+                )
+            ):
+                try:
+                    model_instance = future.result()
+                    self.models[i] = model_instance
+                except Exception as exc:
+                    logging.error(
+                        f"Model training for {column} generated an exception: {exc}"
+                    )
 
     def transform(self) -> None:
         raise NotImplementedError
