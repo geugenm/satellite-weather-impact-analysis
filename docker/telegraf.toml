@@ -112,7 +112,7 @@ csv_trim_space = false
 csv_tag_columns = []
 
 ## Set to true to let the column tags overwrite the metadata and default tags.
-csv_tag_overwrite = true
+csv_tag_overwrite = false
 
 ## The column to extract the name of the metric from. Will not be
 ## included as field in metric.
@@ -149,7 +149,7 @@ csv_skip_errors = false
 # csv_reset_mode = "none"
 
 ## Set the tag that will contain the path of the tailed file. If you don't want this tag, set it to an empty string.
-# path_tag = "path"
+path_tag = "path"
 
 ## Filters to apply to files before generating metrics
 ## "ansi_color" removes ANSI colors
@@ -185,6 +185,24 @@ csv_skip_errors = false
 
 #After the specified timeout, this plugin sends the multiline event even if no new pattern is found to start a new event. The default is 5s.
 #timeout = 5s
+
+
+[[processors.starlark]]
+source = '''
+def apply(metric):
+    # Get the full filename from the path tag
+    full_filename = metric.tags["path"]
+
+    # Extract just the filename without path and extension
+    # Example: "/data/sun/sunspot_data.csv" -> "sunspot_data"
+    filename = full_filename.split("/")[-1].split(".")[0]
+
+    # Set the measurement name to the filename
+    metric.name = filename
+
+    return metric
+'''
+
 
 # https://www.influxdata.com/blog/running-influxdb-2-0-and-telegraf-using-docker/
 # Output Configuration for telegraf agent
