@@ -1,16 +1,22 @@
 from dataclasses import dataclass
 from pathlib import Path
 from os import getenv
-import argparse
 import logging
 
 import pandas as pd
+import typer
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 from dotenv import load_dotenv
+from typing import Optional
 
 WRITE_PRECISION = WritePrecision.NS
 CSV_PATTERN = "*.csv"
+
+app = typer.Typer(
+    help="Load CSV files into InfluxDB using token or user/pass authentication.",
+    rich_markup_mode="rich",
+)
 
 
 @dataclass
@@ -23,13 +29,13 @@ class InfluxConfig:
     password: str = ""
 
 
-def load_config(args: argparse.Namespace) -> InfluxConfig:
+def load_config(bucket: Optional[str], token: Optional[str]) -> InfluxConfig:
     load_dotenv()
     return InfluxConfig(
         url=getenv("INFLUX_URL", "http://localhost:8086"),
         org=getenv("INFLUX_ORG", "org"),
-        bucket=args.bucket or getenv("INFLUX_BUCKET", "telemetry"),
-        token=args.token or getenv("INFLUX_TOKEN", ""),
+        bucket=bucket or getenv("INFLUX_BUCKET", "telemetry"),
+        token=token or getenv("INFLUX_TOKEN", ""),
     )
 
 
@@ -96,31 +102,27 @@ def process_files(input_dir: Path, config: InfluxConfig) -> None:
                 logging.error(f"Failed processing file '{file}': {e}")
 
 
+@app.callback()
+def main(
+    input_dir: Path = typer.Argument(
+        ..., help="Directory containing CSV files.", exists=True, dir_okay=True
+    ),
+    bucket: Optional[str] = typer.Option(None, help="Override INFLUX_BUCKET."),
+    token: Optional[str] = typer.Option(None, help="Override INFLUX_TOKEN."),
+):
+    """
+    Load CSV files into InfluxDB.
+
+    Creates a new bucket, destroying any existing data.
+    Expects CSV files with a 'time' column.
+    Uses the filename (without extension) as the measurement name.
+
+    Environment variables:
+    INFLUX_URL, INFLUX_ORG, INFLUX_TOKEN
+    """
+    config = load_config(bucket, token)
+    process_files(input_dir, config)
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Load CSV files into InfluxDB using token or user/pass authentication.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:
-                %(prog)s /path/to/csv/dir --token your_api_token --bucket "bucket_name"
-
-                Environment variables:
-                INFLUX_URL, INFLUX_ORG, INFLUX_TOKEN
-
-                Notes:
-                - Creates a new bucket, destroying any existing data.
-                - Expects CSV files with a 'time' column.
-                - Uses the filename (without extension) as the measurement name.
-                """,
-    )
-    parser.add_argument(
-        "input_dir", type=Path, help="Directory containing CSV files."
-    )
-    parser.add_argument("--bucket", type=str, help="Override INFLUX_BUCKET.")
-    parser.add_argument("--token", type=str, help="Override INFLUX_TOKEN.")
-    args = parser.parse_args()
-
-    try:
-        config = load_config(args)
-        process_files(args.input_dir, config)
-    except Exception as e:
-        logging.exception(f"Execution failed: {e}")
+    app()

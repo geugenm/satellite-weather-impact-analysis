@@ -1,8 +1,45 @@
+import importlib
+import os
 import typer
+from pathlib import Path
 from typing import Optional
 from importlib.metadata import version, PackageNotFoundError
 
+import astra.analyzer
+import astra.influxdb.push
+import astra.fetch.satnogs_dashboard.main
+
 app = typer.Typer(help="Satellite Weather Impact Analysis Tool")
+
+app.add_typer(
+    astra.analyzer.app, name="analyze", help="Analyze in-database satellites"
+)
+
+app.add_typer(
+    astra.influxdb.push.app, name="push", help="Push fetched data to influx db"
+)
+
+app.add_typer(
+    astra.fetch.satnogs_dashboard.main.app,
+    name="download",
+    help="Download data from satnogs dashboard for satellite",
+)
+
+
+# Path to your commands directory
+commands_dir = Path(__file__) / "fetch/sun"
+
+# Dynamically import and add all command modules
+for file in os.listdir(commands_dir):
+    if file.endswith(".py") and not file.startswith("_"):
+        module_name = file[:-3]  # Remove .py extension
+        module = importlib.import_module(
+            f".commands.{module_name}", package=__package__
+        )
+
+        # If the module has a Typer app, add it as a subcommand
+        if hasattr(module, "app"):
+            app.add_typer(module.app, name=module_name)
 
 
 def get_version() -> str:
@@ -33,28 +70,6 @@ def main(
     Analyze satellite telemetry data and correlate with weather conditions.
     """
     pass  # The version callback handles the version display
-
-
-@app.command()
-def fetch(
-    url: str = typer.Argument(..., help="SatNOGS dashboard URL"),
-    satellite_name: str = typer.Argument(..., help="Satellite name"),
-    time_from: str = typer.Option("-2y", "--from", help="Start time"),
-    time_to: str = typer.Option("now", "--to", help="End time"),
-):
-    """Fetch satellite telemetry data."""
-    typer.echo(f"Fetching data for {satellite_name} from {url}")
-    # Your implementation here
-
-
-@app.command()
-def analyze(
-    input_file: str = typer.Argument(..., help="Input data file"),
-    output_file: str = typer.Option(None, "--output", "-o", help="Output file"),
-):
-    """Analyze satellite data."""
-    typer.echo(f"Analyzing {input_file}")
-    # Your implementation here
 
 
 if __name__ == "__main__":

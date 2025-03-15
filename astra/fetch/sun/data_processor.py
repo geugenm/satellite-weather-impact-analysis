@@ -45,7 +45,6 @@ class DataProcessor(ABC):
             file_name,
             sep=self.config.format.separator,
             index=False,
-            compression=compression,
         )
 
     def run(self) -> None:

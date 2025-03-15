@@ -10,6 +10,7 @@ from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 import os
 import time
 from typing import Set, Optional
+import typer
 
 # Execution control
 MAX_WORKERS = os.cpu_count() or 4
@@ -368,47 +369,44 @@ async def grafana_fetch(url: str, output_dir: Path):
         )
 
 
-def main():
-    import argparse
+app = typer.Typer(help="Enterprise Grafana Scraper with Enhanced Time Handling")
 
-    parser = argparse.ArgumentParser(
-        description="Enterprise Grafana Scraper with Enhanced Time Handling",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:
-  %(prog)s "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&from=now-2y&to=now" ./output
-  %(prog)s --url "https://dashboard.satnogs.org/d/abEVHMIIk/veronika" --output-dir ./output --from now-7d --to now-1h""",
-    )
 
-    parser.add_argument("url", help="Dashboard URL")
-    parser.add_argument("output_dir", help="Directory for processed CSVs")
+@app.callback()
+def main(
+    url: str = typer.Argument(..., help="Dashboard URL"),
+    output_dir: str = typer.Argument(..., help="Directory for processed CSVs"),
+    time_from: Optional[str] = typer.Option(
+        None, "--from", help="Start of the time range"
+    ),
+    time_to: Optional[str] = typer.Option(
+        None, "--to", help="End of the time range"
+    ),
+    debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
+):
+    """
+    Scrape data from Grafana dashboards with parallel processing.
 
-    parser.add_argument(
-        "--from", dest="time_from", help="Start of the time range"
-    )
-    parser.add_argument("--to", dest="time_to", help="End of the time range")
-
-    parser.add_argument(
-        "--debug", action="store_true", help="Enable debug logging"
-    )
-
-    args = parser.parse_args()
-
-    if args.debug:
+    Examples:
+      grafana-scraper "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&from=now-2y&to=now" ./output
+      grafana-scraper "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"  ./output --from now-7d --to now-1h
+    """
+    if debug:
         logger.setLevel(logging.DEBUG)
 
     # Update URL with manual `from` and `to` parameters if provided
-    if args.time_from or args.time_to:
-        parsed_data = parse_grafana_url(args.url)
+    if time_from or time_to:
+        parsed_data = parse_grafana_url(url)
 
-        args.url = build_inspection_url(
+        url = build_inspection_url(
             base_url=parsed_data["base_url"],
             panel_id="",  # Empty since this is the main dashboard URL
-            time_from=args.time_from or parsed_data["from"],
-            time_to=args.time_to or parsed_data["to"],
+            time_from=time_from or parsed_data["from"],
+            time_to=time_to or parsed_data["to"],
         )
 
-    asyncio.run(grafana_fetch(args.url, args.output_dir))
+    asyncio.run(grafana_fetch(url, Path(output_dir)))
 
 
 if __name__ == "__main__":
-    main()
+    app()
