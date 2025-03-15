@@ -112,7 +112,7 @@ csv_trim_space = false
 csv_tag_columns = []
 
 ## Set to true to let the column tags overwrite the metadata and default tags.
-csv_tag_overwrite = false
+csv_tag_overwrite = true
 
 ## The column to extract the name of the metric from. Will not be
 ## included as field in metric.

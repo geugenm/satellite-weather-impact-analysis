@@ -1,3 +1,5 @@
 influxdb
 minio
 mysql
+influxdbv2
+mlruns

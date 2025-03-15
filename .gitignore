@@ -116,10 +116,7 @@ docs/latex/.build/
 docs/latex/*.{fdb_latexmk,aux,toc,blg,bbl,pdf,out,gz}
 
 # Project-specific
-artifacts
-data
-mlflow
-
-.env
+artifacts/
+data/
 htmlcov/
-docker/influxdbv2
+.env
