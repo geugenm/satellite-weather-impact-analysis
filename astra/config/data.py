@@ -9,7 +9,7 @@ from pydantic import (
 )
 from pathlib import Path
 import yaml
-from typing import Literal, Annotated, Union
+from typing import Annotated, Union
 import logging
 from astra.paths import PROJECT_ROOT
 
