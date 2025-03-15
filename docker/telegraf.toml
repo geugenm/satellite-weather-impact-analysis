@@ -27,7 +27,7 @@ initial_read_offset = "save-or-beginning"
 ## Method used to watch for file updates.  Can be either "inotify" or "poll".
 ## inotify is supported on linux, *bsd, and macOS, while Windows requires
 ## using poll. Poll checks for changes every 250ms.
-watch_method = "poll"
+watch_method = "inotify"
 
 ## Maximum lines of the file to process that have not yet be written by the
 ## output.  For best throughput set based on the number of metrics on each
@@ -146,7 +146,7 @@ csv_skip_errors = false
 ##    "none"   -- do not reset the parser (default)
 ##    "always" -- reset the parser with each call (ignored in line-wise parsing)
 ##                Helpful when e.g. reading whole files in each gather-cycle.
-# csv_reset_mode = "none"
+csv_reset_mode = "always"
 
 ## Set the tag that will contain the path of the tailed file. If you don't want this tag, set it to an empty string.
 path_tag = "path"
