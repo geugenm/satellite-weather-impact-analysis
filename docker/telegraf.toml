@@ -146,7 +146,7 @@ csv_skip_errors = false
 ##    "none"   -- do not reset the parser (default)
 ##    "always" -- reset the parser with each call (ignored in line-wise parsing)
 ##                Helpful when e.g. reading whole files in each gather-cycle.
-csv_reset_mode = "always"
+# csv_reset_mode = "always"
 
 ## Set the tag that will contain the path of the tailed file. If you don't want this tag, set it to an empty string.
 path_tag = "path"
