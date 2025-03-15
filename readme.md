@@ -121,8 +121,8 @@ python ../astra/fetch/satnogs_dashboard/main.py \
 5. **Push to InfluxDB (from Docker Container)**
 
 ```
-python ../../astra/influxdb/push.py ./sun --bucket="solar" --token="<your-influxdb-token>"
-python ../../astra/influxdb/push.py ./veronika --bucket="veronika" --token="<your-influxdb-token>"
+python ../astra/influxdb/push.py ./sun --bucket="solar" --token="<your-influxdb-token>"
+python ../astra/influxdb/push.py ./veronika --bucket="veronika" --token="<your-influxdb-token>"
 ```
 
 6. **Analyze Data**
