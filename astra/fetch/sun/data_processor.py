@@ -46,13 +46,11 @@ class DataProcessor(ABC):
         )
         df = df.sort_values(by="time").reset_index(drop=True)
 
-        timestamp = datetime.now().strftime(self.config.format.time_format)
         compression = self.config.format.save.compression
         save_type = self.config.format.save.type
 
         file_name = (
-            self.config.fetch.base_dir
-            / f"sun/{self.output_prefix}_{timestamp}.{save_type}"
+            self.config.fetch.base_dir / f"sun/{self.output_prefix}.{save_type}"
         )
         logging.info(f"Saving file: '{file_name.absolute()}'")
 

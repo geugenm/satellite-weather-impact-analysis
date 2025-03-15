@@ -19,7 +19,7 @@ files = ["/data/sun/**.csv"]
 ##   end                -- start reading from the end of the file ignoring any persisted offset
 ##   saved-or-beginning -- use the persisted offset of the file or, if no offset persisted, start from the beginning of the file
 ##   saved-or-end       -- use the persisted offset of the file or, if no offset persisted, start from the end of the file
-initial_read_offset = "beginning"
+initial_read_offset = "save-or-beginning"
 
 ## Whether file is a named pipe
 # pipe = false
@@ -27,7 +27,7 @@ initial_read_offset = "beginning"
 ## Method used to watch for file updates.  Can be either "inotify" or "poll".
 ## inotify is supported on linux, *bsd, and macOS, while Windows requires
 ## using poll. Poll checks for changes every 250ms.
-watch_method = "inotify"
+watch_method = "poll"
 
 ## Maximum lines of the file to process that have not yet be written by the
 ## output.  For best throughput set based on the number of metrics on each
@@ -222,5 +222,3 @@ organization = "$DOCKER_INFLUXDB_INIT_ORG"
 
 ## Destination bucket to write into.
 bucket = "$DOCKER_INFLUXDB_INIT_BUCKET"
-
-insecure_skip_verify = true
