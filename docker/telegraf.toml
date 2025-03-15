@@ -1,0 +1,37 @@
+# Telegraf Configuration
+[agent]
+  interval = "10s"
+  round_interval = true
+  metric_batch_size = 1000
+  metric_buffer_limit = 10000
+  collection_jitter = "0s"
+  flush_interval = "10s"
+  flush_jitter = "0s"
+  precision = ""
+  hostname = ""
+  omit_hostname = false
+
+# Input Plugins
+[[inputs.cpu]]
+  percpu = true
+  totalcpu = true
+
+# Output Configuration for telegraf agent
+[[outputs.influxdb_v2]]
+  ## The URLs of the InfluxDB cluster nodes.
+  ##
+  ## Multiple URLs can be specified for a single cluster, only ONE of the
+  ## urls will be written to each interval.
+  ## urls exp: http://127.0.0.1:8086
+  urls = ["http://influxdb:8086"]
+
+  ## Token for authentication.
+  token = "$DOCKER_INFLUXDB_INIT_ADMIN_TOKEN"
+
+  ## Organization is the name of the organization you wish to write to; must exist.
+  organization = "$DOCKER_INFLUXDB_INIT_ORG"
+
+  ## Destination bucket to write into.
+  bucket = "$DOCKER_INFLUXDB_INIT_BUCKET"
+
+  insecure_skip_verify = true

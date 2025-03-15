@@ -7,7 +7,6 @@ from pydantic import (
     ValidationInfo,
     StringConstraints,
     conlist,
-    model_validator,
 )
 from pathlib import Path
 import yaml

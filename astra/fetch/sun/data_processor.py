@@ -6,7 +6,7 @@ from typing import Any
 from pathlib import Path
 import logging
 
-from astra.config.data import DataConfig, FormatConfig
+from astra.config.data import DataConfig
 from astra.paths import CONFIG_PATH
 
 

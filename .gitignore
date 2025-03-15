@@ -121,3 +121,5 @@ data
 mlflow
 
 .env
+htmlcov/
+docker/influxdbv2

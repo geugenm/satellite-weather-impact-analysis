@@ -3,17 +3,29 @@ networks:
         driver: bridge
 
 services:
+    # https://www.influxdata.com/blog/running-influxdb-2-0-and-telegraf-using-docker/
     influxdb:
-        image: influxdb:latest
+        image: influxdb:2.6-alpine
         container_name: influxdb
         restart: unless-stopped
         ports:
             - "8086:8086"
         volumes:
-            - ./influxdb/config:/etc/influxdb2:Z
-            - ./influxdb/data:/var/lib/influxdb2:Z
+            - ./influxdbv2:/etc/influxdb2:Z
         env_file:
-            - path: ./default.env
+            - path: ./influxv2.env
+              required: true
+
+    telegraf:
+        image: telegraf:1.25-alpine
+        container_name: telegraf
+        restart: unless-stopped
+        volumes:
+            - ./telegraf.toml:/etc/telegraf/telegraf.conf:Z
+        depends_on:
+            - influxdb
+        env_file:
+            - path: ./influxv2.env
               required: true
 
     mlflow:
