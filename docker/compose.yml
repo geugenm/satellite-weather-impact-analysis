@@ -28,17 +28,3 @@ services:
         env_file:
             - path: ./influxv2.env
               required: true
-
-    mlflow:
-        image: ghcr.io/mlflow/mlflow:latest
-        container_name: mlflow
-        restart: unless-stopped
-        ports:
-            - "5000:5000"
-        volumes:
-            - ./mlruns:/mlruns:Z
-        command: >
-            bash -c "
-            mlflow server
-            --host 0.0.0.0
-            --port 5000"
