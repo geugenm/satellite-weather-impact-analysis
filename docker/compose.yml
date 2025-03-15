@@ -4,30 +4,18 @@ networks:
         driver: bridge
 
 services:
-    influxdb:
-        image: influxdb:2.7-alpine
-        container_name: influxdb
-        restart: unless-stopped
+    influxdb3-core:
+        container_name: influxdb3-core
+        image: quay.io/influxdb/influxdb3-core:latest
         ports:
-            - "8086:8086"
-        volumes:
-            - ./influxdbv2:/etc/influxdb2:Z
-        env_file:
-            - path: ./influxv2.env
-              required: true
-
-    telegraf:
-        image: telegraf:1.34.0-alpine
-        container_name: telegraf
+            - "8181:8181"
+        command:
+            - serve
+            - --node-id=node0
+            - --log-filter=debug
+            - --object-store=file
+            - --data-dir=/var/lib/influxdb3
         restart: unless-stopped
-        volumes:
-            - ./telegraf.toml:/etc/telegraf/telegraf.conf:Z
-            - ./../data:/data:Z
-        depends_on:
-            - influxdb
-        env_file:
-            - path: ./influxv2.env
-              required: true
 
     mlflow:
         image: ghcr.io/mlflow/mlflow:latest
