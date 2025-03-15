@@ -1,7 +1,10 @@
 import logging
-from typing import Optional
+from typing import Optional, Any, Dict, List, Tuple
 import numpy as np
 import pandas as pd
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+import multiprocessing
 from mlflow import log_metric, log_param, log_params
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import (
@@ -10,31 +13,34 @@ from sklearn.ensemble import (
     GradientBoostingRegressor,
     RandomForestRegressor,
 )
-from sklearn.metrics import mean_absolute_error, r2_score
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
 from sklearn.model_selection import train_test_split
 import mlflow.xgboost
 from xgboost import XGBRegressor
 from astra.model.cleaner import Cleaner
 
 
-# mlflow.xgboost.autolog(model_format="json")
+# Thread-safe MLflow logging
+mlflow_lock = threading.RLock()
 
 
 class XCorr(BaseEstimator, TransformerMixin):
     def __init__(
         self,
-        dataset_metadata: dict[str, any],
+        dataset_metadata: dict[str, Any],
         cross_correlation_params: dict,
     ) -> None:
-        self.models: list[any] = []
-        self.importances_map: Optional[pd.DataFrame] = None
+        self.models: list[Any] = []
+        self._importances_map: Optional[pd.DataFrame] = None
+        self._importances_lock = threading.Lock()
         self._feature_cleaner = Cleaner(
             dataset_metadata,
             cross_correlation_params["dataset_cleaning_params"],
         )
 
-        log_params(cross_correlation_params["model_params"])
+        with mlflow_lock:
+            log_params(cross_correlation_params["model_params"])
+
         self.xcorr_params = {
             "random_state": cross_correlation_params["random_state"],
             "test_size": cross_correlation_params["test_size"],
@@ -66,59 +72,122 @@ class XCorr(BaseEstimator, TransformerMixin):
 
     @importances_map.setter
     def importances_map(self, importances_map: pd.DataFrame) -> None:
-        self._importances_map = importances_map
+        with self._importances_lock:
+            self._importances_map = importances_map
 
     def fit(self, x_dataframe: pd.DataFrame) -> None:
-        import concurrent.futures
-
         if self.models:
-            logging.warning("Models already trained. Skipping re-training.")
+            logging.warning("models already trained. skipping re-training.")
             return
 
-        logging.info("Cleaning data...")
+        logging.info("cleaning data...")
 
         x_dataframe = self._feature_cleaner.drop_constant_values(x_dataframe)
         x_dataframe = self._feature_cleaner.drop_non_numeric_values(x_dataframe)
         x_dataframe = self._feature_cleaner.handle_missing_values(x_dataframe)
 
-        logging.info(f"Training with {x_dataframe.shape[1]} features.")
+        logging.info(f"training with {x_dataframe.shape[1]} features.")
+        mlflow.xgboost.autolog(model_format="json")
         self.reset_importance_map(x_dataframe.columns)
         parameters = self.__build_parameters(x_dataframe)
 
-        # Helper function to train a single model
-        def train_model(column: str):
-            logging.info(f"Training model for {column}")
-            return self.method(
+        for column in parameters:
+            logging.info(f"training model for {column}")
+            model_instance = self.method(
                 df_in=x_dataframe.drop([column], axis=1),
                 target_series=x_dataframe[column],
                 model_params=self.model_params["current"],
             )
+            self.models.append(model_instance)
 
-        # Use ThreadPoolExecutor to train models in parallel
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            # Submit all training tasks and store the future objects
+    def experimental_fit_parallel(
+        self, x_dataframe: pd.DataFrame, max_workers: int = None
+    ) -> None:
+        """Thread-safe parallel model training optimized for performance.
+
+        Args:
+            x_dataframe: DataFrame with features
+            max_workers: Maximum number of worker threads (None for auto-selection)
+        """
+        if self.models:
+            logging.warning("models already trained. skipping re-training.")
+            return
+
+        logging.info("cleaning data...")
+
+        # Clean data (sequential preprocessing)
+        x_dataframe = self._feature_cleaner.drop_constant_values(x_dataframe)
+        x_dataframe = self._feature_cleaner.drop_non_numeric_values(x_dataframe)
+        x_dataframe = self._feature_cleaner.handle_missing_values(x_dataframe)
+
+        logging.info(f"training with {x_dataframe.shape[1]} features.")
+        self.reset_importance_map(x_dataframe.columns)
+        parameters = self.__build_parameters(x_dataframe)
+
+        # Thread-safe collection for models
+        models_lock = threading.Lock()
+        self.models = []
+
+        # Auto-determine optimal number of workers if not specified
+        if max_workers is None:
+            # Use slightly fewer threads than CPUs to avoid resource contention
+            # This is better for GUI applications as it leaves resources for the UI
+            max_workers = max(1, multiprocessing.cpu_count() - 1)
+
+        logging.info(f"using {max_workers} parallel workers for model training")
+
+        # Define worker function for a single model training task
+        def train_model_for_column(
+            column: str,
+        ) -> Tuple[Any, str, Optional[str]]:
+            try:
+                logging.info(f"training model for '{column}'")
+                df_without_column = x_dataframe.drop([column], axis=1)
+                target = x_dataframe[column]
+
+                model_instance = self.method(
+                    df_in=df_without_column,
+                    target_series=target,
+                    model_params=self.model_params["current"],
+                )
+
+                # Success
+                return model_instance, column, None
+            except Exception as e:
+                # Error handling
+                error_msg = f"error training model for '{column}': {str(e)}"
+                logging.error(error_msg)
+                return None, column, error_msg
+
+        # Use ThreadPoolExecutor for parallel training
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all training tasks
             future_to_column = {
-                executor.submit(train_model, column): column
-                for column in parameters
+                executor.submit(train_model_for_column, col): col
+                for col in parameters
             }
 
-            # Initialize empty models list with the right size
-            self.models = [None] * len(parameters)
-
-            # As each future completes, store the model in the correct position
-            for i, (future, column) in enumerate(
-                zip(
-                    concurrent.futures.as_completed(future_to_column),
-                    parameters,
-                )
-            ):
+            # Process results as they complete
+            for future in as_completed(future_to_column):
+                column = future_to_column[future]
                 try:
-                    model_instance = future.result()
-                    self.models[i] = model_instance
+                    model, col, error = future.result()
+                    if model is not None:
+                        with models_lock:
+                            self.models.append(model)
+                        logging.info(f"model for '{col}' trained successfully")
+                    else:
+                        logging.error(
+                            f"failed to train model for '{col}': {error}"
+                        )
                 except Exception as exc:
                     logging.error(
-                        f"Model training for {column} generated an exception: {exc}"
+                        f"critical failure in model training for '{column}': {exc}"
                     )
+
+        logging.info(
+            f"parallel training completed. trained {len(self.models)} models"
+        )
 
     def transform(self) -> None:
         raise NotImplementedError
@@ -127,7 +196,7 @@ class XCorr(BaseEstimator, TransformerMixin):
         self,
         df_in: pd.DataFrame,
         target_series: pd.Series,
-        model_params: dict[str, any],
+        model_params: dict[str, Any],
     ) -> XGBRegressor:
         df_in_train, df_in_test, target_train, target_test = train_test_split(
             df_in,
@@ -136,8 +205,17 @@ class XCorr(BaseEstimator, TransformerMixin):
             random_state=self.xcorr_params["random_state"],
         )
 
+        # For XGBoost, limit threads for better parallel scaling when in parallel mode
+        local_model_params = model_params.copy()
+        if (
+            self.regressor == "XGBoosting"
+            and "nthread" not in local_model_params
+        ):
+            # Use 2 threads per model to avoid oversubscription
+            local_model_params["nthread"] = 2
+
         model_dict = {
-            "XGBoosting": XGBRegressor(**model_params),
+            "XGBoosting": XGBRegressor(**local_model_params),
             "RandomForest": RandomForestRegressor(),
             "AdaBoost": AdaBoostRegressor(),
             "ExtraTrees": ExtraTreesRegressor(),
@@ -149,6 +227,7 @@ class XCorr(BaseEstimator, TransformerMixin):
 
         target_predict = regressor.predict(df_in_test)
 
+        # Thread-safe metric logging
         self._log_rmse(target_test, target_predict, str(target_series.name))
         self._log_mae(target_test, target_predict, str(target_series.name))
         self._log_r2(target_test, target_predict, str(target_series.name))
@@ -165,10 +244,11 @@ class XCorr(BaseEstimator, TransformerMixin):
     ) -> None:
         try:
             mae = mean_absolute_error(target_test, target_predict)
-            log_metric(f"{target_name}_mae", mae)
-            logging.info(f"Mean Absolute Error for '{target_name}': {mae}")
+            with mlflow_lock:
+                log_metric(f"{target_name}_mae", mae)
+            logging.info(f"mean absolute error for '{target_name}': {mae}")
         except Exception as e:
-            logging.error(f"Failed to log MAE for {target_name}: {e}")
+            logging.error(f"failed to log mae for {target_name}: {e}")
 
     @staticmethod
     def _log_r2(
@@ -176,31 +256,35 @@ class XCorr(BaseEstimator, TransformerMixin):
     ) -> None:
         try:
             r2 = r2_score(target_test, target_predict)
-            log_metric(f"{target_name}_r2", r2)
-            logging.info(f"R² Score for '{target_name}': {r2}")
+            with mlflow_lock:
+                log_metric(f"{target_name}_r2", r2)
+            logging.info(f"r² score for '{target_name}': {r2}")
         except Exception as e:
-            logging.error(f"Failed to log R² for {target_name}: {e}")
+            logging.error(f"failed to log r² for {target_name}: {e}")
 
     def reset_importance_map(self, columns: pd.Index) -> None:
-        if self.importances_map is None:
-            self.importances_map = pd.DataFrame(columns=columns)
+        with self._importances_lock:
+            if self._importances_map is None:
+                self._importances_map = pd.DataFrame(columns=columns)
 
     def common_mlf_logging(self) -> None:
-        log_params(
-            {
-                "Test size": self.xcorr_params["test_size"],
-                "Model": "XGBRegressor",
-            }
-        )
+        with mlflow_lock:
+            log_params(
+                {
+                    "Test size": self.xcorr_params["test_size"],
+                    "Model": "XGBRegressor",
+                }
+            )
 
     def regression_mlf_logging(self) -> None:
         self.common_mlf_logging()
-        log_param("regressor_name", self.model_params["regressor_name"])
+        with mlflow_lock:
+            log_param("regressor_name", self.model_params["regressor_name"])
 
     def __build_parameters(self, x_dataframe: pd.DataFrame) -> list[str]:
         feature_columns = self.xcorr_params["feature_columns"]
         if feature_columns:
-            logging.info(f"Removing features: {feature_columns}")
+            logging.info(f"removing features: {feature_columns}")
             return [
                 col for col in x_dataframe.columns if col not in feature_columns
             ]
@@ -211,8 +295,9 @@ class XCorr(BaseEstimator, TransformerMixin):
         target_test: pd.Series, target_predict: np.ndarray, target_name: str
     ) -> None:
         rmse = np.sqrt(mean_squared_error(target_test, target_predict))
-        log_metric(f"{target_name}_rmse", rmse)
-        logging.info(f"RMSE for '{target_name}': {rmse}")
+        with mlflow_lock:
+            log_metric(f"{target_name}_rmse", rmse)
+        logging.info(f"rmse for '{target_name}': {rmse}")
 
     def _log_feature_importances(
         self,
@@ -225,6 +310,7 @@ class XCorr(BaseEstimator, TransformerMixin):
             index=[target_name],
         )
         imp_df.dropna(axis=1, how="all", inplace=True)
-        self.importances_map.dropna(axis=1, how="all", inplace=True)
 
-        self.importances_map = pd.concat([self.importances_map, imp_df])
+        with self._importances_lock:
+            self._importances_map.dropna(axis=1, how="all", inplace=True)
+            self._importances_map = pd.concat([self._importances_map, imp_df])

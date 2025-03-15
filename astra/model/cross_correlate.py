@@ -46,6 +46,7 @@ def cross_correlate(
     input_dataframe.drop(index_column, axis=1, inplace=True)
 
     xcorr.fit(input_dataframe)
+    # xcorr.experimental_fit_parallel(input_dataframe, 12)
 
     return SatelliteGraphData(
         **_create_graph_data(
