@@ -23,6 +23,7 @@ services:
         volumes:
             - ./telegraf.toml:/etc/telegraf/telegraf.conf:Z
             - ./../data:/data:Z
+            - ./processed:/processed:Z
         depends_on:
             - influxdb
         env_file:
