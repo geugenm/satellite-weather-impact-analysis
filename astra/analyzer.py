@@ -19,7 +19,7 @@ from astra.graph import create_dependency_graph
 from astra.model.cross_correlate import cross_correlate
 from astra.config.data import DataConfig
 from astra.paths import CONFIG_PATH
-from astra.influxdb.wrapper import InfluxWrapper
+from astra.influxdb.retreive_wrapper import RetreiveWrapper
 
 
 console = Console()
@@ -88,7 +88,6 @@ def process_satellite(
         Path(f"{CONFIG_PATH}/data.yaml"), help="Path to configuration file"
     ),
 ) -> None:
-    """Process satellite data and generate dependency graph."""
     try:
         setup_logging()
         config = load_config(config_path)
@@ -98,9 +97,9 @@ def process_satellite(
         mlflow.set_experiment(satellite_name)
 
         with mlflow.start_run(run_name="build_graph"):
-            influx = InfluxWrapper(
+            influx = RetreiveWrapper(
                 url="http://localhost:8086",
-                token="tTwNTA_g8Kt2QuyvcJEyxb0Pg2HqmlRkGun0syMsBFZf8KTQgZhjX7AyUzVlbC13GJNBcEuI-ZNqC2iIBb9oCg==",
+                token="my_super_secret_token",
                 org="org",
             )
 

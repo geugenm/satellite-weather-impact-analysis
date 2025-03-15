@@ -7,7 +7,7 @@ import logging
 
 
 @dataclass
-class InfluxWrapper:
+class RetreiveWrapper:
     url: str
     token: str
     org: str

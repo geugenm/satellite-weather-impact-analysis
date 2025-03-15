@@ -30,8 +30,6 @@ def load_config(args: argparse.Namespace) -> InfluxConfig:
         org=getenv("INFLUX_ORG", "org"),
         bucket=args.bucket or getenv("INFLUX_BUCKET", "telemetry"),
         token=args.token or getenv("INFLUX_TOKEN", ""),
-        user=args.username or getenv("INFLUX_USER", "admin"),
-        password=args.password or getenv("INFLUX_PASS", "admin"),
     )
 
 
@@ -81,19 +79,10 @@ def process_files(input_dir: Path, config: InfluxConfig) -> None:
         raise FileNotFoundError(f"No CSV files found in '{input_dir}'.")
     logging.info(f"Processing {len(csv_files)} CSV file(s) from '{input_dir}'.")
 
-    # Instantiate the Influx client using token or user/password
-    if config.token:
-        client = InfluxDBClient(
-            url=config.url, token=config.token, org=config.org
-        )
-    else:
-        client = InfluxDBClient(
-            url=config.url,
-            username=config.user,
-            password=config.password,
-            org=config.org,
-        )
+    if not config.token:
+        return
 
+    client = InfluxDBClient(url=config.url, token=config.token, org=config.org)
     with client:
         init_influx_db(client, config.bucket, config.org)
         for file in csv_files:
@@ -112,12 +101,10 @@ if __name__ == "__main__":
         description="Load CSV files into InfluxDB using token or user/pass authentication.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
-                %(prog)s /path/to/csv/dir
-                %(prog)s /path/to/csv/dir --username your_user --password your_pass
-                %(prog)s /path/to/csv/dir --token your_api_token
+                %(prog)s /path/to/csv/dir --token your_api_token --bucket "bucket_name"
 
                 Environment variables:
-                INFLUX_URL, INFLUX_ORG, INFLUX_BUCKET, INFLUX_TOKEN, INFLUX_USER, INFLUX_PASS
+                INFLUX_URL, INFLUX_ORG, INFLUX_TOKEN
 
                 Notes:
                 - Creates a new bucket, destroying any existing data.
@@ -128,8 +115,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "input_dir", type=Path, help="Directory containing CSV files."
     )
-    parser.add_argument("--username", type=str, help="Override INFLUX_USER.")
-    parser.add_argument("--password", type=str, help="Override INFLUX_PASS.")
     parser.add_argument("--bucket", type=str, help="Override INFLUX_BUCKET.")
     parser.add_argument("--token", type=str, help="Override INFLUX_TOKEN.")
     args = parser.parse_args()
