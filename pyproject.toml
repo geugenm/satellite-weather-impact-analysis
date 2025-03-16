@@ -53,6 +53,7 @@ dependencies = [
 
 [project.scripts]
 astra = "astra.cli:app"
+ast = "astra.cli:app"
 
 [tool.hatch.version]
 source = "vcs"
