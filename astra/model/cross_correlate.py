@@ -25,6 +25,7 @@ def cross_correlate(
     xcorr_configuration_file: Path,
     input_dataframe: pd.DataFrame,
     index_column: str,
+    enable_experimental_parallelism: bool,
 ) -> dict[any, any]:
     """
     Catch linear and non-linear correlations between all columns of the
@@ -45,8 +46,13 @@ def cross_correlate(
     input_dataframe.set_index(index_column)
     input_dataframe.drop(index_column, axis=1, inplace=True)
 
-    xcorr.fit(input_dataframe)
-    # xcorr.experimental_fit_parallel(input_dataframe, 12)
+    if enable_experimental_parallelism:
+        import os
+
+        workers_count = os.cpu_count() or 4
+        xcorr.experimental_fit_parallel(input_dataframe, workers_count)
+    else:
+        xcorr.fit(input_dataframe)
 
     return SatelliteGraphData(
         **_create_graph_data(

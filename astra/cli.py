@@ -8,6 +8,7 @@ from importlib.metadata import version, PackageNotFoundError
 import astra.analyzer
 import astra.influxdb.push
 import astra.fetch.satnogs_dashboard.main
+import astra.fetch.sun.download_all
 
 app = typer.Typer(help="Satellite Weather Impact Analysis Tool")
 
@@ -25,21 +26,11 @@ app.add_typer(
     help="Download data from satnogs dashboard for satellite",
 )
 
-
-# Path to your commands directory
-commands_dir = Path(__file__) / "fetch/sun"
-
-# Dynamically import and add all command modules
-for file in os.listdir(commands_dir):
-    if file.endswith(".py") and not file.startswith("_"):
-        module_name = file[:-3]  # Remove .py extension
-        module = importlib.import_module(
-            f".commands.{module_name}", package=__package__
-        )
-
-        # If the module has a Typer app, add it as a subcommand
-        if hasattr(module, "app"):
-            app.add_typer(module.app, name=module_name)
+app.add_typer(
+    astra.fetch.sun.download_all.app,
+    name="download_sun",
+    help="Download data from satnogs dashboard for satellite",
+)
 
 
 def get_version() -> str:

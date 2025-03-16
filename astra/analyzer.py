@@ -65,12 +65,14 @@ def normalize_df(
     ).assign(**{time_col: df[time_col]})
 
 
-def process_data(df: pd.DataFrame, config: DataConfig) -> pd.DataFrame:
-    return df.drop(list(config.format.exclude_columns), axis=1).pipe(
+def process_data(
+    df: pd.DataFrame, config: DataConfig, exclude_columns: list[str] = []
+) -> pd.DataFrame:
+    return df.drop(list(exclude_columns), axis=1).pipe(
         partial(
             normalize_df,
             time_col=config.format.time_column,
-            exclude_cols=config.format.exclude_columns,
+            exclude_cols=exclude_columns,
         )
     )
 
@@ -79,13 +81,19 @@ def load_mapping(path: Path) -> dict:
     return yaml.safe_load(path.open())
 
 
-@app.command()
+@app.callback(invoke_without_command=True)
 def process_satellite(
     satellite_name: str = typer.Argument(
         ..., help="Satellite identifier to process"
     ),
     config_path: Path = typer.Option(
         Path(f"{CONFIG_PATH}/data.yaml"), help="Path to configuration file"
+    ),
+    parallel: bool = typer.Option(
+        False,
+        "--parallel",
+        "-p",
+        help="Enable experimental parallel processing. This means that u will render only graph without other artifacts for now.",
     ),
 ) -> None:
     try:
@@ -121,6 +129,7 @@ def process_satellite(
                 input_dataframe=dynamics,
                 index_column=config.format.time_column,
                 xcorr_configuration_file=Path("cfg/model.yaml"),
+                enable_experimental_parallelism=parallel,
             )
             mlflow.log_dict(graph_data, "graph/graph.yaml")
 
