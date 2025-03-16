@@ -1,5 +1,5 @@
 fetch:
-    base_dir: data # Base directory for data storage
+    base_dir: data-raw # Base directory for data storage
 
 format:
     time_column: time # Column name containing timestamps
