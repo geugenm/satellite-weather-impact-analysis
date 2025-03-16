@@ -75,8 +75,7 @@ Choose your preferred package manager:
 **pip** (standard)
 
 ```bash
-pip install -e ".[dev]"  # Unix/Windows
-pip install -e '.[dev]'  # Zsh
+pip install -e ".[dev]"
 ```
 
 **uv** (high performance)
@@ -95,7 +94,7 @@ poetry install --with dev
 
 3. **Start Docker Compose**
 
-```
+```bash
 sudo docker compose -f docker/compose.yml up
 ```
 
@@ -103,33 +102,31 @@ sudo docker compose -f docker/compose.yml up
 
 **Solar Data:**
 
-```
-mkdir -p data/sun && cd data/sun
-python ../../astra/fetch/sun/fluxtable.py
-# Execute other scripts in the 'sun' directory except 'data_processor.py'
+```bash
+astra download_sun
 ```
 
 **Satellite Data (Example):**
 
-```
-cd ..
-python ../astra/fetch/satnogs_dashboard/main.py \
+```bash
+cd data
+astra download \
     https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1 \
     veronika --from="-2y" --to="now"
 ```
 
 5. **Push to InfluxDB (from Docker Container)**
 
-```
-python ../astra/influxdb/push.py ./sun --bucket="solar" --token="<your-influxdb-token>"
-python ../astra/influxdb/push.py ./veronika --bucket="veronika" --token="<your-influxdb-token>"
+```bash
+astra push ./sun --bucket="solar" --token="<your-influxdb-token>"
+astra push ./veronika --bucket="veronika" --token="<your-influxdb-token>"
 ```
 
 6. **Analyze Data**
 
-```
+```bash
 cd ..
-python astra/analyzer.py veronika
+astra analyze veronika
 ```
 
 > **Note:** This workflow is in development and subject to changes.
