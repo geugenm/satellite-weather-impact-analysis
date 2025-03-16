@@ -102,7 +102,7 @@ def process_files(input_dir: Path, config: InfluxConfig) -> None:
                 logging.error(f"Failed processing file '{file}': {e}")
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
     input_dir: Path = typer.Argument(
         ..., help="Directory containing CSV files.", exists=True, dir_okay=True
