@@ -36,7 +36,7 @@ def load_config(path: Path) -> DataConfig:
     return DataConfig.from_yaml(path)
 
 
-def load_csv_files(data_dir: Path, time_column: str) -> pl.DataFrame:
+def load_time_series_data(data_dir: Path, time_column: str) -> pl.DataFrame:
     """Load and merge all CSV files in directory that contain the time column."""
     csv_files = list(data_dir.glob("**/*.csv"))
 
@@ -79,8 +79,8 @@ def load_csv_files(data_dir: Path, time_column: str) -> pl.DataFrame:
         return combined_df
 
 
-def interpolate_df(df: pl.DataFrame, time_col: str) -> pl.DataFrame:
-    """Interpolate missing values in a Polars DataFrame."""
+def interpolate_time_series(df: pl.DataFrame, time_col: str) -> pl.DataFrame:
+    """Interpolate missing values in a time series DataFrame."""
     # Convert time column to datetime
     df = df.with_columns(pl.col(time_col).str.to_datetime())
 
@@ -107,9 +107,9 @@ def interpolate_df(df: pl.DataFrame, time_col: str) -> pl.DataFrame:
     return df
 
 
-def normalize_df(
+def normalize_time_series(
     df: pl.DataFrame, time_col: str, exclude_cols: list
-) -> pl.DataFrame:
+) -> pd.DataFrame:
     """Normalize numeric columns using StandardScaler."""
     # Convert to pandas for StandardScaler
     pdf = df.to_pandas()
@@ -132,28 +132,24 @@ def normalize_df(
     return normalized_df
 
 
-def process_data(
+def process_time_series(
     df: pl.DataFrame, config: DataConfig, exclude_columns: list[str] = []
 ) -> pd.DataFrame:
-    """Process data by dropping columns and normalizing."""
+    """Process time series data by dropping columns and normalizing."""
     # Drop excluded columns
     df = df.drop(exclude_columns)
 
     # Interpolate missing values
-    df = interpolate_df(df, config.format.time_column)
+    df = interpolate_time_series(df, config.format.time_column)
 
     # Convert to pandas and normalize
-    return normalize_df(df, config.format.time_column, exclude_columns)
-
-
-def load_mapping(path: Path) -> dict:
-    return yaml.safe_load(path.open())
+    return normalize_time_series(df, config.format.time_column, exclude_columns)
 
 
 @app.callback(invoke_without_command=True)
-def process_satellite(
-    satellite_name: str = typer.Argument(
-        ..., help="satellite identifier to process"
+def analyze_time_series(
+    graph_name: str = typer.Argument(
+        ..., help="name for the analysis graph and experiment"
     ),
     data_dir: Path = typer.Option(
         Path("./data"), help="directory containing csv files to process"
@@ -167,35 +163,77 @@ def process_satellite(
         "-p",
         help="enable parallel processing (graph rendering only)",
     ),
+    use_mlflow: bool = typer.Option(
+        True,
+        "--mlflow/--no-mlflow",
+        help="enable/disable logging to mlflow",
+    ),
 ) -> None:
+    """Analyze time series data from CSV files and generate correlation graphs."""
     try:
         setup_logging()
         config = load_config(config_path)
 
-        mlflow.set_tracking_uri("http://localhost:5000")
-        mlflow.set_experiment(satellite_name)
+        logging.info(f"analyzing time series data for: {graph_name}")
+        logging.info(f"loading csv files from {data_dir}")
 
-        with mlflow.start_run(run_name="build_graph"):
-            logging.info(f"loading csv files from {data_dir}")
+        # Load and merge all CSV files using Polars
+        polars_df = load_time_series_data(data_dir, config.format.time_column)
 
-            # Load and merge all CSV files using Polars
-            polars_df = load_csv_files(data_dir, config.format.time_column)
+        # Process data and convert to pandas for analysis
+        dynamics = process_time_series(polars_df, config)
 
-            # Process data and convert to pandas for MLflow compatibility
-            dynamics = process_data(polars_df, config)
+        # Log to MLflow if enabled
+        if use_mlflow:
+            mlflow.set_tracking_uri("http://localhost:5000")
+            mlflow.set_experiment(graph_name)
 
-            # Log input data to MLflow (requires pandas)
-            mlflow.log_input(
-                mlflow.data.from_pandas(dynamics, name="satellite_parameters")
-            )
+            with mlflow.start_run(run_name="build_graph"):
+                # Log input data to MLflow
+                mlflow.log_input(
+                    mlflow.data.from_pandas(
+                        dynamics, name="time_series_parameters"
+                    )
+                )
 
+                graph_data = cross_correlate(
+                    input_dataframe=dynamics,
+                    index_column=config.format.time_column,
+                    xcorr_configuration_file=Path(f"{CONFIG_PATH}/model.yaml"),
+                    enable_experimental_parallelism=parallel,
+                )
+                mlflow.log_dict(graph_data, "graph/graph.yaml")
+
+                # Create column-to-file mapping excluding time column
+                map = {}
+                for file_path in data_dir.glob("**/*.csv"):
+                    try:
+                        df = pl.scan_csv(
+                            file_path, infer_schema_length=1000
+                        ).collect()
+                        for col in df.columns:
+                            if col != config.format.time_column:
+                                map[col] = {
+                                    "source": file_path.name,
+                                    "measurement": col,
+                                }
+                    except Exception as e:
+                        logging.warning(
+                            f"error reading {file_path} for mapping: {str(e)}"
+                        )
+
+                graph_content = create_dependency_graph(
+                    graph_data, map
+                ).render_embed()
+                mlflow.log_text(graph_content, "graph/graph.html")
+        else:
+            # Process without MLflow
             graph_data = cross_correlate(
                 input_dataframe=dynamics,
                 index_column=config.format.time_column,
                 xcorr_configuration_file=Path(f"{CONFIG_PATH}/model.yaml"),
                 enable_experimental_parallelism=parallel,
             )
-            mlflow.log_dict(graph_data, "graph/graph.yaml")
 
             # Create column-to-file mapping excluding time column
             map = {}
@@ -215,17 +253,23 @@ def process_satellite(
                         f"error reading {file_path} for mapping: {str(e)}"
                     )
 
+            # Save graph locally
             graph_content = create_dependency_graph(
                 graph_data, map
             ).render_embed()
-            mlflow.log_text(graph_content, "graph/graph.html")
+            output_path = Path(f"./output/{graph_name}")
+            output_path.mkdir(parents=True, exist_ok=True)
+            with open(output_path / "graph.html", "w") as f:
+                f.write(graph_content)
+            with open(output_path / "graph.yaml", "w") as f:
+                yaml.dump(graph_data, f)
 
-            console.print(
-                f"[green]successfully processed {satellite_name}[/green]"
-            )
+        console.print(
+            f"[green]successfully analyzed time series data: {graph_name}[/green]"
+        )
 
     except Exception as e:
-        console.print(f"[red]error processing satellite data: {str(e)}[/red]")
+        console.print(f"[red]error analyzing time series data: {str(e)}[/red]")
         logging.exception("detailed error information:")
         raise typer.Exit(code=1)
 
