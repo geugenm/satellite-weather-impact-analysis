@@ -10,10 +10,6 @@ import yaml
 import mlflow
 from sklearn.preprocessing import StandardScaler
 
-# fix for mlflow - https://github.com/SciTools/iris/issues/4879
-import matplotlib
-
-matplotlib.use("QtAgg")
 
 from astra.graph import create_dependency_graph
 from astra.model.cross_correlate import cross_correlate
@@ -185,6 +181,11 @@ def analyze_time_series(
 
         # Log to MLflow if enabled
         if use_mlflow:
+            # fix for mlflow - https://github.com/SciTools/iris/issues/4879
+            import matplotlib
+
+            matplotlib.use("QtAgg")
+
             mlflow.set_tracking_uri("http://localhost:5000")
             mlflow.set_experiment(graph_name)
 
