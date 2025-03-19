@@ -70,7 +70,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
-python_files = "test_*.py"
+python_files = "*.py"
 addopts = [
     "--import-mode=importlib",
     "--strict-markers",

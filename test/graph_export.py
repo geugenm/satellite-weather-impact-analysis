@@ -11,7 +11,7 @@ def test_graph_path() -> Path:
     return Path(
         os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "src/test_graph.yaml",
+            "data/test_graph.yaml",
         )
     )
 

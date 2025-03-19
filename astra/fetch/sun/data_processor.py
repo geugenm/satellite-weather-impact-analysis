@@ -38,7 +38,7 @@ class DataProcessor(ABC):
         )
         df = df.sort_values(by="time").reset_index(drop=True)
 
-        file_name = self.config.fetch.base_dir / f"sun/{self.output_prefix}.csv"
+        file_name = Path(f"{self.output_prefix}.csv")
         logging.info(f"Saving file: '{file_name.absolute()}'")
 
         df.to_csv(

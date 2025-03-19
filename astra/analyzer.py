@@ -4,6 +4,7 @@ import typer
 from rich.console import Console
 from rich.logging import RichHandler
 import logging
+import polars as pl
 import pandas as pd
 import yaml
 import mlflow
@@ -19,8 +20,6 @@ from astra.graph import create_dependency_graph
 from astra.model.cross_correlate import cross_correlate
 from astra.config.data import DataConfig
 from astra.paths import CONFIG_PATH
-from astra.influxdb.pull_wrapper import PullWrapper
-
 
 console = Console()
 app = typer.Typer(rich_markup_mode="rich")
@@ -38,43 +37,114 @@ def load_config(path: Path) -> DataConfig:
     return DataConfig.from_yaml(path)
 
 
-def interpolate_df(df: pd.DataFrame, time_col: str) -> pd.DataFrame:
-    return (
-        df.assign(time=lambda x: pd.to_datetime(x[time_col]))
-        .groupby(time_col, as_index=False)
-        .mean()
-        .set_index(time_col)
-        .pipe(lambda x: x.interpolate(method="time").ffill().bfill())
-        .reset_index()
+def load_csv_files(data_dir: Path, time_column: str) -> pl.DataFrame:
+    """Load and merge all CSV files in directory that contain the time column."""
+    csv_files = list(data_dir.glob("**/*.csv"))
+
+    if not csv_files:
+        raise ValueError(f"no csv files found in {data_dir}")
+
+    valid_dfs = []
+
+    for file_path in csv_files:
+        try:
+            # Try to infer schema from first few rows
+            df = pl.scan_csv(file_path, infer_schema_length=1000)
+
+            # Check if time column exists in this file
+            if time_column in df.collect().columns:
+                valid_dfs.append(df)
+            else:
+                logging.warning(
+                    f"skipping {file_path} - missing '{time_column}' column"
+                )
+        except Exception as e:
+            logging.warning(f"error reading {file_path}: {str(e)}")
+
+    if not valid_dfs:
+        raise ValueError(
+            f"no valid csv files with '{time_column}' column found"
+        )
+
+    # Collect and concatenate all valid dataframes
+    try:
+        combined_df = pl.concat(valid_dfs, how="diagonal_relaxed").collect()
+        return combined_df
+    except Exception as e:
+        logging.warning(
+            f"schema mismatch detected, trying with schema relaxation: {str(e)}"
+        )
+        combined_df = pl.concat(
+            [df.collect() for df in valid_dfs], how="diagonal_relaxed"
+        )
+        return combined_df
+
+
+def interpolate_df(df: pl.DataFrame, time_col: str) -> pl.DataFrame:
+    """Interpolate missing values in a Polars DataFrame."""
+    # Convert time column to datetime
+    df = df.with_columns(pl.col(time_col).str.to_datetime())
+
+    # Group by time and calculate mean
+    df = df.group_by(time_col).mean()
+
+    # Sort by time for interpolation
+    df = df.sort(time_col)
+
+    # Interpolate missing values
+    df = df.interpolate()
+
+    # Forward and backward fill remaining nulls
+    numeric_cols = [col for col in df.columns if col != time_col]
+    df = df.with_columns(
+        [
+            pl.col(col)
+            .fill_null(strategy="forward")
+            .fill_null(strategy="backward")
+            for col in numeric_cols
+        ]
     )
+
+    return df
 
 
 def normalize_df(
-    df: pd.DataFrame, time_col: str, exclude_cols: list
-) -> pd.DataFrame:
+    df: pl.DataFrame, time_col: str, exclude_cols: list
+) -> pl.DataFrame:
+    """Normalize numeric columns using StandardScaler."""
+    # Convert to pandas for StandardScaler
+    pdf = df.to_pandas()
+
     numeric_cols = [
         col
-        for col in df.select_dtypes(include=["float64", "int64"]).columns
+        for col in pdf.select_dtypes(include=["float64", "int64"]).columns
         if col not in exclude_cols
     ]
 
-    return pd.DataFrame(
-        StandardScaler().fit_transform(df[numeric_cols]),
-        columns=numeric_cols,
-        index=df.index,
-    ).assign(**{time_col: df[time_col]})
+    # Apply StandardScaler
+    normalized_data = StandardScaler().fit_transform(pdf[numeric_cols])
+
+    # Create new DataFrame with normalized data
+    normalized_df = pd.DataFrame(
+        normalized_data, columns=numeric_cols, index=pdf.index
+    )
+    normalized_df[time_col] = pdf[time_col]
+
+    return normalized_df
 
 
 def process_data(
-    df: pd.DataFrame, config: DataConfig, exclude_columns: list[str] = []
+    df: pl.DataFrame, config: DataConfig, exclude_columns: list[str] = []
 ) -> pd.DataFrame:
-    return df.drop(list(exclude_columns), axis=1).pipe(
-        partial(
-            normalize_df,
-            time_col=config.format.time_column,
-            exclude_cols=exclude_columns,
-        )
-    )
+    """Process data by dropping columns and normalizing."""
+    # Drop excluded columns
+    df = df.drop(exclude_columns)
+
+    # Interpolate missing values
+    df = interpolate_df(df, config.format.time_column)
+
+    # Convert to pandas and normalize
+    return normalize_df(df, config.format.time_column, exclude_columns)
 
 
 def load_mapping(path: Path) -> dict:
@@ -84,16 +154,19 @@ def load_mapping(path: Path) -> dict:
 @app.callback(invoke_without_command=True)
 def process_satellite(
     satellite_name: str = typer.Argument(
-        ..., help="Satellite identifier to process"
+        ..., help="satellite identifier to process"
+    ),
+    data_dir: Path = typer.Option(
+        Path("./data"), help="directory containing csv files to process"
     ),
     config_path: Path = typer.Option(
-        Path(f"{CONFIG_PATH}/data.yaml"), help="Path to configuration file"
+        Path(f"{CONFIG_PATH}/data.yaml"), help="path to configuration file"
     ),
     parallel: bool = typer.Option(
         False,
         "--parallel",
         "-p",
-        help="Enable experimental parallel processing. This means that u will render only graph without other artifacts for now.",
+        help="enable experimental parallel processing. this means that u will render only graph without other artifacts for now.",
     ),
 ) -> None:
     try:
@@ -101,26 +174,18 @@ def process_satellite(
         config = load_config(config_path)
 
         mlflow.set_tracking_uri("http://localhost:5000")
-        # mlflow.enable_system_metrics_logging() - enable for profiling
         mlflow.set_experiment(satellite_name)
 
         with mlflow.start_run(run_name="build_graph"):
-            influx = PullWrapper(
-                url="http://localhost:8086",
-                token="my_super_secret_token",
-                org="org",
-            )
+            logging.info(f"loading csv files from {data_dir}")
 
-            dynamics = (
-                influx.get_bucket_df(
-                    time_from="-2y",
-                    time_to="now()",
-                    bucket_list=["solar", satellite_name],
-                )
-                .reset_index()
-                .pipe(process_data, config)
-            )
+            # Load and merge all CSV files using Polars
+            polars_df = load_csv_files(data_dir, config.format.time_column)
 
+            # Process data and convert to pandas for MLflow compatibility
+            dynamics = process_data(polars_df, config)
+
+            # Log input data to MLflow (requires pandas)
             mlflow.log_input(
                 mlflow.data.from_pandas(dynamics, name="satellite_parameters")
             )
@@ -128,12 +193,15 @@ def process_satellite(
             graph_data = cross_correlate(
                 input_dataframe=dynamics,
                 index_column=config.format.time_column,
-                xcorr_configuration_file=Path("cfg/model.yaml"),
+                xcorr_configuration_file=Path(f"{CONFIG_PATH}/model.yaml"),
                 enable_experimental_parallelism=parallel,
             )
             mlflow.log_dict(graph_data, "graph/graph.yaml")
 
-            map = influx.get_bucket_sources(["solar", satellite_name])
+            # Create a simple mapping from filenames
+            map = {
+                Path(file).stem: str(file) for file in data_dir.glob("**/*.csv")
+            }
 
             graph_content = create_dependency_graph(
                 graph_data, map
@@ -141,11 +209,53 @@ def process_satellite(
             mlflow.log_text(graph_content, "graph/graph.html")
 
             console.print(
-                f"[green]Successfully processed {satellite_name}[/green]"
+                f"[green]successfully processed {satellite_name}[/green]"
             )
 
     except Exception as e:
-        console.print(f"[red]Error processing satellite data: {str(e)}[/red]")
+        console.print(f"[red]error processing satellite data: {str(e)}[/red]")
+        logging.exception("detailed error information:")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def list_columns(
+    data_dir: Path = typer.Argument(
+        ..., help="directory containing csv files to analyze"
+    ),
+) -> None:
+    """List all available columns across CSV files in the directory."""
+    try:
+        setup_logging()
+        csv_files = list(data_dir.glob("**/*.csv"))
+
+        if not csv_files:
+            console.print(f"[yellow]no csv files found in {data_dir}[/yellow]")
+            return
+
+        all_columns = set()
+        file_columns = {}
+
+        for file_path in csv_files:
+            try:
+                df = pl.scan_csv(file_path, infer_schema_length=1000).collect()
+                file_columns[file_path.name] = df.columns
+                all_columns.update(df.columns)
+            except Exception as e:
+                console.print(
+                    f"[yellow]error reading {file_path}: {str(e)}[/yellow]"
+                )
+
+        console.print("[bold]all columns found across files:[/bold]")
+        for col in sorted(all_columns):
+            console.print(f"  - {col}")
+
+        console.print("\n[bold]columns by file:[/bold]")
+        for filename, columns in file_columns.items():
+            console.print(f"[bold]{filename}[/bold]: {', '.join(columns)}")
+
+    except Exception as e:
+        console.print(f"[red]error listing columns: {str(e)}[/red]")
         raise typer.Exit(code=1)
 
 
