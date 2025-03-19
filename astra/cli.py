@@ -1,7 +1,4 @@
-import importlib
-import os
 import typer
-from pathlib import Path
 from typing import Optional
 from importlib.metadata import version, PackageNotFoundError
 
@@ -9,6 +6,8 @@ import astra.analyzer
 import astra.influxdb.push
 import astra.fetch.satnogs_dashboard.main
 import astra.fetch.sun.download_all
+import astra.fetch.satnogs_dashboard.batch.download_all
+
 
 app = typer.Typer(help="Satellite Weather Impact Analysis Tool")
 
@@ -30,6 +29,13 @@ app.add_typer(
     astra.fetch.sun.download_all.app,
     name="download_sun",
     help="Download data from satnogs dashboard for satellite",
+)
+
+
+app.add_typer(
+    astra.fetch.satnogs_dashboard.batch.download_all.batch_app,
+    name="download_all_sats",
+    help="Download data from satnogs dashboard for all satellites",
 )
 
 

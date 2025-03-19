@@ -372,7 +372,7 @@ async def grafana_fetch(url: str, output_dir: Path):
 app = typer.Typer(help="Enterprise Grafana Scraper with Enhanced Time Handling")
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
     url: str = typer.Argument(..., help="Dashboard URL"),
     output_dir: str = typer.Argument(..., help="Directory for processed CSVs"),
