@@ -1,30 +1,25 @@
+#!/usr/bin/env python3
 import typer
 from typing import Optional
 from importlib.metadata import version, PackageNotFoundError
 
-import astra.analyzer
-import astra.fetch.satnogs_dashboard.main
-import astra.fetch.sun.download_all
+from astra.analyzer import app as analyzer_app
+from astra.fetch.satnogs_dashboard.main import app as satnogs_app
+from astra.fetch.sun.download_all import app as sun_app
 
-
-app = typer.Typer(help="Satellite Weather Impact Analysis Tool")
-
-app.add_typer(
-    astra.analyzer.app, name="analyze", help="Analyze in-database satellites"
-)
-
+app = typer.Typer(help="satellite weather impact analysis tool")
 
 app.add_typer(
-    astra.fetch.satnogs_dashboard.main.app,
-    name="download",
-    help="Download data from satnogs dashboard for satellite",
+    analyzer_app, name="analyze", help="analyze satellite data from database"
 )
 
 app.add_typer(
-    astra.fetch.sun.download_all.app,
-    name="download_sun",
-    help="Download data from satnogs dashboard for satellite",
+    satnogs_app,
+    name="fetch-satnogs",
+    help="download satellite data from satnogs dashboard",
 )
+
+app.add_typer(sun_app, name="fetch-sun", help="download solar activity data")
 
 
 def get_version() -> str:
@@ -36,8 +31,8 @@ def get_version() -> str:
 
 def version_callback(value: bool):
     if value:
-        typer.echo(f"astra cli v{get_version()}")
-        raise typer.Exit()
+        typer.echo(f"astra {get_version()}")
+        raise typer.Exit(0)
 
 
 @app.callback()
@@ -47,14 +42,12 @@ def main(
         "--version",
         "-v",
         callback=version_callback,
-        is_eager=True,  # This makes the version check happen before any command
-        help="Show the application version and exit.",
+        is_eager=True,
+        help="show version and exit",
     ),
 ):
-    """
-    Analyze satellite telemetry data and correlate with weather conditions.
-    """
-    pass  # The version callback handles the version display
+    """analyze satellite telemetry and correlate with weather conditions"""
+    pass
 
 
 if __name__ == "__main__":

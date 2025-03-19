@@ -2,7 +2,7 @@ import importlib.util
 import inspect
 import asyncio
 from pathlib import Path
-from typing import List, Type, Optional
+from typing import List, Type
 import typer
 import logging
 from rich.logging import RichHandler
@@ -65,14 +65,12 @@ async def run_processor(processor_class, file_path, logger):
 @app.callback(invoke_without_command=True)
 def main(
     parallel: bool = typer.Option(
-        False, "--parallel", "-p", help="Run processors in parallel"
+        False, "--parallel", "-p", help="run processors in parallel"
     ),
-    debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
+    debug: bool = typer.Option(False, "--debug", help="enable debug logging"),
 ):
-    """
-    Import all modules in the specified directory and run DataProcessor instances.
-    """
-    # Set up logging
+    """import modules in current directory and run data processors"""
+    # set up logging
     log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(
         level=log_level,
@@ -83,7 +81,7 @@ def main(
 
     current_dir = Path(__file__).parent
 
-    # Get all Python files in the current directory
+    # get all python files in the current directory
     python_files = [
         f
         for f in current_dir.glob("*.py")
@@ -98,7 +96,7 @@ def main(
         processor_count = 0
         tasks = []
 
-        # Import each module and find DataProcessor subclasses
+        # import each module and find data processor subclasses
         for file_path in python_files:
             try:
                 module = import_module(file_path)
@@ -109,12 +107,12 @@ def main(
 
                 for processor_class in processor_classes:
                     if parallel:
-                        # Add to tasks for parallel execution
+                        # add to tasks for parallel execution
                         tasks.append(
                             run_processor(processor_class, file_path, logger)
                         )
                     else:
-                        # Run sequentially
+                        # run sequentially
                         success = await run_processor(
                             processor_class, file_path, logger
                         )
@@ -123,14 +121,14 @@ def main(
             except Exception as e:
                 logger.error(f"error importing {file_path.name}: {str(e)}")
 
-        # If parallel, wait for all tasks to complete
+        # if parallel, wait for all tasks to complete
         if parallel:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             processor_count = sum(1 for r in results if r is True)
 
         logger.info(f"successfully ran {processor_count} data processors")
 
-    # Run the async function
+    # run the async function
     asyncio.run(process_files())
 
 

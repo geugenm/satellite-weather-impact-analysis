@@ -165,7 +165,7 @@ def process_satellite(
         False,
         "--parallel",
         "-p",
-        help="enable experimental parallel processing. this means that u will render only graph without other artifacts for now.",
+        help="enable parallel processing (graph rendering only)",
     ),
 ) -> None:
     try:
@@ -197,13 +197,13 @@ def process_satellite(
             )
             mlflow.log_dict(graph_data, "graph/graph.yaml")
 
+            # Create column-to-file mapping excluding time column
             map = {}
             for file_path in data_dir.glob("**/*.csv"):
                 try:
                     df = pl.scan_csv(
                         file_path, infer_schema_length=1000
                     ).collect()
-                    # Skip the time column when creating the mapping
                     for col in df.columns:
                         if col != config.format.time_column:
                             map[col] = {
