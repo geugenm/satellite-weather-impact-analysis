@@ -4,18 +4,6 @@ networks:
         driver: bridge
 
 services:
-    influxdb:
-        image: influxdb:latest
-        container_name: influxdb
-        restart: unless-stopped
-        ports:
-            - "8086:8086"
-        volumes:
-            - ./influxdbv2:/etc/influxdb2:Z
-        env_file:
-            - path: ./influxv2.env
-              required: true
-
     mlflow:
         image: ghcr.io/mlflow/mlflow:latest
         container_name: mlflow

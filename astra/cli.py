@@ -3,7 +3,6 @@ from typing import Optional
 from importlib.metadata import version, PackageNotFoundError
 
 import astra.analyzer
-import astra.influxdb.push
 import astra.fetch.satnogs_dashboard.main
 import astra.fetch.sun.download_all
 
@@ -14,9 +13,6 @@ app.add_typer(
     astra.analyzer.app, name="analyze", help="Analyze in-database satellites"
 )
 
-app.add_typer(
-    astra.influxdb.push.app, name="push", help="Push fetched data to influx db"
-)
 
 app.add_typer(
     astra.fetch.satnogs_dashboard.main.app,

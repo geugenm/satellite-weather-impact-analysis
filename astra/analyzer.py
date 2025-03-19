@@ -9,7 +9,6 @@ import pandas as pd
 import yaml
 import mlflow
 from sklearn.preprocessing import StandardScaler
-from functools import partial
 
 # fix for mlflow - https://github.com/SciTools/iris/issues/4879
 import matplotlib
@@ -198,10 +197,23 @@ def process_satellite(
             )
             mlflow.log_dict(graph_data, "graph/graph.yaml")
 
-            # Create a simple mapping from filenames
-            map = {
-                Path(file).stem: str(file) for file in data_dir.glob("**/*.csv")
-            }
+            map = {}
+            for file_path in data_dir.glob("**/*.csv"):
+                try:
+                    df = pl.scan_csv(
+                        file_path, infer_schema_length=1000
+                    ).collect()
+                    # Skip the time column when creating the mapping
+                    for col in df.columns:
+                        if col != config.format.time_column:
+                            map[col] = {
+                                "source": file_path.name,
+                                "measurement": col,
+                            }
+                except Exception as e:
+                    logging.warning(
+                        f"error reading {file_path} for mapping: {str(e)}"
+                    )
 
             graph_content = create_dependency_graph(
                 graph_data, map
