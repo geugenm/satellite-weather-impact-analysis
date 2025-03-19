@@ -3,6 +3,8 @@ import re
 import subprocess
 import time
 
+# from astra.fetch.satnogs_dashboard.main import # todo
+
 
 def extract_satellite_name(url: str) -> str:
     """Extract the satellite name from the dashboard URL."""
