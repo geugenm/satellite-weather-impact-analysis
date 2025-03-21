@@ -10,7 +10,6 @@ from typing import Optional, Set
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import pandas as pd
-import typer
 from playwright.async_api import async_playwright
 
 # Execution control
@@ -56,15 +55,6 @@ UNIT_MAP = {
     "day": "day",
 }
 
-# Configure enterprise-grade logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-)
-logger = logging.getLogger("engine")
-browser_log = logging.getLogger("browser")
-
 
 def parse_grafana_url(url: str) -> dict:
     """
@@ -87,7 +77,7 @@ def parse_grafana_url(url: str) -> dict:
     time_from = query_params.get("from", ["now-1h"])[0]
     time_to = query_params.get("to", ["now"])[0]
 
-    logger.info(
+    logging.info(
         f"Parsed URL -> Base: {base_url}, From: {time_from}, To: {time_to}"
     )
     return {"base_url": base_url, "from": time_from, "to": time_to}
@@ -137,7 +127,7 @@ def build_inspection_url(
             "",
         )
     )
-    logger.debug(f"Constructed inspection URL: {constructed_url}")
+    logging.debug(f"Constructed inspection URL: {constructed_url}")
     return constructed_url
 
 
@@ -155,7 +145,7 @@ async def _process_csv(file_path: Path) -> pd.DataFrame:
 
     def _cpu_task():
         start = time.monotonic()
-        logger.info(
+        logging.info(
             f"operation 'process_csv' started with 'file': '{file_path.name}'"
         )
 
@@ -200,7 +190,7 @@ async def _process_csv(file_path: Path) -> pd.DataFrame:
 
         df = df.groupby("time", as_index=False).agg("mean")
 
-        logger.info(
+        logging.info(
             f"operation 'process_csv' completed in {time.monotonic()-start:.2f}s"
         )
         return df
@@ -210,7 +200,7 @@ async def _process_csv(file_path: Path) -> pd.DataFrame:
 
 async def _download_panel(page, output_dir: Path) -> Path:
     """Async-safe panel download handler"""
-    logger.info("operation 'download' started with 'panel': '%s'", page.url)
+    logging.info("operation 'download' started with 'panel': '%s'", page.url)
     script = await _load_script(DOWNLOAD_JS)
     dest = None
 
@@ -225,13 +215,11 @@ async def _download_panel(page, output_dir: Path) -> Path:
         df = await _process_csv(dest)
         df.to_csv(dest, index=False)
 
-        logger.info("operation 'download' completed for '%s'", dest.name)
+        logging.info("operation 'download' completed for '%s'", dest.name)
         return dest
 
     except Exception as e:
-        browser_log.error(
-            "operation 'download' failed with error: '%s'", str(e)
-        )
+        logging.error("operation 'download' failed with error: '%s'", str(e))
         if dest and dest.exists():
             os.remove(dest)
         raise
@@ -252,7 +240,7 @@ async def _process_panel(context, panel_url: str, output_dir: Path):
         return saved_path
 
     except Exception as e:
-        logger.error("panel processing failed: %s", str(e))
+        logging.error("panel processing failed: %s", str(e))
         raise
     finally:
         await page.close()
@@ -281,7 +269,7 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
 
         await page.evaluate(await _load_script(EXPAND_JS))
         panels = await page.evaluate(await _load_script(PANELS_JS))
-        logger.info("Discovered %d panels", len(panels))
+        logging.info("Discovered %d panels", len(panels))
 
         sem = asyncio.Semaphore(CONCURRENCY)
 
@@ -298,7 +286,7 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
                     parsed_url_data["from"],
                     parsed_url_data["to"],
                 )
-                logger.debug(
+                logging.debug(
                     "Processing panel '%s' with URL '%s'",
                     panel["title"],
                     panel_url,
@@ -307,7 +295,7 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
                 try:
                     return await _process_panel(context, panel_url, output_dir)
                 except Exception as e:
-                    logger.error(
+                    logging.error(
                         "Panel '%s' failed: %s", panel["title"], str(e)
                     )
                 finally:
@@ -317,7 +305,7 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
         results = []
         for i in range(0, len(panels), BATCH_SIZE):
             batch = panels[i : i + BATCH_SIZE]
-            logger.info("Processing batch %d-%d", i + 1, i + len(batch))
+            logging.info("Processing batch %d-%d", i + 1, i + len(batch))
 
             batch_tasks = [worker(p) for p in batch if p["type"] == "panel"]
             batch_results = await asyncio.gather(
@@ -349,7 +337,7 @@ async def grafana_fetch(url: str, output_dir: Path):
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    logger.info("Operation 'scrape' started for '%s'", url)
+    logging.info("Operation 'scrape' started for '%s'", url)
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
@@ -363,39 +351,14 @@ async def grafana_fetch(url: str, output_dir: Path):
         finally:
             await browser.close()
 
-        logger.info(
+        logging.info(
             "Operation 'scrape' completed in %.2fs with %d panels",
             time.monotonic() - start_time,
             len(SEEN_PANELS),
         )
 
 
-app = typer.Typer(help="Enterprise Grafana Scraper with Enhanced Time Handling")
-
-
-@app.callback(invoke_without_command=True)
-def main(
-    url: str = typer.Argument(..., help="Dashboard URL"),
-    output_dir: str = typer.Argument(..., help="Directory for processed CSVs"),
-    time_from: Optional[str] = typer.Option(
-        None, "--from", help="Start of the time range"
-    ),
-    time_to: Optional[str] = typer.Option(
-        None, "--to", help="End of the time range"
-    ),
-    debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
-):
-    """
-    Scrape data from Grafana dashboards with parallel processing.
-
-    Examples:
-      grafana-scraper "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&from=now-2y&to=now" ./output
-      grafana-scraper "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"  ./output --from now-7d --to now-1h
-    """
-    if debug:
-        logger.setLevel(logging.DEBUG)
-
-    # Update URL with manual `from` and `to` parameters if provided
+def run_grafana_fetch(url: str, output_dir: Path, time_from: str, time_to: str):
     if time_from or time_to:
         parsed_data = parse_grafana_url(url)
 
@@ -406,8 +369,4 @@ def main(
             time_to=time_to or parsed_data["to"],
         )
 
-    asyncio.run(grafana_fetch(url, Path(output_dir)))
-
-
-if __name__ == "__main__":
-    app()
+    asyncio.run(grafana_fetch(url, output_dir))

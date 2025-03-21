@@ -7,7 +7,7 @@ from typing import Optional
 import typer
 
 from astra.analyze import app as analyzer_app
-from astra.fetch.satnogs_dashboard.main import app as satnogs_app
+from astra.fetch.satnogs_dashboard.cli import app as satnogs_app
 from astra.fetch.sun.cli import app as sun_app
 
 logging.basicConfig(
