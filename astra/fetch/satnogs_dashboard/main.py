@@ -1,16 +1,17 @@
-from pathlib import Path
-import logging
 import asyncio
-import re
-import pandas as pd
-import random
-from concurrent.futures import ThreadPoolExecutor
-from playwright.async_api import async_playwright
-from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+import logging
 import os
+import random
+import re
 import time
-from typing import Set, Optional
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Optional, Set
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+import pandas as pd
 import typer
+from playwright.async_api import async_playwright
 
 # Execution control
 MAX_WORKERS = os.cpu_count() or 4

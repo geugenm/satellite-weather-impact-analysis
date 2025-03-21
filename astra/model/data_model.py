@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, model_validator
 import numpy as np
+from pydantic import BaseModel, Field, model_validator
 
 
 class LinkEntry(BaseModel):

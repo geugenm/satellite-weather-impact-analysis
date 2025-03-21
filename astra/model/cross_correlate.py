@@ -1,7 +1,8 @@
+from pathlib import Path
+
+import numpy as np
 import pandas as pd
 import yaml
-import numpy as np
-from pathlib import Path
 
 from astra.model.cross_correlation import XCorr
 from astra.model.data_model import SatelliteGraphData
@@ -26,7 +27,7 @@ def cross_correlate(
     input_dataframe: pd.DataFrame,
     index_column: str,
     enable_experimental_parallelism: bool,
-) -> dict[any, any]:
+) -> dict:
     """
     Catch linear and non-linear correlations between all columns of the
     input data.

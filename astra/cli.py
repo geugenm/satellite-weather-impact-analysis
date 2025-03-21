@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""
-astra - satellite weather impact analysis tool
-
-A modular tool for fetching and analyzing satellite telemetry data
-in relation to weather conditions.
-"""
-
 import logging
 import sys
 from importlib.metadata import PackageNotFoundError, version
@@ -13,7 +6,7 @@ from typing import Optional
 
 import typer
 
-from astra.analyzer import app as analyzer_app
+from astra.analyze import app as analyzer_app
 from astra.fetch.satnogs_dashboard.main import app as satnogs_app
 from astra.fetch.sun.cli import app as sun_app
 
@@ -22,7 +15,6 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger("astra")
 
 app = typer.Typer()
 
@@ -71,7 +63,7 @@ def main(
 ):
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
-        logger.debug("'debug_mode' enabled with params 'None': '0'")
+        logging.debug("'debug_mode' enabled with params 'None': '0'")
 
 
 if __name__ == "__main__":
@@ -79,5 +71,5 @@ if __name__ == "__main__":
         app()
         sys.exit(0)
     except Exception as e:
-        logger.error(f"'main' failed with params '{str(e)}': '1'")
+        logging.error(f"'main' failed with params '{str(e)}': '1'")
         sys.exit(1)
