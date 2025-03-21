@@ -1,9 +1,8 @@
-time_column: time # Column name containing timestamps
-time_format: "%Y-%m-%d" # Timestamp format (Python strftime)
+time_column: time
+time_format: "%Y-%m-%d"
 
 separator: "," # CSV delimiter
 
-# Column name sanitization settings
 special_symbols:
-    patterns: [" ", "-", "(", ")", "/", ".", "[", "]"] # Symbols to replace in column names
+    patterns: [" ", "-", "(", ")", "/", ".", "[", "]"]
     replacement: "_"

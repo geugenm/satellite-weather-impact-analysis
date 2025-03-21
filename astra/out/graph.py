@@ -1,20 +1,15 @@
+import logging
+from collections import Counter
 from dataclasses import dataclass
+from functools import partial
+
 import numpy as np
 from pyecharts import options as opts
 from pyecharts.charts import Graph
-from collections import Counter
-from rich.console import Console
-import typer
-from functools import partial
-
-console = Console()
-app = typer.Typer()
 
 
 @dataclass(frozen=True)
 class GraphStyle:
-    """Graph styling configuration"""
-
     node_base_size: int = 10
     node_size_multiplier: int = 2
     edge_width: int = 2
@@ -34,7 +29,6 @@ class GraphStyle:
 def create_color(
     value: float, min_val: float, max_val: float, style: GraphStyle
 ) -> str:
-    """Generate RGBA color based on value - blue for low, red for high"""
     norm = np.clip((value - min_val) / (max_val - min_val), 0, 1)
     red = int(norm * style.color_red_max)
     green = int((1 - norm) * style.color_green[0] + norm * style.color_green[1])
@@ -45,7 +39,6 @@ def create_color(
 def create_dependency_graph(
     data: dict, descriptions: dict, style: GraphStyle = GraphStyle()
 ) -> Graph:
-    """Create interactive dependency graph with clear correlation visualization"""
     try:
         links = [
             {
@@ -190,5 +183,5 @@ def create_dependency_graph(
             )
         )
     except Exception as e:
-        console.print(f"[red]Error creating dependency graph: {str(e)}[/red]")
+        logging.error(f"error creating dependency graph: {str(e)}")
         raise
