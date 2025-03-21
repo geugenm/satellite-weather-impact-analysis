@@ -3,43 +3,38 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import mlflow
 import pandas as pd
 import polars as pl
 import typer
 import yaml
-from rich.console import Console
 from sklearn.preprocessing import StandardScaler
 
-from astra.config.data import DataConfig, get_project_config
+from astra.config.data import get_project_config
 from astra.model.cross_correlate import cross_correlate
 from astra.out.graph import create_dependency_graph
 from astra.paths import CONFIG_PATH
 
-console = Console()
-app = typer.Typer(rich_markup_mode="rich")
+app = typer.Typer()
 
 
 def load_time_series_data(data_dir: Path, time_column: str) -> pl.DataFrame:
+    """Load and combine CSV files containing time series data."""
     csv_files = list(data_dir.glob("**/*.csv"))
-
     if not csv_files:
         raise ValueError(f"no csv files found in {data_dir}")
 
     valid_dfs = []
-
     for file_path in csv_files:
         try:
             df = pl.scan_csv(file_path, infer_schema_length=1000)
-
             if time_column in df.collect().columns:
                 valid_dfs.append(df)
             else:
                 logging.warning(
-                    f"skipping {file_path} - missing '{time_column}' column"
+                    f"skipping '{file_path}' - missing '{time_column}' column"
                 )
         except Exception as e:
-            logging.warning(f"error reading {file_path}: {str(e)}")
+            logging.warning(f"error reading '{file_path}': '{e}'")
 
     if not valid_dfs:
         raise ValueError(
@@ -47,26 +42,25 @@ def load_time_series_data(data_dir: Path, time_column: str) -> pl.DataFrame:
         )
 
     try:
-        combined_df = pl.concat(valid_dfs, how="diagonal_relaxed").collect()
-        return combined_df
+        return pl.concat(valid_dfs, how="diagonal_relaxed").collect()
     except Exception as e:
         logging.warning(
-            f"schema mismatch detected, trying with schema relaxation: {str(e)}"
+            f"schema mismatch detected, trying with schema relaxation: '{e}'"
         )
-        combined_df = pl.concat(
+        return pl.concat(
             [df.collect() for df in valid_dfs], how="diagonal_relaxed"
         )
-        return combined_df
 
 
-def interpolate_time_series(df: pl.DataFrame, time_col: str) -> pl.DataFrame:
+def process_time_series(
+    df: pl.DataFrame, config, exclude_columns: list[str] = []
+) -> pd.DataFrame:
+    """Process time series data: interpolate, normalize, and prepare for analysis."""
+    df = df.drop(exclude_columns)
+    time_col = config.format.time_column
+
     df = df.with_columns(pl.col(time_col).str.to_datetime())
-
-    df = df.group_by(time_col).mean()
-
-    df = df.sort(time_col)
-
-    df = df.interpolate()
+    df = df.group_by(time_col).mean().sort(time_col).interpolate()
 
     numeric_cols = [col for col in df.columns if col != time_col]
     df = df.with_columns(
@@ -78,22 +72,14 @@ def interpolate_time_series(df: pl.DataFrame, time_col: str) -> pl.DataFrame:
         ]
     )
 
-    return df
-
-
-def normalize_time_series(
-    df: pl.DataFrame, time_col: str, exclude_cols: list
-) -> pd.DataFrame:
     pdf = df.to_pandas()
-
     numeric_cols = [
         col
         for col in pdf.select_dtypes(include=["float64", "int64"]).columns
-        if col not in exclude_cols
+        if col not in exclude_columns
     ]
 
     normalized_data = StandardScaler().fit_transform(pdf[numeric_cols])
-
     normalized_df = pd.DataFrame(
         normalized_data, columns=numeric_cols, index=pdf.index
     )
@@ -102,57 +88,72 @@ def normalize_time_series(
     return normalized_df
 
 
-def process_time_series(
-    df: pl.DataFrame, config: DataConfig, exclude_columns: list[str] = []
-) -> pd.DataFrame:
-    df = df.drop(exclude_columns)
+def create_column_mapping(data_dir: Path, time_column: str) -> dict:
+    """Create mapping of columns to their source files."""
+    mapping = {}
+    for file_path in data_dir.glob("**/*.csv"):
+        try:
+            df = pl.scan_csv(file_path, infer_schema_length=1000).collect()
+            for col in df.columns:
+                if col != time_column:
+                    mapping[col] = {
+                        "source": file_path.name,
+                        "measurement": col,
+                    }
+        except Exception as e:
+            logging.warning(f"error reading '{file_path}' for mapping: '{e}'")
+    return mapping
 
-    df = interpolate_time_series(df, config.format.time_column)
 
-    return normalize_time_series(df, config.format.time_column, exclude_columns)
+def setup_mlflow(experiment_name: str) -> bool:
+    """Configure MLflow tracking."""
+    try:
+        import mlflow
+
+        mlflow.set_tracking_uri("http://localhost:5000")
+        mlflow.set_experiment(experiment_name)
+        logging.info(
+            f"mlflow tracking enabled for experiment: '{experiment_name}'"
+        )
+        return True
+    except ImportError:
+        logging.warning("mlflow not installed, skipping mlflow tracking")
+        return False
+    except Exception as e:
+        logging.warning(f"failed to setup mlflow: '{e}'")
+        return False
 
 
 @app.callback(invoke_without_command=True)
 def analyze_time_series(
-    graph_name: str = typer.Argument(
-        ..., help="name for the analysis graph and experiment"
-    ),
+    graph_name: str = typer.Argument(..., help="name for the analysis graph"),
     data_dir: Path = typer.Option(
-        Path("./data"), help="directory containing csv files to process"
+        Path("./data"), help="directory containing csv files"
     ),
     parallel: bool = typer.Option(
         False,
         "--parallel",
         "-p",
-        help="enable parallel processing (graph rendering only)",
+        help="enable experimental parallel processing (simple mlflow logs only)",
     ),
     use_mlflow: bool = typer.Option(
-        False,
-        "--mlflow/--no-mlflow",
-        help="enable/disable logging to mlflow",
+        False, "--mlflow", help="enable mlflow tracking"
     ),
 ) -> None:
+    """Analyze time series data and generate correlation graph."""
     try:
         config = get_project_config()
-
-        logging.info(f"analyzing time series data for: {graph_name}")
-        logging.info(f"loading csv files from {data_dir}")
+        logging.info(f"analyzing time series data for: '{graph_name}'")
 
         polars_df = load_time_series_data(data_dir, config.format.time_column)
-
         dynamics = process_time_series(polars_df, config)
 
-        if use_mlflow:
-            # fix for mlflow - https://github.com/SciTools/iris/issues/4879
-            import matplotlib
+        mlflow_enabled = use_mlflow and setup_mlflow(graph_name)
 
-            matplotlib.use("QtAgg")
-
-            mlflow.set_tracking_uri("http://localhost:5000")
-            mlflow.set_experiment(graph_name)
+        if mlflow_enabled:
+            import mlflow
 
             with mlflow.start_run(run_name="build_graph"):
-                # Log input data to MLflow
                 mlflow.log_input(
                     mlflow.data.from_pandas(
                         dynamics, name="time_series_parameters"
@@ -165,29 +166,15 @@ def analyze_time_series(
                     xcorr_configuration_file=Path(f"{CONFIG_PATH}/model.yaml"),
                     enable_experimental_parallelism=parallel,
                 )
-                mlflow.log_dict(graph_data, "graph/graph.yaml")
 
-                # Create column-to-file mapping excluding time column
-                map = {}
-                for file_path in data_dir.glob("**/*.csv"):
-                    try:
-                        df = pl.scan_csv(
-                            file_path, infer_schema_length=1000
-                        ).collect()
-                        for col in df.columns:
-                            if col != config.format.time_column:
-                                map[col] = {
-                                    "source": file_path.name,
-                                    "measurement": col,
-                                }
-                    except Exception as e:
-                        logging.warning(
-                            f"error reading {file_path} for mapping: {str(e)}"
-                        )
-
+                column_map = create_column_mapping(
+                    data_dir, config.format.time_column
+                )
                 graph_content = create_dependency_graph(
-                    graph_data, map
+                    graph_data, column_map
                 ).render_embed()
+
+                mlflow.log_dict(graph_data, "graph/graph.yaml")
                 mlflow.log_text(graph_content, "graph/graph.html")
         else:
             graph_data = cross_correlate(
@@ -197,55 +184,37 @@ def analyze_time_series(
                 enable_experimental_parallelism=parallel,
             )
 
-            map = {}
-            for file_path in data_dir.glob("**/*.csv"):
-                try:
-                    df = pl.scan_csv(
-                        file_path, infer_schema_length=1000
-                    ).collect()
-                    for col in df.columns:
-                        if col != config.format.time_column:
-                            map[col] = {
-                                "source": file_path.name,
-                                "measurement": col,
-                            }
-                except Exception as e:
-                    logging.warning(
-                        f"error reading {file_path} for mapping: {str(e)}"
-                    )
-
+            column_map = create_column_mapping(
+                data_dir, config.format.time_column
+            )
             graph_content = create_dependency_graph(
-                graph_data, map
+                graph_data, column_map
             ).render_embed()
+
             output_path = Path(f"./output/{graph_name}")
             output_path.mkdir(parents=True, exist_ok=True)
+
             with open(output_path / "graph.html", "w") as f:
                 f.write(graph_content)
             with open(output_path / "graph.yaml", "w") as f:
                 yaml.dump(graph_data, f)
 
-        console.print(
-            f"[green]successfully analyzed time series data: {graph_name}[/green]"
-        )
+        logging.info(f"successfully analyzed time series data: '{graph_name}'")
 
     except Exception as e:
-        console.print(f"[red]error analyzing time series data: {str(e)}[/red]")
-        logging.exception("detailed error information:")
+        logging.error(f"error analyzing time series data: '{e}'")
         raise typer.Exit(code=1)
 
 
 @app.command()
 def list_columns(
-    data_dir: Path = typer.Argument(
-        ..., help="directory containing csv files to analyze"
-    ),
+    data_dir: Path = typer.Argument(..., help="directory containing csv files")
 ) -> None:
     """List all available columns across CSV files in the directory."""
     try:
         csv_files = list(data_dir.glob("**/*.csv"))
-
         if not csv_files:
-            console.print(f"[yellow]no csv files found in {data_dir}[/yellow]")
+            logging.info(f"no csv files found in '{data_dir}'")
             return
 
         all_columns = set()
@@ -253,26 +222,31 @@ def list_columns(
 
         for file_path in csv_files:
             try:
-                df = pl.scan_csv(file_path, infer_schema_length=1000).collect()
+                df = pl.read_csv(file_path)
                 file_columns[file_path.name] = df.columns
                 all_columns.update(df.columns)
             except Exception as e:
-                console.print(
-                    f"[yellow]error reading {file_path}: {str(e)}[/yellow]"
-                )
+                logging.error(f"error reading '{file_path}': '{e}'")
 
-        console.print("[bold]all columns found across files:[/bold]")
+        print("all columns found across files:")
         for col in sorted(all_columns):
-            console.print(f"  - {col}")
+            print(f"  - {col}")
 
-        console.print("\n[bold]columns by file:[/bold]")
+        print("\ncolumns by file:")
         for filename, columns in file_columns.items():
-            console.print(f"[bold]{filename}[/bold]: {', '.join(columns)}")
+            print(f"{filename}: {', '.join(columns)}")
 
     except Exception as e:
-        console.print(f"[red]error listing columns: {str(e)}[/red]")
+        logging.error(f"error listing columns: '{e}'")
         raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s operation '%(message)s'",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     app()
