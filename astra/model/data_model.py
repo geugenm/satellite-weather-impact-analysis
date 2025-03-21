@@ -15,7 +15,7 @@ class LinkEntry(BaseModel):
     @model_validator(mode="after")
     def check_self_reference(self):
         if self.source == self.target:
-            raise ValueError("Source and target must be different")
+            raise ValueError("source and target must be different")
         return self
 
 
@@ -24,8 +24,7 @@ class SatelliteGraphData(BaseModel):
         ..., min_length=3, description="Official satellite designation name"
     )
     links: list[LinkEntry] = Field(
-        ...,
-        min_length=1,
+        default_factory=list,
         description="Non-directional relationships between components",
     )
     graph_link_threshold: float = Field(
@@ -34,7 +33,10 @@ class SatelliteGraphData(BaseModel):
 
     @model_validator(mode="after")
     def check_nan_values(self):
-        for link in self.links:
-            if np.isnan(link.coefficient):
-                raise ValueError("Coefficient cannot be NaN")
+        if any(np.isnan(link.coefficient) for link in self.links):
+            raise ValueError("coefficient cannot be NaN")
+
+        if not self.links:
+            raise ValueError("at least one link is required")
+
         return self

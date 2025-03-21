@@ -22,17 +22,14 @@ class FormatConfig(BaseModel):
 
 
 class DataConfig(BaseModel):
-    """Main configuration class."""
-
     format: FormatConfig = Field(default_factory=FormatConfig)
 
     @classmethod
     def from_yaml(cls, path: Path) -> "DataConfig":
-        """Load configuration from a YAML file."""
         try:
-            content = path.read_text(encoding="utf-8")
-            data = yaml.safe_load(content)
-            return cls.model_validate(data)
+            with open(path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            return cls.model_validate(data or {})
         except FileNotFoundError:
             logging.error(f"configuration file not found: {path}")
             raise
@@ -47,18 +44,13 @@ class DataConfig(BaseModel):
 def get_project_config() -> DataConfig:
     from astra.paths import CONFIG_PATH
 
-    return DataConfig.from_yaml(CONFIG_PATH / "data.yaml")
+    config_path = CONFIG_PATH / "data.yaml"
+    return DataConfig.from_yaml(config_path)
 
 
 if __name__ == "__main__":
-    from pydantic import (
-        ValidationError,
-    )
-
     try:
         config = get_project_config()
         print(config.model_dump_json(indent=2))
-    except ValidationError as e:
-        print(f"Configuration validation failed:\n{e}")
     except Exception as e:
-        print(f"Runtime error: {e}")
+        print(f"error: {e}")
