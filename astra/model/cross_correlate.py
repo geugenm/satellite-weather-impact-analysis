@@ -8,57 +8,60 @@ from astra.model.cross_correlation import XCorr
 from astra.model.data_model import SatelliteGraphData
 
 
-def _create_graph_data(satellite_name: str, heatmap, threshold: float) -> dict:
-    """Transform heatmap matrix into optimized graph structure"""
-    return {
-        "satellite": satellite_name,
-        "links": [
-            {"source": src, "target": tgt, "coefficient": float(val)}
-            for src, targets in heatmap.items()
-            for tgt, val in targets.items()
-            if tgt != src and not np.isnan(val) and val >= threshold
-        ],
-        "graph_link_threshold": threshold,
-    }
-
-
 def cross_correlate(
     xcorr_configuration_file: Path,
     input_dataframe: pd.DataFrame,
     index_column: str,
-    enable_experimental_parallelism: bool,
+    enable_experimental_parallelism: bool = False,
 ) -> dict:
     """
-    Catch linear and non-linear correlations between all columns of the
-    input data.
+    Catch linear and non-linear correlations between columns
+
+    Args:
+        xcorr_configuration_file: Path to YAML configuration file
+        input_dataframe: DataFrame containing time series data
+        index_column: Name of the column to use as index
+        enable_experimental_parallelism: Whether to use parallel processing
+
+    Returns:
+        dict: Serialized graph data with correlation links
+
+    Raises:
+        ValueError: If input dataframe is empty
     """
+    if input_dataframe.empty:
+        raise ValueError("input dataframe is empty; nothing to correlate")
 
-    assert (
-        not input_dataframe.empty
-    ), "Input DataFrame is empty; nothing to correlate."
+    with open(xcorr_configuration_file) as f:
+        config: dict = yaml.safe_load(f)
 
-    metadata = {"satellite_name": xcorr_configuration_file.stem}
+    satellite_name: str = xcorr_configuration_file.stem
+    xcorr: XCorr = XCorr({"satellite_name": satellite_name}, config)
 
-    with Path(xcorr_configuration_file).open("r") as f:
-        config = yaml.safe_load(f)
-
-    xcorr = XCorr(metadata, config)
-
-    input_dataframe.set_index(index_column)
-    input_dataframe.drop(index_column, axis=1, inplace=True)
+    df: pd.DataFrame = input_dataframe.set_index(index_column).drop(
+        index_column, axis=1, errors="ignore"
+    )
 
     if enable_experimental_parallelism:
-        import os
+        from multiprocessing import cpu_count
 
-        workers_count = os.cpu_count() or 4
-        xcorr.experimental_fit_parallel(input_dataframe, workers_count)
+        workers_count: int = cpu_count() or 4
+        xcorr.experimental_fit_parallel(df, workers_count)
     else:
-        xcorr.fit(input_dataframe)
+        xcorr.fit(df)
 
-    return SatelliteGraphData(
-        **_create_graph_data(
-            metadata["satellite_name"],
-            xcorr.importances_map,
-            config["graph"]["graph_link_threshold"],
-        )
-    ).model_dump()
+    threshold: float = config["graph"]["graph_link_threshold"]
+    links: list = [
+        {"source": src, "target": tgt, "coefficient": float(val)}
+        for src, targets in xcorr.importances_map.items()
+        for tgt, val in targets.items()
+        if tgt != src and not np.isnan(val) and val >= threshold
+    ]
+
+    graph_data: dict = {
+        "satellite": satellite_name,
+        "links": links,
+        "graph_link_threshold": threshold,
+    }
+
+    return SatelliteGraphData(**graph_data).model_dump()
