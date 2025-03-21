@@ -42,10 +42,8 @@ This command will:
 
 To stop the services:
 
-```
-
+```bash
 sudo docker compose -f docker/compose.yml down
-
 ```
 
 ## Configuration Details ⚙️
