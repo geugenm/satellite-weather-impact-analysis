@@ -4,16 +4,15 @@ from typing import Any
 from pathlib import Path
 import logging
 
-from astra.config.data import DataConfig
-from astra.paths import CONFIG_PATH
+from astra.config.data import DataConfig, get_project_config
 
 
 class DataProcessor(ABC):
-    output_prefix: str
-    url: str
+    output_prefix: str = "not_set"
+    url: str = "not_set"
 
-    def __init__(self, config_path: Path = CONFIG_PATH / "data.yaml"):
-        self.config: DataConfig = DataConfig.from_yaml(config_path)
+    def __init__(self):
+        self.config: DataConfig = get_project_config()
 
     @abstractmethod
     def download(self) -> Any:
@@ -36,7 +35,9 @@ class DataProcessor(ABC):
         df[time_col] = pd.to_datetime(df[time_col]).dt.strftime(
             self.config.format.time_format
         )
-        df = df.sort_values(by="time").reset_index(drop=True)
+        df = df.sort_values(by=self.config.format.time_column).reset_index(
+            drop=True
+        )
 
         file_name = Path(f"{self.output_prefix}.csv")
         logging.info(f"Saving file: '{file_name.absolute()}'")

@@ -33,7 +33,6 @@ def get_processor_classes(module) -> List[Type[DataProcessor]]:
     processor_classes = []
 
     for _, obj in inspect.getmembers(module):
-        # Check if it's a class and inherits from DataProcessor
         if (
             inspect.isclass(obj)
             and issubclass(obj, DataProcessor)
@@ -70,7 +69,6 @@ def main(
     debug: bool = typer.Option(False, "--debug", help="enable debug logging"),
 ):
     """import modules in current directory and run data processors"""
-    # set up logging
     log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(
         level=log_level,
@@ -81,7 +79,6 @@ def main(
 
     current_dir = Path(__file__).parent
 
-    # get all python files in the current directory
     python_files = [
         f
         for f in current_dir.glob("*.py")
@@ -96,7 +93,6 @@ def main(
         processor_count = 0
         tasks = []
 
-        # import each module and find data processor subclasses
         for file_path in python_files:
             try:
                 module = import_module(file_path)
@@ -107,12 +103,10 @@ def main(
 
                 for processor_class in processor_classes:
                     if parallel:
-                        # add to tasks for parallel execution
                         tasks.append(
                             run_processor(processor_class, file_path, logger)
                         )
                     else:
-                        # run sequentially
                         success = await run_processor(
                             processor_class, file_path, logger
                         )
@@ -121,14 +115,12 @@ def main(
             except Exception as e:
                 logger.error(f"error importing {file_path.name}: {str(e)}")
 
-        # if parallel, wait for all tasks to complete
         if parallel:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             processor_count = sum(1 for r in results if r is True)
 
         logger.info(f"successfully ran {processor_count} data processors")
 
-    # run the async function
     asyncio.run(process_files())
 
 

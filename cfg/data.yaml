@@ -1,13 +1,9 @@
-fetch:
-    base_dir: data-raw # Base directory for data storage
+time_column: time # Column name containing timestamps
+time_format: "%Y-%m-%d" # Timestamp format (Python strftime)
 
-format:
-    time_column: time # Column name containing timestamps
-    time_format: "%Y-%m-%d" # Timestamp format (Python strftime)
+separator: "," # CSV delimiter
 
-    separator: "," # CSV delimiter
-
-    # Column name sanitization settings
-    special_symbols:
-        patterns: [" ", "-", "(", ")", "/", ".", "[", "]"] # Symbols to replace in column names
-        replacement: "_"
+# Column name sanitization settings
+special_symbols:
+    patterns: [" ", "-", "(", ")", "/", ".", "[", "]"] # Symbols to replace in column names
+    replacement: "_"

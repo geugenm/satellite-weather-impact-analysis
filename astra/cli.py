@@ -1,13 +1,30 @@
 #!/usr/bin/env python3
-import typer
+"""
+astra - satellite weather impact analysis tool
+
+A modular tool for fetching and analyzing satellite telemetry data
+in relation to weather conditions.
+"""
+
+import logging
+import sys
+from importlib.metadata import PackageNotFoundError, version
 from typing import Optional
-from importlib.metadata import version, PackageNotFoundError
+
+import typer
 
 from astra.analyzer import app as analyzer_app
 from astra.fetch.satnogs_dashboard.main import app as satnogs_app
-from astra.fetch.sun.download_all import app as sun_app
+from astra.fetch.sun.cli import app as sun_app
 
-app = typer.Typer(help="satellite weather impact analysis tool")
+logging.basicConfig(
+    format="%(asctime)s [%(name)s] %(levelname)s operation '%(message)s'",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("astra")
+
+app = typer.Typer()
 
 app.add_typer(
     analyzer_app, name="analyze", help="analyze satellite data from database"
@@ -31,7 +48,7 @@ def get_version() -> str:
 
 def version_callback(value: bool):
     if value:
-        typer.echo(f"astra {get_version()}")
+        print(f"astra {get_version()}")
         raise typer.Exit(0)
 
 
@@ -45,10 +62,22 @@ def main(
         is_eager=True,
         help="show version and exit",
     ),
+    debug: bool = typer.Option(
+        False,
+        "--debug",
+        "-d",
+        help="enable debug logging",
+    ),
 ):
-    """analyze satellite telemetry and correlate with weather conditions"""
-    pass
+    if debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.debug("'debug_mode' enabled with params 'None': '0'")
 
 
 if __name__ == "__main__":
-    app()
+    try:
+        app()
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"'main' failed with params '{str(e)}': '1'")
+        sys.exit(1)
