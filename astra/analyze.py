@@ -155,41 +155,6 @@ def analyze_time_series(
         raise typer.Exit(code=1)
 
 
-@app.command()
-def list_columns(
-    data_dir: Path = typer.Argument(..., help="directory containing csv files")
-) -> None:
-    """List all available columns across CSV files in the directory."""
-    try:
-        csv_files = list(data_dir.glob("**/*.csv"))
-        if not csv_files:
-            logging.info(f"no csv files found in '{data_dir}'")
-            return
-
-        all_columns = set()
-        file_columns = {}
-
-        for file_path in csv_files:
-            try:
-                df = pl.read_csv(file_path)
-                file_columns[file_path.name] = df.columns
-                all_columns.update(df.columns)
-            except Exception as e:
-                logging.error(f"error reading '{file_path}': '{e}'")
-
-        print("all columns found across files:")
-        for col in sorted(all_columns):
-            print(f"  - {col}")
-
-        print("\ncolumns by file:")
-        for filename, columns in file_columns.items():
-            print(f"{filename}: {', '.join(columns)}")
-
-    except Exception as e:
-        logging.error(f"error listing columns: '{e}'")
-        raise typer.Exit(code=1)
-
-
 if __name__ == "__main__":
     # Configure logging
     logging.basicConfig(
