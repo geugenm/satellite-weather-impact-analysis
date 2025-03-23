@@ -64,6 +64,7 @@ dev = [
     "pytest-cov>=3.0",
     "mypy>=1.0",
     "ruff>=0.11.2",
+    "pylint>=3.3.6",
 ]
 
 [tool.pytest.ini_options]
@@ -116,3 +117,17 @@ warn_unused_configs = true
 ignore_missing_imports = true
 disallow_untyped_defs = true
 check_untyped_defs = true
+
+[tool.ruff]
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".venv",
+    "venv",
+    "dist",
+    "node_modules",
+    "docker",
+    "docs",
+    "img",
+    ".github",
+]
