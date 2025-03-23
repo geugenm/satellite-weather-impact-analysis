@@ -120,4 +120,4 @@ artifacts/
 data/
 htmlcov/
 .env
-!test/data
+!tests/data
