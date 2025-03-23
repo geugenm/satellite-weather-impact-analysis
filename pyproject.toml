@@ -75,8 +75,6 @@ line-length = 80
 target-version = ["py313"]
 include = '\.pyi?$'
 extend-exclude = '''
-# A regex preceded with ^/ will apply only to files and directories
-# in the root of the project.
 ^/tests/data/
 ^/data/
 ^/.github/
@@ -91,7 +89,20 @@ extend-exclude = '''
 
 [tool.pyright]
 include = ["astra"]
-exclude = ["**/node_modules", "**/__pycache__", "tests/data", "data"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "tests/data",
+    "data",
+    "img",
+    "docker",
+    ".github",
+    "htmlcov",
+    "dist",
+    "cfg",
+    "docs",
+    "docker",
+]
 strict = ["astra"]
 typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
