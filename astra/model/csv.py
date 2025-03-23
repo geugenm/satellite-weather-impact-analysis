@@ -6,10 +6,8 @@ import polars as pl
 
 
 @lru_cache(maxsize=128)
-def create_column_mapping(
-    data_dir: Path, time_column: str
-) -> dict[str, dict[str, str]]:
-    """Create mapping of columns to their source files."""
+def create_column_mapping(data_dir: Path, time_column: str) -> dict[str, str]:
+    """Create mapping of measurements to their source files."""
     mapping = {}
 
     # Use a single scan operation to get all column names from all files
@@ -21,10 +19,7 @@ def create_column_mapping(
             # Add all non-time columns to the mapping
             for col_name, _ in schema.items():
                 if col_name != time_column:
-                    mapping[col_name] = {
-                        "source": file_path.name,
-                        "measurement": col_name,
-                    }
+                    mapping[col_name] = file_path.name
         except Exception as e:
             logging.error(f"error reading '{file_path}' for mapping: {e}")
 
