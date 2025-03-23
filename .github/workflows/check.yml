@@ -15,7 +15,7 @@ on:
     workflow_dispatch:
 
 jobs:
-    setup:
+    test:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -34,10 +34,6 @@ jobs:
                   python -m pip install --upgrade pip
                   pip install ".[dev]"
 
-    test:
-        needs: setup
-        runs-on: ubuntu-latest
-        steps:
             - name: run_pytest
               run: pytest --cov=astra --cov-report=html --cov-report=term-missing
 
@@ -56,9 +52,24 @@ jobs:
                       .coverage
 
     lint:
-        needs: setup
         runs-on: ubuntu-latest
         steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: setup_python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.13"
+                  cache: "pip"
+                  cache-dependency-path: pyproject.toml
+
+            - name: install_deps
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install ".[dev]"
+
             - name: run_ruff
               run: ruff check --fix --exit-non-zero-on-fix .
 
@@ -67,3 +78,6 @@ jobs:
 
             - name: run_black
               run: black --check --diff .
+
+            - name: run_mypy
+              run: mypy astra
