@@ -28,7 +28,7 @@ def process_time_series(
     df = df.with_columns(pl.col(time_col).str.to_datetime())
     df = df.group_by(time_col).mean().sort(time_col)
 
-    numeric_cols = [col for col in df.columns if col != time_col]
+    numeric_cols: list[str] = [col for col in df.columns if col != time_col]
     df = df.with_columns(
         [
             pl.col(col)
@@ -39,9 +39,6 @@ def process_time_series(
     )
 
     pdf = df.to_pandas()
-    numeric_cols = [
-        col for col in pdf.select_dtypes(include=["float64", "int64"]).columns
-    ]
 
     normalized_data = StandardScaler().fit_transform(pdf[numeric_cols])
     normalized_df = pd.DataFrame(

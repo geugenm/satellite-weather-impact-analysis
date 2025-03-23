@@ -34,10 +34,7 @@ class XCorr(BaseEstimator, TransformerMixin):
         self.models = []
         self._importances_map = None
         self._importances_lock = threading.Lock()
-        self._feature_cleaner = Cleaner(
-            dataset_metadata,
-            cross_correlation_params["dataset_cleaning_params"],
-        )
+        self._feature_cleaner = Cleaner()
 
         with mlflow_lock:
             log_params(cross_correlation_params["model_params"])
@@ -142,8 +139,7 @@ class XCorr(BaseEstimator, TransformerMixin):
         """Clean dataframe in one pass to avoid redundant operations."""
         logging.info("cleaning data...")
         df = self._feature_cleaner.drop_constant_values(df)
-        df = self._feature_cleaner.drop_non_numeric_values(df)
-        return self._feature_cleaner.handle_missing_values(df)
+        return self._feature_cleaner.drop_non_numeric_values(df)
 
     def _get_columns_to_process(self, df: pd.DataFrame) -> list[str]:
         """Get columns to process based on feature_columns setting."""
