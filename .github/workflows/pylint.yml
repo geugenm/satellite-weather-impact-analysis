@@ -15,11 +15,11 @@ on:
     workflow_dispatch:
 
 jobs:
-    build:
+    analyze:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                python-version: ["3.12", "3.13"]
+                python-version: ["3.13"]
         steps:
             - uses: actions/checkout@v4
               with:
