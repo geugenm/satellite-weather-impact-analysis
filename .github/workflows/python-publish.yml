@@ -1,0 +1,42 @@
+name: Build and Publish Python Package
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "poetry"
+      
+      - name: Install Poetry
+        run: pipx install poetry
+      
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create false
+      
+      - name: Install dependencies
+        run: poetry install --no-interaction
+      
+      - name: Run tests
+        run: poetry run pytest
+      
+      - name: Build package
+        run: poetry build
+      
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN_ALL }}
