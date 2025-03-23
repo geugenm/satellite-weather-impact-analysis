@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from astra.graph import create_dependency_graph
+from astra.out.graph import create_dependency_graph
 import yaml
 
 import os

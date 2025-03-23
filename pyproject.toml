@@ -71,7 +71,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["test"]
+testpaths = ["tests"]
 python_files = "*.py"
 addopts = [
     "--import-mode=importlib",
