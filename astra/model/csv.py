@@ -14,7 +14,7 @@ def create_column_mapping(data_dir: Path, time_column: str) -> dict[str, str]:
     for file_path in data_dir.glob("**/*.csv"):
         try:
             # Only fetch schema without loading data
-            schema = pl.scan_csv(file_path, n_rows=10).collect().schema
+            schema = pl.scan_csv(file_path, n_rows=1).collect().schema
 
             # Add all non-time columns to the mapping
             for col_name, _ in schema.items():
