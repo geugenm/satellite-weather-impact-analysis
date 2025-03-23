@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import logging
 import sys
 from importlib.metadata import PackageNotFoundError, version
@@ -63,7 +62,7 @@ def main(
 ):
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
-        logging.debug("'debug_mode' enabled with params 'None': '0'")
+        logging.debug("debug logging mode enabled")
 
 
 if __name__ == "__main__":
