@@ -22,7 +22,6 @@ app = typer.Typer()
 def process_time_series(
     df: pl.DataFrame, config: DataConfig, exclude_columns: list[str] = []
 ) -> pd.DataFrame:
-    """Process time series data: interpolate, normalize, and prepare for analysis."""
     df = df.drop(exclude_columns)
     time_col = config.format.time_column
 
