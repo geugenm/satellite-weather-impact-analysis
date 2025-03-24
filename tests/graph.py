@@ -1,8 +1,7 @@
 import pytest
 from pathlib import Path
-from astra.out.graph import create_dependency_graph
+from astra.out.graph import create_dependency_graph, GraphStyle
 import yaml
-
 import os
 
 
@@ -14,6 +13,26 @@ def test_graph_path() -> Path:
             "data/test_graph.yaml",
         )
     )
+
+
+@pytest.fixture
+def test_data() -> dict:
+    return {
+        "links": [
+            {"source": "node1", "target": "node2", "coefficient": 0.8},
+            {"source": "node1", "target": "node3", "coefficient": 0.5},
+            {"source": "node2", "target": "node3", "coefficient": -0.3},
+        ]
+    }
+
+
+@pytest.fixture
+def test_descriptions() -> dict:
+    return {
+        "node1": "First node description",
+        "node2": "Second node description",
+        "node3": "Third node description",
+    }
 
 
 @pytest.fixture
@@ -39,3 +58,10 @@ def test_dependency_graph_creation(
     assert (
         output_file.exists() and output_file.stat().st_size > 0
     ), "Graph output file was not created or is empty"
+
+
+def test_create_dependency_graph_empty_data():
+    empty_data = {"links": []}
+
+    with pytest.raises(Exception):
+        create_dependency_graph(empty_data, {})
