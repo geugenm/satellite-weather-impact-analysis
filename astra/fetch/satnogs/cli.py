@@ -23,7 +23,7 @@ def main(
       grafana-scraper "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&from=now-2y&to=now" ./output
       grafana-scraper "https://dashboard.satnogs.org/d/abEVHMIIk/veronika"  ./output --from now-7d --to now-1h
     """
-    from astra.fetch.satnogs_dashboard.main import run_grafana_fetch
+    from astra.fetch.satnogs.main import run_grafana_fetch
 
     run_grafana_fetch(url, Path(output_dir), time_from, time_to)
 
