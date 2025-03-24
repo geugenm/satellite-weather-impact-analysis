@@ -7,19 +7,20 @@ import pandas as pd
 import polars as pl
 import typer
 import yaml
-from sklearn.preprocessing import StandardScaler
 
-from astra.config.data import get_project_config
+from astra.config.data import get_project_config, DataConfig
 from astra.model.cross_correlate import cross_correlate
 from astra.model.csv import create_column_mapping, load_time_series_data
 from astra.out.graph import create_dependency_graph
 from astra.paths import CONFIG_PATH
 
+import polars.selectors as cs
+
 app = typer.Typer()
 
 
 def process_time_series(
-    df: pl.DataFrame, config, exclude_columns: list[str] = []
+    df: pl.DataFrame, config: DataConfig, exclude_columns: list[str] = []
 ) -> pd.DataFrame:
     """Process time series data: interpolate, normalize, and prepare for analysis."""
     df = df.drop(exclude_columns)
@@ -28,7 +29,12 @@ def process_time_series(
     df = df.with_columns(pl.col(time_col).str.to_datetime())
     df = df.group_by(time_col).mean().sort(time_col)
 
-    numeric_cols: list[str] = [col for col in df.columns if col != time_col]
+    # drop consts
+    df = df[[s.name for s in df if s.n_unique() > 1]]
+
+    numeric_cols = [
+        col for col in df.select(cs.numeric()).columns if col != time_col
+    ]
     df = df.with_columns(
         [
             pl.col(col)
@@ -37,16 +43,20 @@ def process_time_series(
             for col in numeric_cols
         ]
     )
+    numeric_df = df.select(numeric_cols)
+    means = numeric_df.mean()
+    stds = numeric_df.std()
 
-    pdf = df.to_pandas()
+    # Create normalized columns
+    normalized_exprs = [
+        ((pl.col(col) - means[col]) / stds[col]).alias(col)
+        for col in numeric_cols
+    ]
 
-    normalized_data = StandardScaler().fit_transform(pdf[numeric_cols])
-    normalized_df = pd.DataFrame(
-        normalized_data, columns=numeric_cols, index=pdf.index
-    )
-    normalized_df[time_col] = pdf[time_col]
+    # Create the normalized dataframe with the time column
+    df = df.select(normalized_exprs + [pl.col(time_col)])
 
-    return normalized_df
+    return df.to_pandas()
 
 
 def setup_mlflow(experiment_name: str) -> bool:
