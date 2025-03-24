@@ -47,7 +47,6 @@ class XCorr(BaseEstimator, TransformerMixin):
             cross_correlation_params["regressor_name"] or "XGBoosting"
         )
 
-        # Create model dictionary once
         self._model_dict = {
             "XGBoosting": XGBRegressor,
             "RandomForest": RandomForestRegressor,
@@ -123,7 +122,6 @@ class XCorr(BaseEstimator, TransformerMixin):
         )
 
     def _get_columns_to_process(self, df: pd.DataFrame) -> list[str]:
-        """Get columns to process based on feature_columns setting."""
         if self.feature_columns:
             logging.info(f"removing features: {self.feature_columns}")
             return [
@@ -185,7 +183,6 @@ class XCorr(BaseEstimator, TransformerMixin):
         target_predict: np.ndarray,
         target_name: str,
     ) -> None:
-        """Log all metrics in one function to reduce code duplication."""
         try:
             rmse = np.sqrt(mean_squared_error(target_test, target_predict))
             mae = mean_absolute_error(target_test, target_predict)
