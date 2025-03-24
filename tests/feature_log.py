@@ -1,13 +1,8 @@
 import pytest
 import pandas as pd
 import numpy as np
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from astra.model.cross_correlation import XCorr
-
-
-@pytest.fixture
-def mock_mlflow_lock():
-    return MagicMock()
 
 
 @pytest.fixture
@@ -17,7 +12,7 @@ def mock_log_params():
 
 
 @pytest.fixture
-def xcorr_instance(mock_mlflow_lock, mock_log_params):
+def xcorr_instance(mock_log_params):
     dataset_metadata = {
         "analysis": {"feature_columns": ["feature1", "feature2", "feature3"]}
     }
@@ -29,10 +24,9 @@ def xcorr_instance(mock_mlflow_lock, mock_log_params):
         "regressor_name": "XGBoosting",
     }
 
-    with patch("astra.model.cross_correlation.mlflow_lock", mock_mlflow_lock):
-        xcorr = XCorr(dataset_metadata, cross_correlation_params)
-        xcorr._importances_map = pd.DataFrame()
-        return xcorr
+    xcorr = XCorr(dataset_metadata, cross_correlation_params)
+    xcorr._importances_map = pd.DataFrame()
+    return xcorr
 
 
 def test_log_feature_importances(xcorr_instance):
