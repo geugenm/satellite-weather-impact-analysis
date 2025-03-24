@@ -20,10 +20,6 @@ from sklearn.model_selection import train_test_split
 from xgboost import XGBRegressor
 
 
-# Thread-safe MLflow logging
-mlflow_lock = threading.RLock()
-
-
 class XCorr(BaseEstimator, TransformerMixin):
     def __init__(
         self,
@@ -34,8 +30,7 @@ class XCorr(BaseEstimator, TransformerMixin):
         self._importances_map = None
         self._importances_lock = threading.Lock()
 
-        with mlflow_lock:
-            log_params(cross_correlation_params["model_params"])
+        log_params(cross_correlation_params["model_params"])
 
         self.random_state = cross_correlation_params["random_state"]
         self.test_size = cross_correlation_params["test_size"]
@@ -188,10 +183,9 @@ class XCorr(BaseEstimator, TransformerMixin):
             mae = mean_absolute_error(target_test, target_predict)
             r2 = r2_score(target_test, target_predict)
 
-            with mlflow_lock:
-                log_metric(f"{target_name}_rmse", rmse)
-                log_metric(f"{target_name}_mae", mae)
-                log_metric(f"{target_name}_r2", r2)
+            log_metric(f"{target_name}_rmse", rmse)
+            log_metric(f"{target_name}_mae", mae)
+            log_metric(f"{target_name}_r2", r2)
 
             logging.info(
                 f"metrics for '{target_name}': rmse={rmse:.4f}, mae={mae:.4f}, r²={r2:.4f}"
@@ -212,12 +206,12 @@ class XCorr(BaseEstimator, TransformerMixin):
         imp_df = pd.DataFrame(
             {**dict(zip(df_in.columns, feature_importances)), target_name: 0},
             index=[target_name],
-        )
-        imp_df.dropna(axis=1, how="all", inplace=True)
+        ).dropna(axis=1, how="all")
 
         with self._importances_lock:
             if self._importances_map is not None:
-                self._importances_map.dropna(axis=1, how="all", inplace=True)
                 self._importances_map = pd.concat(
-                    [self._importances_map, imp_df]
+                    [self._importances_map.dropna(axis=1, how="all"), imp_df]
                 )
+            else:
+                self._importances_map = imp_df
