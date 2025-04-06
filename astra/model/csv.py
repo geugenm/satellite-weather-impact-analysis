@@ -29,8 +29,6 @@ def create_column_mapping(data_dir: Path, time_column: str) -> dict[str, str]:
 
 
 def load_time_series_data(data_dir: Path, time_column: str) -> pl.DataFrame:
-    """Load and combine CSV files containing time series data."""
-    # Find all CSV files
     csv_files = list(data_dir.glob("**/*.csv"))
     if not csv_files:
         raise ValueError(f"no csv files found in {data_dir}")

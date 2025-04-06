@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 import sys
 from importlib.metadata import PackageNotFoundError, version
 from typing import Optional
@@ -70,13 +71,13 @@ def workflow(
             url=satellite_name,
             time_from=time_from,
             time_to=time_to,
-            output_dir=".",
+            output_dir=Path("."),
         )
 
         ctx.invoke(
             analyze_time_series,
             graph_name=satellite_name,
-            data_dir=".",
+            data_dir=Path("."),
             parallel=True,
             use_mlflow=False,
         )

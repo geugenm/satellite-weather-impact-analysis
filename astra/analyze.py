@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import polars as pl
@@ -82,8 +83,8 @@ def setup_mlflow(experiment_name: str) -> bool:
 @app.callback(invoke_without_command=True)
 def analyze_time_series(
     graph_name: str = typer.Argument(..., help="name for the analysis graph"),
-    data_dir: Path = typer.Option(
-        Path(""),
+    data_dir: Optional[Path] = typer.Option(
+        None,
         help="directory containing csv files (Using graph_name by default)",
     ),
     parallel: bool = typer.Option(
@@ -96,7 +97,7 @@ def analyze_time_series(
         False, "--mlflow", help="enable mlflow tracking"
     ),
 ) -> None:
-    if data_dir == "":
+    if not data_dir:
         data_dir = Path(graph_name)
 
     try:

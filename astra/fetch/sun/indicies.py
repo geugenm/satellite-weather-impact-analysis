@@ -6,11 +6,7 @@ import re
 import numpy as np
 import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname).1s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logging = logging.getLogger(__name__)
 
 
 def fetch_filtered_files_and_content(
@@ -156,6 +152,7 @@ def extract_data_regex(name: str, content: str) -> pd.DataFrame:
             f"|→ sample groups: {[g for g in match_samples if g] or '∅'}\n"
             "validate: [1] file contents  [2] pattern groups  [3] encoding"
         )
+    logging.info(f"extracted {len(data)} groups from {name} dataset, saving...")
 
     dataframe = pd.DataFrame(data, columns=column_dict.keys())
     dataframe = set_datetime_index(dataframe, "time")
