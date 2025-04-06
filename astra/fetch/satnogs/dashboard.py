@@ -21,7 +21,7 @@ CPU_EXECUTOR = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 # Traffic shaping
 MIN_DELAY = 0.3  # 300ms minimum between requests
 MAX_DELAY = 1.8  # Max jittered delay
-BATCH_SIZE = 16  # Panels per batch
+BATCH_SIZE = 24  # Panels per batch
 BATCH_DELAY = 1.5  # Cool-off between batches
 CONCURRENCY = 8  # Max parallel panel processing
 
@@ -32,7 +32,13 @@ EXPAND_JS = _JS_DIR / "expand_all.js"
 PANELS_JS = _JS_DIR / "get_all_panels.js"
 
 # Validation sets
-RESTRICTED_FILES = {"Ground_Stations", "Last_Frame_Received"}
+RESTRICTED_FILES = {
+    "Ground_Stations",
+    "Last_Frame_Received",
+    "Last Frame Time",
+    "Frame Count",
+    "Framecount",
+}
 SEEN_PANELS: Set[str] = set()
 PROCESSED_PANELS: Set[str] = set()
 
@@ -45,13 +51,12 @@ async def _load_script(script_path: Path) -> str:
 
 
 async def _process_csv(file_path: Path) -> pd.DataFrame:
-    loop = asyncio.get_running_loop()
+    if any(r in file_path.name for r in RESTRICTED_FILES):
+        raise ValueError(
+            f"file '{file_path}' is in excluded list {RESTRICTED_FILES}"
+        )
 
     def _cpu_task() -> pd.DataFrame:
-        start = time.monotonic()
-        if any(r in file_path.name for r in RESTRICTED_FILES):
-            raise ValueError("restricted file access attempted")
-
         df = pd.read_csv(file_path)
         parser = DataFrameParser()
         df = parser.sanitize_columns(df)
@@ -62,13 +67,11 @@ async def _process_csv(file_path: Path) -> pd.DataFrame:
             raise ValueError(
                 f"insufficient columns after processing {df.columns}"
             )
-
-        logging.debug(
-            f"formatted '{file_path}' in {time.monotonic()-start:.2f}s"
-        )
         return df
 
-    return await loop.run_in_executor(CPU_EXECUTOR, _cpu_task)
+    return await asyncio.get_running_loop().run_in_executor(
+        CPU_EXECUTOR, _cpu_task
+    )
 
 
 async def download_with_retries(page, script):
@@ -76,7 +79,7 @@ async def download_with_retries(page, script):
 
     for attempt in range(1, max_attempts + 1):
         try:
-            async with page.expect_download(timeout=1000) as dl:
+            async with page.expect_download(timeout=2000) as dl:
                 await page.evaluate(script)
             download = await dl.value
             return download
@@ -85,7 +88,6 @@ async def download_with_retries(page, script):
                 raise TimeoutError(
                     f"Failed to download in {max_attempts} attempts"
                 ) from e
-            await asyncio.sleep(1)  # Optional: Add a delay before retrying
 
 
 async def _download_panel(page, output_dir: Path) -> Path:
@@ -111,16 +113,12 @@ async def _download_panel(page, output_dir: Path) -> Path:
 
 
 async def _process_panel(context, panel_url: str, output_dir: Path):
-    await asyncio.sleep(random.uniform(0.1, 0.5))  # Initial jitter
-
     page = await context.new_page()
     try:
         await page.goto(panel_url, wait_until="domcontentloaded", timeout=15000)
 
         await asyncio.sleep(random.uniform(0.2, 0.7))  # Render jitter
         saved_path = await _download_panel(page, output_dir)
-
-        await asyncio.sleep(random.uniform(0.1, 0.3))  # Post-download cooldown
 
         PROCESSED_PANELS.add(panel_url)
         return saved_path
@@ -141,72 +139,93 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
         page = await context.new_page()
         await page.goto(url, wait_until="networkidle", timeout=30000)
 
+        # Extract panel data with verification
         await page.evaluate(await _load_script(EXPAND_JS))
-        panels = await page.evaluate(await _load_script(PANELS_JS))
-        logging.debug("Discovered %d panels", len(panels))
+        panels = [
+            p
+            for p in await page.evaluate(await _load_script(PANELS_JS))
+            if p["type"] == "panel" and p["id"] not in SEEN_PANELS
+        ]
 
+        if not panels:
+            logging.debug("no new panels to process")
+            return []
+
+        # Mark panels as seen and parse URL once
+        SEEN_PANELS.update(p["id"] for p in panels)
+        url_data = parse_grafana_url(url)
         sem = asyncio.Semaphore(CONCURRENCY)
+        results = []
 
-        async def worker(panel):
+        # Process panel with verification chain
+        async def process_panel(panel):
+            panel_url = build_inspection_url(
+                url_data["base_url"],
+                panel["id"],
+                url_data["from"],
+                url_data["to"],
+            )
+
             async with sem:
-                if panel["id"] in SEEN_PANELS:
-                    return
-                SEEN_PANELS.add(panel["id"])
-
-                parsed_url_data = parse_grafana_url(url)
-                panel_url = build_inspection_url(
-                    parsed_url_data["base_url"],
-                    panel["id"],
-                    parsed_url_data["from"],
-                    parsed_url_data["to"],
-                )
-                logging.debug(
-                    "Processing panel '%s' with URL '%s'",
-                    panel["title"],
-                    panel_url,
-                )
-
                 try:
+                    logging.debug("processing '%s'", panel["title"])
                     return await _process_panel(context, panel_url, output_dir)
                 except Exception as e:
                     logging.error(
-                        f"failed to process '{panel["title"]}' failed: {str(e)}"
+                        "failed to process '%s': %s", panel["title"], e
                     )
+                    return None
                 finally:
                     await asyncio.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
 
-        results = []
+        # Process in batches with verification
         for i in range(0, len(panels), BATCH_SIZE):
             batch = panels[i : i + BATCH_SIZE]
-            logging.debug("Processing batch %d-%d", i + 1, i + len(batch))
+            logging.debug("processing batch %d-%d", i + 1, i + len(batch))
 
-            batch_tasks = [worker(p) for p in batch if p["type"] == "panel"]
-            batch_results = await asyncio.gather(
-                *batch_tasks, return_exceptions=True
-            )
-            results += [
-                r for r in batch_results if not isinstance(r, Exception)
+            # Gather results and filter valid ones
+            batch_results = [
+                r
+                for r in await asyncio.gather(
+                    *(process_panel(p) for p in batch), return_exceptions=False
+                )
+                if r
             ]
 
-            await asyncio.sleep(BATCH_DELAY)
+            results.extend(batch_results)
+            (
+                await asyncio.sleep(BATCH_DELAY)
+                if i + BATCH_SIZE < len(panels)
+                else None
+            )
 
         return results
-
     finally:
         await context.close()
 
 
 async def grafana_fetch(url: str, output_dir: Path):
-    output_dir = Path(output_dir).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    browser_args = [
+        "--disable-gpu",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-web-security",
+        "--js-flags=--max-old-space-size=512",
+        "--disable-features=site-per-process",
+        "--disable-extensions",
+        "--disable-sync",
+        "--blink-settings=imagesEnabled=true",
+    ]
+
+    start_time = time.monotonic()
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=True,
-            args=["--disable-gpu", "--no-sandbox"],
+            headless=True, args=browser_args, proxy=None, timeout=30000
         )
 
-        start_time = time.monotonic()
         try:
             await _scrape_panels(browser, url, output_dir)
         finally:
