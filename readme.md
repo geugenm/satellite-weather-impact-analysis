@@ -7,7 +7,7 @@
 [![Latex](https://img.shields.io/badge/LuaTeX-ready-171b20?style=for-the-badge&logo=latex&logoColor=38bdae&labelColor=171b20)](https://www.latex-project.org/)
 
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/geugenm/satellite-weather-impact-analysis/build.yml?style=for-the-badge&labelColor=171b20)](https://github.com/geugenm/satellite-weather-impact-analysis/actions)
-[![GitHub Actions Workflow Status (Tests)](https://github.com/geugenm/satellite-weather-impact-analysis/actions/workflows/check.yml?style=for-the-badge&labelColor=171b20)](https://github.com/geugenm/satellite-weather-impact-analysis/actions/)
+[![GitHub Actions Workflow Status (Tests)](https://img.shields.io/github/actions/workflow/status/geugenm/satellite-weather-impact-analysis/check.yml?style=for-the-badge&labelColor=171b20&label=TESTS)](https://github.com/geugenm/satellite-weather-impact-analysis/actions/)
 
 
 [![Codecov](https://img.shields.io/codecov/c/github/geugenm/satellite-weather-impact-analysis?style=for-the-badge&logoColor=38bdae&labelColor=171b20)](https://app.codecov.io/gh/geugenm/satellite-weather-impact-analysis)
