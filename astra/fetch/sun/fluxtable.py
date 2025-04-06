@@ -11,13 +11,11 @@ class FluxTableProcessor(DataProcessor):
     url = "https://spaceweather.gc.ca/solar_flux_data/daily_flux_values/fluxtable.txt"
 
     def download(self) -> str:
-        """Download flux table data"""
         response = requests.get(self.url, timeout=10)
         response.raise_for_status()
         return response.text
 
     def process(self, data: str) -> pd.DataFrame:
-        """Process flux table data into standardized format"""
         # Remove the second line (dashes)
         lines = data.splitlines()
         lines.pop(1)

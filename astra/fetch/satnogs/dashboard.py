@@ -11,6 +11,7 @@ from typing import Set
 import pandas as pd
 from playwright.async_api import async_playwright
 
+from astra.fetch.format import DataFrameParser
 from astra.fetch.satnogs.url import build_inspection_url, parse_grafana_url
 
 # Execution control
@@ -35,27 +36,6 @@ PANELS_JS = _JS_DIR / "get_all_panels.js"
 RESTRICTED_FILES = {"Ground_Stations", "Last_Frame_Received"}
 SEEN_PANELS: Set[str] = set()
 
-# Measurement patterns
-UNIT_PATTERN = (
-    r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c|days|day)$"
-)
-UNIT_MAP = {
-    "c": "celsius",
-    "°c": "celsius",
-    "v": "volts",
-    "mv": "millivolts",
-    "ma": "milliamps",
-    "ms": "milliseconds",
-    "s": "seconds",
-    "m": "meters",
-    "kg": "kilograms",
-    "hz": "hertz",
-    "db": "decibels",
-    "rpm": "rpm",
-    "days": "days",
-    "day": "day",
-}
-
 
 async def _load_script(script_path: Path) -> str:
     loop = asyncio.get_running_loop()
@@ -65,58 +45,26 @@ async def _load_script(script_path: Path) -> str:
 
 
 async def _process_csv(file_path: Path) -> pd.DataFrame:
-    """Thread-parallel CSV processing pipeline"""
     loop = asyncio.get_running_loop()
 
     def _cpu_task():
         start = time.monotonic()
-        logging.info(
-            f"operation 'process_csv' started with 'file': '{file_path.name}'"
-        )
-
         if any(r in file_path.name for r in RESTRICTED_FILES):
             raise ValueError("restricted file access attempted")
 
         df = pd.read_csv(file_path)
-        if df.empty or df.columns.size < 2:
-            raise ValueError(f"invalid dataframe structure: {df.shape}")
+        parser = DataFrameParser()
+        df = parser.sanitize_columns(df)
+        df = parser.parse_units(df)
 
-        # Temporal normalization
-        df = df.rename(columns=lambda c: "time" if c.lower() == "time" else c)
-        df["time"] = pd.to_datetime(df["time"], errors="coerce").dt.normalize()
-
-        # Unit parsing
-        for col in (
-            c for c in df.columns if c != "time" and df[c].dtype == "object"
-        ):
-            sample = df[col].dropna().astype(str).iloc[:100]
-            if not sample.str.match(UNIT_PATTERN, case=False).any():
-                continue
-
-            cleaned = df[col].str.extract(UNIT_PATTERN, flags=re.IGNORECASE)
-            if cleaned[0].notna().any():
-                df[col] = pd.to_numeric(cleaned[0], errors="coerce")
-                unit = cleaned[1].dropna().iloc[0].lower()
-                df = df.rename(
-                    columns={col: f"{col}_{UNIT_MAP.get(unit, unit)}"}
-                )
-
-        # Final dataframe sanitization
         df = df.select_dtypes(include=["number", "bool", "datetime"])
         if df.columns.size < 2:
-            raise ValueError("insufficient numeric columns after processing")
-
-        # Fixed string translation with equal length arguments
-        df = df.rename(
-            columns=lambda col: col.lower().translate(
-                str.maketrans({c: "_" for c in " ,<>[]()#+"})
+            raise ValueError(
+                f"insufficient columns after processing {df.columns}"
             )
-        )
-
-        df = df.groupby("time", as_index=False).agg("mean")
 
         logging.info(
-            f"operation 'process_csv' completed in {time.monotonic()-start:.2f}s"
+            f"formatted '{file_path}' in {time.monotonic()-start:.2f}s"
         )
         return df
 
@@ -124,8 +72,6 @@ async def _process_csv(file_path: Path) -> pd.DataFrame:
 
 
 async def _download_panel(page, output_dir: Path) -> Path:
-    """Async-safe panel download handler"""
-    logging.info("operation 'download' started with 'panel': '%s'", page.url)
     script = await _load_script(DOWNLOAD_JS)
     dest = None
 
@@ -140,11 +86,11 @@ async def _download_panel(page, output_dir: Path) -> Path:
         df = await _process_csv(dest)
         df.to_csv(dest, index=False)
 
-        logging.info("operation 'download' completed for '%s'", dest.name)
+        logging.info(f"downloaded '{dest}' sucessfully")
         return dest
 
     except Exception as e:
-        logging.error("operation 'download' failed with error: '%s'", str(e))
+        logging.error(f"failed to download page '{page.url}': {str(e)}")
         if dest and dest.exists():
             os.remove(dest)
         raise
@@ -164,8 +110,7 @@ async def _process_panel(context, panel_url: str, output_dir: Path):
         return saved_path
 
     except Exception as e:
-        logging.error("panel processing failed: %s", str(e))
-        raise
+        logging.error(f"panel '{panel_url}' processing failed: {str(e)}")
     finally:
         await page.close()
 

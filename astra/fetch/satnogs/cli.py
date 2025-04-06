@@ -84,7 +84,7 @@ def main(
 
         actual_url = satellites_map[satellite_name]
 
-    from astra.fetch.satnogs.main import run_grafana_fetch
+    from astra.fetch.satnogs.dashboard import run_grafana_fetch
 
     run_grafana_fetch(actual_url, Path(output_dir), time_from, time_to)
 
