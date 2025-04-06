@@ -23,7 +23,7 @@ app.add_typer(
 
 app.add_typer(
     satnogs_app,
-    name="fetch-satnogs",
+    name="satnogs-dashboard",
     help="download satellite data from satnogs dashboard",
 )
 
