@@ -82,7 +82,7 @@ def setup_mlflow(experiment_name: str) -> bool:
 
 @app.callback(invoke_without_command=True)
 def analyze_time_series(
-    graph_name: str = typer.Argument(..., help="name for the analysis graph"),
+    graph_name: str = typer.Argument(help="name for the analysis graph"),
     data_dir: Optional[Path] = typer.Option(
         None,
         help="directory containing csv files (Using graph_name by default)",
@@ -94,7 +94,7 @@ def analyze_time_series(
         help="enable experimental parallel processing (simple mlflow logs only)",
     ),
     use_mlflow: bool = typer.Option(
-        False, "--mlflow", help="enable mlflow tracking"
+        False, "--mlflow", help="Enable mlflow tracking"
     ),
 ) -> None:
     if not data_dir:
@@ -166,10 +166,4 @@ def analyze_time_series(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(name)s] %(levelname)s operation '%(message)s'",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
     app()

@@ -4,6 +4,8 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field
 
+logging = logging.getLogger(__name__)
+
 
 class SanitizationConfig(BaseModel):
     patterns: list[str] = Field(
