@@ -47,7 +47,7 @@ async def _load_script(script_path: Path) -> str:
 async def _process_csv(file_path: Path) -> pd.DataFrame:
     loop = asyncio.get_running_loop()
 
-    def _cpu_task():
+    def _cpu_task() -> pd.DataFrame:
         start = time.monotonic()
         if any(r in file_path.name for r in RESTRICTED_FILES):
             raise ValueError("restricted file access attempted")
