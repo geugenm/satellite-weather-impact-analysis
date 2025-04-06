@@ -6,11 +6,12 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Optional, Set
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+from typing import Set
 
 import pandas as pd
 from playwright.async_api import async_playwright
+
+from astra.fetch.satnogs.url import build_inspection_url, parse_grafana_url
 
 # Execution control
 MAX_WORKERS = os.cpu_count() or 4
@@ -56,83 +57,7 @@ UNIT_MAP = {
 }
 
 
-def parse_grafana_url(url: str) -> dict:
-    """
-    Parse and extract components from a Grafana dashboard URL.
-
-    Args:
-        url (str): The Grafana dashboard URL.
-
-    Returns:
-        dict: A dictionary containing the base URL, `from` time, and `to` time.
-    """
-    parsed = urlparse(url)
-    if not parsed.scheme or not parsed.netloc:
-        raise ValueError(f"Invalid URL structure: {url}")
-
-    query_params = parse_qs(parsed.query)
-    base_url = urlunparse(
-        (parsed.scheme, parsed.netloc, parsed.path, "", "", "")
-    )
-    time_from = query_params.get("from", ["now-1h"])[0]
-    time_to = query_params.get("to", ["now"])[0]
-
-    logging.info(
-        f"Parsed URL -> Base: {base_url}, From: {time_from}, To: {time_to}"
-    )
-    return {"base_url": base_url, "from": time_from, "to": time_to}
-
-
-def build_inspection_url(
-    base_url: str,
-    panel_id: str,
-    time_from: Optional[str] = None,
-    time_to: Optional[str] = None,
-) -> str:
-    """
-    Construct a panel-specific inspection URL with optional time range.
-
-    Args:
-        base_url (str): The base Grafana dashboard URL.
-        panel_id (str): The panel ID.
-        time_from (Optional[str]): Start of the time range (default is None).
-        time_to (Optional[str]): End of the time range (default is None).
-
-    Returns:
-        str: The constructed inspection URL.
-    """
-    parsed = urlparse(base_url)
-    params = {
-        k: v for k, v in parse_qs(parsed.query).items() if k.startswith("var-")
-    }
-
-    params.update(
-        {
-            "inspect": [panel_id],
-            "inspectTab": ["data"],
-            "viewPanel": [panel_id],
-            "orgId": ["1"],
-            "from": [time_from] if time_from else ["now-1h"],
-            "to": [time_to] if time_to else ["now"],
-        }
-    )
-
-    constructed_url = urlunparse(
-        (
-            parsed.scheme,
-            parsed.netloc,
-            parsed.path,
-            "",
-            urlencode(params, doseq=True),
-            "",
-        )
-    )
-    logging.debug(f"Constructed inspection URL: {constructed_url}")
-    return constructed_url
-
-
 async def _load_script(script_path: Path) -> str:
-    """Parallel script loading with cache"""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         IO_EXECUTOR, lambda: script_path.read_text(encoding="utf-8")
@@ -226,7 +151,6 @@ async def _download_panel(page, output_dir: Path) -> Path:
 
 
 async def _process_panel(context, panel_url: str, output_dir: Path):
-    """Parallel panel processing with jittered delays"""
     await asyncio.sleep(random.uniform(0.1, 0.5))  # Initial jitter
 
     page = await context.new_page()
@@ -247,17 +171,6 @@ async def _process_panel(context, panel_url: str, output_dir: Path):
 
 
 async def _scrape_panels(browser, url: str, output_dir: Path):
-    """
-    Orchestrated parallel scraping engine with enhanced URL handling.
-
-    Args:
-        browser: Playwright browser instance.
-        url (str): Dashboard URL to scrape.
-        output_dir (Path): Directory to save downloaded data.
-
-    Returns:
-        List of results from processed panels.
-    """
     context = await browser.new_context(
         accept_downloads=True,
         user_agent="Mozilla/5.0 (X11; Linux x86_64) Playwright/Scraper",
@@ -324,16 +237,6 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
 
 
 async def grafana_fetch(url: str, output_dir: Path):
-    """
-    Main entrypoint with enhanced URL handling and resource management.
-
-    Args:
-        url (str): Grafana dashboard URL.
-        output_dir (Path): Directory to save downloaded data.
-
-    Returns:
-        None
-    """
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
