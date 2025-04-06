@@ -47,6 +47,9 @@ dependencies = [
     "mlflow>=2.21.0",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["astra"]
+
 [project.scripts]
 astra = "astra.cli:app"
 ast = "astra.cli:app"
