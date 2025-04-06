@@ -81,7 +81,8 @@ def setup_mlflow(experiment_name: str) -> bool:
 def analyze_time_series(
     graph_name: str = typer.Argument(..., help="name for the analysis graph"),
     data_dir: Path = typer.Option(
-        Path("./data"), help="directory containing csv files"
+        Path(""),
+        help="directory containing csv files (Using graph_name by default)",
     ),
     parallel: bool = typer.Option(
         False,
@@ -93,7 +94,9 @@ def analyze_time_series(
         False, "--mlflow", help="enable mlflow tracking"
     ),
 ) -> None:
-    """Analyze time series data and generate correlation graph."""
+    if data_dir == "":
+        data_dir = Path(graph_name)
+
     try:
         config = get_project_config()
         logging.info(f"analyzing time series data for: '{graph_name}'")

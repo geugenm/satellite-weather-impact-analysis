@@ -1,4 +1,5 @@
 from typing import Optional
+from urllib.parse import urlparse
 import typer
 from pathlib import Path
 
@@ -51,7 +52,6 @@ def list_satellites():
 def main(
     ctx: typer.Context,
     url: str = typer.Argument(help="Dashboard URL or satellite name"),
-    output_dir: str = typer.Argument(help="Directory for processed CSVs"),
     time_from: Optional[str] = typer.Option(
         None, "--from", help="Start of the time range"
     ),
@@ -69,13 +69,14 @@ def main(
     if ctx.invoked_subcommand is not None:
         return
 
+    satellite_name = ""
+
     # Determine if input is URL or satellite name
     actual_url = url
     if not url.startswith("http"):
-        # Treat as satellite name
-        satellites_map = get_satellites_map()
         satellite_name = url.lower()
 
+        satellites_map = get_satellites_map()
         if satellite_name not in satellites_map:
             typer.echo(
                 f"error: satellite '{url}' not found. use 'list' command to see available satellites"
@@ -83,10 +84,12 @@ def main(
             raise typer.Exit(code=1)
 
         actual_url = satellites_map[satellite_name]
+    else:
+        satellite_name = urlparse(url).path.split("/")[-1]
 
     from astra.fetch.satnogs.dashboard import run_grafana_fetch
 
-    run_grafana_fetch(actual_url, Path(output_dir), time_from, time_to)
+    run_grafana_fetch(actual_url, Path(satellite_name), time_from, time_to)
 
 
 if __name__ == "__main__":
