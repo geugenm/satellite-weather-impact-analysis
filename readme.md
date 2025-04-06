@@ -101,6 +101,8 @@ poetry install --with dev
 ast --help
 ```
 
+![Analysis Preview cmd](img/preview_cmd.png)
+
 > **Note:** This workflow is in development and subject to changes.
 
 ### 🛰️ Satellite Data Tools
