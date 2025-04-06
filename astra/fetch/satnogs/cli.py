@@ -8,34 +8,38 @@ from astra.fetch.satnogs.info.cli import get_satellites_map
 
 app = typer.Typer(help="Enterprise Grafana Scraper with Enhanced Time Handling")
 
-app.add_typer(info_app, name="ls", help="get list of available satellites")
+app.add_typer(info_app, name="ls", help="Get list of available satellites")
 
 
 @app.command(
-    "download",
     help="Download satellite data from satnogs dashboard. Use 'ls' for getting available sats",
+    epilog="""
+    Scrape data from Grafana dashboards with parallel processing.
+
+    Note that not all sats might be supported due to information formatting. See https://dashboard.satnogs.org
+
+    Examples:
+
+      $ scrap https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&from=now-2y&to=now
+
+      $ scrap --o output --from now-7d --to now-1h veronika
+    """,
+    no_args_is_help=True,
 )
-def main(
-    ctx: typer.Context,
-    url: str = typer.Argument(help="Dashboard URL or satellite name"),
+def scrap(
+    url: str = typer.Argument(
+        help="Dashboard URL/satellite name in available list ('ls')",
+    ),
     time_from: Optional[str] = typer.Option(
         None, "--from", help="Start of the time range"
     ),
     time_to: Optional[str] = typer.Option(
         None, "--to", help="End of the time range"
     ),
-    output_dir: Path = typer.Option("", help="Output directory"),
+    output_dir: Optional[Path] = typer.Option(
+        None, "--o", help="Output directory. Defaults to url satellite_name"
+    ),
 ):
-    """
-    Scrape data from Grafana dashboards with parallel processing.
-
-    Examples:
-      grafana-scraper "https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&from=now-2y&to=now" ./output
-      grafana-scraper "veronika" ./output --from now-7d --to now-1h
-    """
-    if ctx.invoked_subcommand is not None:
-        return
-
     satellite_name = ""
 
     # Determine if input is URL or satellite name
@@ -46,7 +50,7 @@ def main(
         satellites_map = get_satellites_map()
         if satellite_name not in satellites_map:
             typer.echo(
-                f"error: satellite '{url}' not found. use 'list' command to see available satellites"
+                f"error: satellite '{url}' not found. use 'ls' command to see available satellites"
             )
             raise typer.Exit(code=1)
 
@@ -56,7 +60,7 @@ def main(
 
     from astra.fetch.satnogs.dashboard import run_grafana_fetch
 
-    satellite_name = output_dir if output_dir != "" else satellite_name
+    satellite_name = output_dir if output_dir else satellite_name
     run_grafana_fetch(actual_url, Path(satellite_name), time_from, time_to)
 
 

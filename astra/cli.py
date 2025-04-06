@@ -10,7 +10,7 @@ from astra.fetch.satnogs.cli import app as satnogs_app
 from astra.fetch.sun.cli import app as sun_app
 
 logging.basicConfig(
-    format="%(asctime)s [%(name)s] [%(levelname)s] %(message)s",
+    format="%(asctime)s [%(name)s] %(message)s",
     level=logging.INFO,
     datefmt="%H:%M:%S",
 )
@@ -20,13 +20,11 @@ app = typer.Typer()
 app.add_typer(
     analyzer_app, name="analyze", help="analyze satellite data from database"
 )
-
 app.add_typer(
     satnogs_app,
     name="satnogs-dashboard",
     help="download satellite data from satnogs dashboard",
 )
-
 app.add_typer(sun_app, name="fetch-sun", help="download solar activity data")
 
 
@@ -44,7 +42,7 @@ def version_callback(value: bool):
 
 
 @app.command(
-    "workflow", help="combine, like workflow in cmake, place all in cwd"
+    "workflow", help="combine workflow operations in current directory"
 )
 def workflow(
     ctx: typer.Context,
@@ -57,29 +55,36 @@ def workflow(
     ),
 ) -> None:
     from astra.fetch.sun.cli import main as sun_cmd
-
-    ctx.invoke(sun_cmd, parallel=True)
-
-    from astra.fetch.satnogs.cli import main as satnogs_cmd
-
-    ctx.invoke(
-        satnogs_cmd,
-        ctx,
-        url=satellite_name,
-        time_from=time_from,
-        time_to=time_to,
-        output_dir=".",
-    )
-
+    from astra.fetch.satnogs.cli import scrap as satnogs_cmd
     from astra.analyze import analyze_time_series
 
-    ctx.invoke(
-        analyze_time_series,
-        graph_name=satellite_name,
-        data_dir=".",
-        parallel=True,
-        use_mlflow=False,
-    )
+    try:
+        logging.info(f"workflow started for satellite '{satellite_name}'")
+
+        ctx.invoke(sun_cmd, parallel=True)
+
+        ctx.invoke(
+            satnogs_cmd,
+            url=satellite_name,
+            time_from=time_from,
+            time_to=time_to,
+            output_dir=".",
+        )
+
+        ctx.invoke(
+            analyze_time_series,
+            graph_name=satellite_name,
+            data_dir=".",
+            parallel=True,
+            use_mlflow=False,
+        )
+
+        logging.info(f"workflow completed for satellite '{satellite_name}'")
+    except Exception as e:
+        logging.error(
+            f"workflow failed for satellite '{satellite_name}': '{str(e)}'"
+        )
+        raise
 
 
 @app.callback()
@@ -101,7 +106,7 @@ def main(
 ):
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
-        logging.debug("debug logging mode enabled")
+        logging.debug("debug mode enabled")
 
 
 if __name__ == "__main__":
@@ -109,5 +114,5 @@ if __name__ == "__main__":
         app()
         sys.exit(0)
     except Exception as e:
-        logging.error(f"'main' failed with params '{str(e)}': '1'")
+        logging.error(f"main failed with error '{str(e)}'")
         sys.exit(1)
