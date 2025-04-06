@@ -28,9 +28,9 @@ ASTRA is a high-performance analytical platform designed to uncover correlations
 
 ## 🛠️ Tech Stack
 
-- **Core**: Python 3.13+, NumPy, Pandas
+- **Core**: Python 3.13+, NumPy, Pandas, polars
 - **ML**: mlflow, xgboost, scikit-learn
-- **Visualization**: Plotly, pyecharts, influxdb
+- **Visualization**: Plotly, pyecharts
 - **Documentation**: LuaTeX, markdown, mermaid
 
 ## 📊 Preview
@@ -72,19 +72,19 @@ cd satellite-weather-impact-analysis
 
 Choose your preferred package manager:
 
-**pip** (standard)
+**pip** (standard):
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-**uv** (high performance)
+**uv** (high performance):
 
 ```bash
 uv pip install -e ".[dev]"
 ```
 
-**poetry** (modern)
+**poetry** (modern):
 
 ```bash
 poetry install --with dev
@@ -92,41 +92,9 @@ poetry install --with dev
 
 > The `-e` flag enables editable mode - source changes reflect immediately
 
-3. **Start Docker Compose**
-
+3. **Use help for start**
 ```bash
-sudo docker compose -f docker/compose.yml up
-```
-
-4. **Parse Data**
-
-**Solar Data:**
-
-```bash
-astra download_sun
-```
-
-**Satellite Data (Example):**
-
-```bash
-cd data
-astra download \
-    https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1 \
-    veronika --from="-2y" --to="now"
-```
-
-5. **Push to InfluxDB (from Docker Container)**
-
-```bash
-astra push ./sun --bucket="solar" --token="<your-influxdb-token>"
-astra push ./veronika --bucket="veronika" --token="<your-influxdb-token>"
-```
-
-6. **Analyze Data**
-
-```bash
-cd ..
-astra analyze veronika
+ast --help
 ```
 
 > **Note:** This workflow is in development and subject to changes.
@@ -151,21 +119,7 @@ python ./satnogs-decoders/contrib/manage/fetch_frames_from_network.py \
 decode_frame fox fox/data_XXXX
 ```
 
-#### Push Data to InfluxDB (Local Docker from current repo after processing it)
-
-1. Start the InfluxDB container using Docker Compose:
-
-    ```
-    sudo docker compose -f docker/compose.yml up
-    ```
-
-2. Push the decoded data to the InfluxDB bucket:
-
-    ```
-    influx write -b <bucket_name> -o <organization_name> -f ./fox/decoded_data.csv --token <your_token>
-    ```
-
-Replace `<bucket_name>`, `<organization_name>`, and `<your_token>` with your actual InfluxDB configuration values.
+> **Note**: This approach is inadvisable due to the SatNOGS database's throttling limitations, which severely restrict data retrieval capacity. Additionally, the solution lacks stability and reliability.
 
 ## 🤝 Contributing
 
