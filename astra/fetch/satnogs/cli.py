@@ -3,52 +3,18 @@ from urllib.parse import urlparse
 import typer
 from pathlib import Path
 
+from astra.fetch.satnogs.info.cli import app as info_app
+from astra.fetch.satnogs.info.cli import get_satellites_map
+
 app = typer.Typer(help="Enterprise Grafana Scraper with Enhanced Time Handling")
 
-
-def get_satellites_map():
-    """Read satellites.txt and return a mapping of satellite names to URLs."""
-    satellites_file = Path(__file__).parent / "info" / "satellites.txt"
-    satellites_map = {}
-
-    if not satellites_file.exists():
-        typer.echo(f"error: satellites file not found at {satellites_file}")
-        raise typer.Exit(code=1)
-
-    for line in satellites_file.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-
-        # Extract satellite name from URL
-        try:
-            parts = line.split("/")
-            satellite_name = parts[-1].split("?")[
-                0
-            ]  # Remove query parameters if present
-            satellites_map[satellite_name.lower()] = line
-        except IndexError:
-            continue  # Skip malformed URLs
-
-    return satellites_map
+app.add_typer(info_app, name="ls", help="get list of available satellites")
 
 
-@app.command("list", help="List all available satellites. (aslo 'ls')")
-@app.command("ls", hidden=True)
-def list_satellites():
-    """List all available satellites."""
-    satellites_map = get_satellites_map()
-
-    if not satellites_map:
-        typer.echo("no satellites found")
-        return
-
-    typer.echo("available satellites:")
-    for name in sorted(satellites_map.keys()):
-        typer.echo(f"  {name}")
-
-
-@app.command("download", help="Download satellites data from satnogs dashboard")
+@app.command(
+    "download",
+    help="Download satellite data from satnogs dashboard. Use 'ls' for getting available sats",
+)
 def main(
     ctx: typer.Context,
     url: str = typer.Argument(help="Dashboard URL or satellite name"),
@@ -58,6 +24,7 @@ def main(
     time_to: Optional[str] = typer.Option(
         None, "--to", help="End of the time range"
     ),
+    output_dir: Path = typer.Option("", help="Output directory"),
 ):
     """
     Scrape data from Grafana dashboards with parallel processing.
@@ -89,6 +56,7 @@ def main(
 
     from astra.fetch.satnogs.dashboard import run_grafana_fetch
 
+    satellite_name = output_dir if output_dir != "" else satellite_name
     run_grafana_fetch(actual_url, Path(satellite_name), time_from, time_to)
 
 

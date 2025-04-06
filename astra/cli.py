@@ -43,6 +43,45 @@ def version_callback(value: bool):
         raise typer.Exit(0)
 
 
+@app.command(
+    "workflow", help="combine, like workflow in cmake, place all in cwd"
+)
+def workflow(
+    ctx: typer.Context,
+    satellite_name: str,
+    time_from: Optional[str] = typer.Option(
+        None, "--from", help="Start of the time range"
+    ),
+    time_to: Optional[str] = typer.Option(
+        None, "--to", help="End of the time range"
+    ),
+) -> None:
+    from astra.fetch.sun.cli import main as sun_cmd
+
+    ctx.invoke(sun_cmd, parallel=True)
+
+    from astra.fetch.satnogs.cli import main as satnogs_cmd
+
+    ctx.invoke(
+        satnogs_cmd,
+        ctx,
+        url=satellite_name,
+        time_from=time_from,
+        time_to=time_to,
+        output_dir=".",
+    )
+
+    from astra.analyze import analyze_time_series
+
+    ctx.invoke(
+        analyze_time_series,
+        graph_name=satellite_name,
+        data_dir=".",
+        parallel=True,
+        use_mlflow=False,
+    )
+
+
 @app.callback()
 def main(
     version: Optional[bool] = typer.Option(

@@ -44,6 +44,8 @@ RESTRICTED_FILES = {
 SEEN_PANELS: Set[str] = set()
 PROCESSED_PANELS: Set[str] = set()
 
+logging = logging.getLogger(__name__)
+
 
 async def _load_script(script_path: Path) -> str:
     loop = asyncio.get_running_loop()
