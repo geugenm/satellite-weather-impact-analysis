@@ -7,6 +7,8 @@ import logging
 from astra.config.data import DataConfig, get_project_config
 from astra.fetch.format import DataFrameParser
 
+logging = logging.getLogger(__name__)
+
 
 class DataProcessor(ABC):
     output_prefix: str = "not_set"

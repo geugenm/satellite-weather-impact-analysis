@@ -19,6 +19,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from xgboost import XGBRegressor
 
+logging = logging.getLogger(__name__)
+
 
 class XCorr(BaseEstimator, TransformerMixin):
     def __init__(

@@ -18,6 +18,8 @@ import polars.selectors as cs
 
 app = typer.Typer()
 
+logging = logging.getLogger(__name__)
+
 
 def process_time_series(
     df: pl.DataFrame, config: DataConfig, exclude_columns: list[str] = []

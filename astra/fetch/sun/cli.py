@@ -5,19 +5,17 @@ from pathlib import Path
 from typing import List, Type
 import typer
 import logging
-from rich.logging import RichHandler
-from rich.console import Console
 
 from astra.fetch.sun.data_processor import DataProcessor
 
 app = typer.Typer(
     help="Run data processors in the current directory", no_args_is_help=True
 )
-console = Console()
+
+logging = logging.getLogger(__name__)
 
 
 def import_module(file_path: Path):
-    """Import a module from file path."""
     module_name = file_path.stem
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     if spec is None or spec.loader is None:
@@ -44,7 +42,6 @@ def get_processor_classes(module) -> List[Type[DataProcessor]]:
 
 
 async def run_processor(processor_class, file_path, logger):
-    """Run a processor asynchronously."""
     try:
         logger.info(
             f"instantiating {processor_class.__name__} from {file_path.name}"
@@ -66,17 +63,7 @@ def main(
     parallel: bool = typer.Option(
         False, "--parallel", "-p", help="run processors in parallel"
     ),
-    debug: bool = typer.Option(False, "--debug", help="enable debug logging"),
 ):
-    """import modules in current directory and run data processors"""
-    log_level = logging.DEBUG if debug else logging.INFO
-    logging.basicConfig(
-        level=log_level,
-        format="%(message)s",
-        handlers=[RichHandler(console=console, rich_tracebacks=True)],
-    )
-    logger = logging.getLogger("processor_runner")
-
     current_dir = Path(__file__).parent
 
     python_files = [
@@ -87,7 +74,7 @@ def main(
         and not f.name.startswith("_")
     ]
 
-    logger.info(f"found {len(python_files)} python files in {current_dir}")
+    logging.info(f"found {len(python_files)} python files in {current_dir}")
 
     async def process_files():
         processor_count = 0
@@ -104,22 +91,22 @@ def main(
                 for processor_class in processor_classes:
                     if parallel:
                         tasks.append(
-                            run_processor(processor_class, file_path, logger)
+                            run_processor(processor_class, file_path, logging)
                         )
                     else:
                         success = await run_processor(
-                            processor_class, file_path, logger
+                            processor_class, file_path, logging
                         )
                         if success:
                             processor_count += 1
             except Exception as e:
-                logger.error(f"error importing {file_path.name}: {str(e)}")
+                logging.error(f"error importing {file_path.name}: {str(e)}")
 
         if parallel:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             processor_count = sum(1 for r in results if r is True)
 
-        logger.info(f"successfully ran {processor_count} data processors")
+        logging.info(f"successfully ran {processor_count} data processors")
 
     asyncio.run(process_files())
 

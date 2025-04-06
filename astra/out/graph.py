@@ -7,6 +7,8 @@ import numpy as np
 from pyecharts import options as opts
 from pyecharts.charts import Graph
 
+logging = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class GraphStyle:

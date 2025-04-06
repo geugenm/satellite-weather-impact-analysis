@@ -15,6 +15,8 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 
+logging = logging.getLogger(__name__)
+
 app = typer.Typer()
 
 app.add_typer(

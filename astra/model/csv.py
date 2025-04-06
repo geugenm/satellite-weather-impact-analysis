@@ -4,6 +4,8 @@ from functools import lru_cache
 
 import polars as pl
 
+logging = logging.getLogger(__name__)
+
 
 @lru_cache(maxsize=128)
 def create_column_mapping(data_dir: Path, time_column: str) -> dict[str, str]:
