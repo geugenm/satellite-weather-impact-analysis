@@ -15,13 +15,13 @@ def test_data_format() -> None:
     df = parser.sanitize_columns(df)
     df = parser.parse_units(df)
 
+    assert pd.api.types.is_datetime64_any_dtype(
+        df["time"]
+    ), f"'time' column is not datetime type. Dtype: {df['time'].dtype}"
     df = df.select_dtypes(include=["number", "bool", "datetime"])
 
     assert (
         "time" in df.columns
     ), f"'time' column missing. Columns: {df.columns.tolist()}"
-    assert pd.api.types.is_datetime64_any_dtype(
-        df["time"]
-    ), f"'time' column is not datetime type. Dtype: {df['time'].dtype}"
 
     assert not df.empty, "Filtered DataFrame is empty"

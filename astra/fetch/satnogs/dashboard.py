@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import random
-import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -35,6 +34,7 @@ PANELS_JS = _JS_DIR / "get_all_panels.js"
 # Validation sets
 RESTRICTED_FILES = {"Ground_Stations", "Last_Frame_Received"}
 SEEN_PANELS: Set[str] = set()
+PROCESSED_PANELS: Set[str] = set()
 
 
 async def _load_script(script_path: Path) -> str:
@@ -75,18 +75,28 @@ async def _download_panel(page, output_dir: Path) -> Path:
     script = await _load_script(DOWNLOAD_JS)
     dest = None
 
-    try:
-        async with page.expect_download(timeout=15000) as dl:
-            await page.evaluate(script)
-        download = await dl.value
+    max_attempts: int = 3
+    for attempt in range(max_attempts):
+        try:
+            async with page.expect_download(timeout=1000) as dl:
+                await page.evaluate(script)
+            download = await dl.value
+            break
+        except Exception:
+            if attempt > max_attempts:
+                raise TimeoutError(
+                    f"failed to download in {max_attempts} attempts"
+                )
+            continue
 
+    try:
         dest = output_dir / download.suggested_filename
         await download.save_as(dest)
 
         df = await _process_csv(dest)
         df.to_csv(dest, index=False)
 
-        logging.info(f"downloaded '{dest}' sucessfully")
+        logging.info(f"saved '{dest}' sucessfully")
         return dest
 
     except Exception as e:
@@ -107,6 +117,8 @@ async def _process_panel(context, panel_url: str, output_dir: Path):
         saved_path = await _download_panel(page, output_dir)
 
         await asyncio.sleep(random.uniform(0.1, 0.3))  # Post-download cooldown
+
+        PROCESSED_PANELS.add(panel_url)
         return saved_path
 
     except Exception as e:
@@ -185,8 +197,6 @@ async def grafana_fetch(url: str, output_dir: Path):
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    logging.info("Operation 'scrape' started for '%s'", url)
-
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
@@ -200,9 +210,7 @@ async def grafana_fetch(url: str, output_dir: Path):
             await browser.close()
 
         logging.info(
-            "Operation 'scrape' completed in %.2fs with %d panels",
-            time.monotonic() - start_time,
-            len(SEEN_PANELS),
+            f"Scraped {len(PROCESSED_PANELS)}/{len(SEEN_PANELS)} panels in {time.monotonic() - start_time:.2f}s"
         )
 
 

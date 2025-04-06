@@ -44,8 +44,10 @@ class DataFrameParser(ABC):
         assert time_col in df.columns, f"{time_col} is not in {df.columns}"
 
         df[time_col] = pd.to_datetime(
-            df[time_col], errors="coerce", format=self.config.format.time_format
-        )
+            df[time_col], errors="coerce"
+        ).dt.strftime(self.config.format.time_format)
+
+        df[time_col] = pd.to_datetime(df[time_col], errors="coerce")
 
         return df
 
