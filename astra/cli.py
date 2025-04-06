@@ -10,9 +10,9 @@ from astra.fetch.satnogs.cli import app as satnogs_app
 from astra.fetch.sun.cli import app as sun_app
 
 logging.basicConfig(
-    format="%(asctime)s [%(name)s] %(levelname)s operation '%(message)s'",
+    format="%(asctime)s [%(name)s] [%(levelname)s] %(message)s",
     level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
+    datefmt="%H:%M:%S",
 )
 
 app = typer.Typer()

@@ -63,7 +63,7 @@ async def _process_csv(file_path: Path) -> pd.DataFrame:
                 f"insufficient columns after processing {df.columns}"
             )
 
-        logging.info(
+        logging.debug(
             f"formatted '{file_path}' in {time.monotonic()-start:.2f}s"
         )
         return df
@@ -71,25 +71,29 @@ async def _process_csv(file_path: Path) -> pd.DataFrame:
     return await loop.run_in_executor(CPU_EXECUTOR, _cpu_task)
 
 
-async def _download_panel(page, output_dir: Path) -> Path:
-    script = await _load_script(DOWNLOAD_JS)
-    dest = None
+async def download_with_retries(page, script):
+    max_attempts = 3
 
-    max_attempts: int = 3
-    for attempt in range(max_attempts):
+    for attempt in range(1, max_attempts + 1):
         try:
             async with page.expect_download(timeout=1000) as dl:
                 await page.evaluate(script)
             download = await dl.value
-            break
-        except Exception:
-            if attempt > max_attempts:
+            return download
+        except Exception as e:
+            if attempt == max_attempts:
                 raise TimeoutError(
-                    f"failed to download in {max_attempts} attempts"
-                )
-            continue
+                    f"Failed to download in {max_attempts} attempts"
+                ) from e
+            await asyncio.sleep(1)  # Optional: Add a delay before retrying
+
+
+async def _download_panel(page, output_dir: Path) -> Path:
+    script = await _load_script(DOWNLOAD_JS)
+    dest = None
 
     try:
+        download = await download_with_retries(page, script)
         dest = output_dir / download.suggested_filename
         await download.save_as(dest)
 
@@ -139,7 +143,7 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
 
         await page.evaluate(await _load_script(EXPAND_JS))
         panels = await page.evaluate(await _load_script(PANELS_JS))
-        logging.info("Discovered %d panels", len(panels))
+        logging.debug("Discovered %d panels", len(panels))
 
         sem = asyncio.Semaphore(CONCURRENCY)
 
@@ -166,16 +170,15 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
                     return await _process_panel(context, panel_url, output_dir)
                 except Exception as e:
                     logging.error(
-                        "Panel '%s' failed: %s", panel["title"], str(e)
+                        f"failed to process '{panel["title"]}' failed: {str(e)}"
                     )
                 finally:
                     await asyncio.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
 
-        # Process panels in parallel with concurrency control
         results = []
         for i in range(0, len(panels), BATCH_SIZE):
             batch = panels[i : i + BATCH_SIZE]
-            logging.info("Processing batch %d-%d", i + 1, i + len(batch))
+            logging.debug("Processing batch %d-%d", i + 1, i + len(batch))
 
             batch_tasks = [worker(p) for p in batch if p["type"] == "panel"]
             batch_results = await asyncio.gather(
@@ -210,7 +213,7 @@ async def grafana_fetch(url: str, output_dir: Path):
             await browser.close()
 
         logging.info(
-            f"Scraped {len(PROCESSED_PANELS)}/{len(SEEN_PANELS)} panels in {time.monotonic() - start_time:.2f}s"
+            f"downloaded {len(PROCESSED_PANELS)}/{len(SEEN_PANELS)} panels in {time.monotonic() - start_time:.2f}s"
         )
 
 
