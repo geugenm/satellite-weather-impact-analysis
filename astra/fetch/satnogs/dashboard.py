@@ -141,7 +141,7 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
 
     try:
         page = await context.new_page()
-        await page.goto(url, wait_until="networkidle", timeout=40000)
+        await page.goto(url)
 
         # Extract panel data with verification
         await page.evaluate(await _load_script(EXPAND_JS))

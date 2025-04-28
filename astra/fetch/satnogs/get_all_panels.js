@@ -1,43 +1,42 @@
+const fast_scroll = () => {
+  const totalHeight = Math.max(
+    document.body.scrollHeight,
+    document.documentElement.scrollHeight
+  );
+
+  let currentPosition = window.scrollY;
+  const step = Math.max(5000, Math.floor(totalHeight / 100)); // Adjust speed here
+
+  const scroll = () => {
+    currentPosition = Math.min(currentPosition + step, totalHeight);
+    window.scrollTo(0, currentPosition);
+
+    if (currentPosition < totalHeight) {
+      requestAnimationFrame(scroll);
+    }
+  };
+
+  requestAnimationFrame(scroll);
+};
+
 () => {
-    const panels = [];
+  fast_scroll();
+  const uniquePanels = new Map();
 
-    // Process all grid items
-    document
-        .querySelectorAll('div.react-grid-item[id^="panel-"]')
-        .forEach((panel) => {
-            // Check if it's a real panel or just a row header
-            const isCollapsedRow = panel.querySelector(
-                ".dashboard-row--collapsed",
-            );
-            const isExpandedRow = panel.querySelector(
-                ".dashboard-row:not(.dashboard-row--collapsed)",
-            );
+  [...document.querySelectorAll('[data-viz-panel-key], [data-griditem-key]')].forEach(el => {
+    const panelKey = el.getAttribute('data-viz-panel-key') ||
+                      el.closest('[data-griditem-key]')?.getAttribute('data-griditem-key');
 
-            if (!isCollapsedRow && !isExpandedRow) {
-                // Regular panel
-                panels.push({
-                    id: parseInt(panel.id.replace("panel-", "")),
-                    title:
-                        panel.querySelector(".panel-title-text")?.innerText ||
-                        "Untitled Panel",
-                    type: "panel",
-                });
-            } else if (isExpandedRow) {
-                // Row header (expanded)
-                const title = panel.querySelector(
-                    ".dashboard-row__title",
-                )?.innerText;
-                if (title) {
-                    panels.push({
-                        id: parseInt(panel.id.replace("panel-", "")),
-                        title: title,
-                        type: "row",
-                    });
-                }
-            }
-        });
+    const id = parseInt(panelKey.replace(/^(panel|grid-item)-/, ''));
 
-    return panels
-        .filter((panel) => !isNaN(panel.id))
-        .sort((a, b) => a.id - b.id);
+    const title = el.querySelector('h2[title], .panel-title-text')?.innerText ||
+                 el.querySelector('h2[class*="css-"]')?.innerText ||
+                 'Untitled Panel';
+
+    const type = el.querySelector('.dashboard-row') ? 'row' : 'panel';
+
+    uniquePanels.set(id, { id, title, type });
+  });
+
+  return [...uniquePanels.values()].sort((a, b) => a.id - b.id);
 };

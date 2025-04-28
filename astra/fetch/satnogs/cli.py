@@ -30,16 +30,12 @@ def scrap(
     url: str = typer.Argument(
         help="Dashboard URL/satellite name in available list ('ls')",
     ),
-    time_from: Optional[str] = typer.Option(
-        None, "--from", help="Start of the time range"
-    ),
-    time_to: Optional[str] = typer.Option(
-        None, "--to", help="End of the time range"
-    ),
+    time_from: str = typer.Argument(help="Start of the time range"),
+    time_to: str = typer.Argument(help="End of the time range"),
     output_dir: Optional[Path] = typer.Option(
         None, "--o", help="Output directory. Defaults to url satellite_name"
     ),
-):
+) -> None:
     satellite_name = ""
 
     # Determine if input is URL or satellite name
