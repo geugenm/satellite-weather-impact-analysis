@@ -13,8 +13,8 @@ except ImportError:
     import typer
 
 logging.basicConfig(
-    format="%(asctime)s [%(name)s] %(message)s",
-    level=logging.WARNING,  # Default to WARNING level instead of DEBUG
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+    level=logging.WARNING,
     datefmt="%H:%M:%S",
 )
 
