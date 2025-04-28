@@ -16,7 +16,9 @@ async def get_satellite_urls(force_refresh=False) -> list[str]:
             and cache_file.exists()
             and time.time() - cache_file.stat().st_mtime < 86400
         ):
-            logging.debug(f"Using cached satellite data from {cache_file}")
+            logging.debug(
+                f"Using cached satnogs dashboard satellite catalog from '{cache_file}'"
+            )
             return json.loads(cache_file.read_text())
     except json.JSONDecodeError:
         logging.warning("Cache file corrupt, refreshing data")

@@ -1,9 +1,12 @@
 import asyncio
+import json
 import logging
 import os
+import tempfile
 import time
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import Dict, List, Optional, Set
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import pandas as pd
 from playwright.async_api import async_playwright
@@ -49,6 +52,93 @@ BROWSER_ARGS = [
     "--disable-features=TranslateUI",
     "--disable-infobars",
 ]
+
+
+def get_cache_dir() -> Path:
+    """Get cross-platform cache directory in temp space."""
+    cache_dir = Path(tempfile.gettempdir()) / "satnogs_panel_cache"
+    cache_dir.mkdir(exist_ok=True)
+    return cache_dir
+
+
+def clean_url(url: str) -> str:
+    """Remove time and view parameters from URL."""
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+
+    # Remove time-related parameters
+    for param in ["from", "to", "timezone", "viewPanel", "viewPan"]:
+        if param in query:
+            del query[param]
+
+    clean_query = urlencode(query, doseq=True)
+    return urlunparse(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            parsed.params,
+            clean_query,
+            parsed.fragment,
+        )
+    )
+
+
+def get_satellite_id(url: str) -> str:
+    parsed = urlparse(url)
+    path_parts = parsed.path.split("/")
+    if len(path_parts) >= 3:
+        return path_parts[-1].split("?")[0]
+    return "unknown"
+
+
+async def cache_panels(satellite_id: str, panels: List[Dict]) -> None:
+    cache_file = get_cache_dir() / f"{satellite_id}_panels.json"
+    clean_panels = []
+
+    for panel in panels:
+        if panel.get("type") == "panel":
+            panel_url = build_inspection_url(
+                "https://dashboard.satnogs.org",
+                panel.get("id", ""),
+                "",
+                "",  # Empty time params
+            )
+            clean_panels.append(
+                {
+                    "id": panel.get("id", ""),
+                    "title": panel.get("title", ""),
+                    "url": clean_url(panel_url),
+                }
+            )
+
+    await asyncio.to_thread(
+        lambda: cache_file.write_text(json.dumps(clean_panels))
+    )
+    logging.debug(
+        f"cached {len(clean_panels)} panels for '{satellite_id}' -> '{cache_file}'"
+    )
+
+
+async def get_cached_panels(satellite_id: str) -> List[Dict]:
+    cache_file: Path = get_cache_dir() / f"{satellite_id}_panels.json"
+
+    if not cache_file.exists():
+        logging.info(
+            f"no cached panels found for '{satellite_id}' in '{cache_file}'"
+        )
+        return []
+
+    logging.info(f"loading panels list from cache file '{cache_file}'")
+
+    try:
+        content = await asyncio.to_thread(cache_file.read_text)
+        return json.loads(content)
+    except Exception as e:
+        logging.error(
+            f"failed to load panels fro, cache file '{cache_file}': {e}"
+        )
+        return []
 
 
 async def load_script(path: Path) -> str:
@@ -101,22 +191,77 @@ async def process_panel(
     page = await context.new_page()
     try:
         await page.goto(panel_url, wait_until="load", timeout=15000)
-
         saved_path = await download_panel(page, output_dir)
         if saved_path:
             PROCESSED_PANELS.add(panel_url)
         return saved_path
     except Exception as e:
-        logging.error(f"panel '{panel_url}' processing failed: {str(e)}")
+        logging.error(f"panel '{panel_url}' processing failed: {e}")
         return None
     finally:
         await page.close()
 
 
-async def get_panels(browser, url: str, output_dir: Path) -> List[Path]:
+async def get_panels(
+    browser, url: str, output_dir: Path, force_refresh: bool
+) -> List[Path]:
     context = await browser.new_context(accept_downloads=True)
+    satellite_id = get_satellite_id(url)
 
     try:
+        panels = []
+        if not force_refresh:
+            panels = await get_cached_panels(satellite_id)
+
+        if panels and not force_refresh:
+            logging.info(
+                f"using {len(panels)} cached panels for '{satellite_id}'"
+            )
+            url_data = parse_grafana_url(url)
+
+            sem = asyncio.Semaphore(CONCURRENCY)
+            results = []
+
+            for i in range(0, len(panels), BATCH_SIZE):
+                batch = panels[i : i + BATCH_SIZE]
+                batch_tasks = []
+
+                for panel in batch:
+                    # Apply user time parameters to cached URLs
+                    panel_url = build_inspection_url(
+                        url_data["base_url"],
+                        panel["id"],
+                        url_data["from"],
+                        url_data["to"],
+                    )
+
+                    async def process_with_sem(
+                        p_url=panel_url, title=panel["title"]
+                    ):
+                        async with sem:
+                            logging.debug(f"processing '{title}' from cache")
+                            result = await process_panel(
+                                context, p_url, output_dir
+                            )
+                            return result
+
+                    batch_tasks.append(asyncio.create_task(process_with_sem()))
+
+                with tqdm(
+                    total=len(batch_tasks),
+                    desc=f"Batch {i//BATCH_SIZE+1}/{(len(panels)+BATCH_SIZE-1)//BATCH_SIZE}",
+                    bar_format="{desc} [{bar:40}] {percentage:3.0f}% {n_fmt}/{total_fmt}",
+                    ascii=" >=",
+                ) as progress:
+                    for future in asyncio.as_completed(batch_tasks):
+                        result = await future
+                        progress.update(1)
+                        if result:
+                            results.append(result)
+
+            return [r for r in results if r]
+
+        # Scrape panels from website if no cache or forced refresh
         page = await context.new_page()
         await page.goto(url, wait_until="load", timeout=40000)
         await asyncio.sleep(2)
@@ -124,24 +269,27 @@ async def get_panels(browser, url: str, output_dir: Path) -> List[Path]:
         await page.evaluate(await load_script(EXPAND_JS))
         await asyncio.sleep(2)
 
-        panels = [
+        scraped_panels = [
             p
             for p in await page.evaluate(await load_script(PANELS_JS))
             if p["type"] == "panel" and p["id"] not in SEEN_PANELS
         ]
 
-        if not panels:
+        if not scraped_panels:
             logging.debug("no new panels to process")
             return []
 
-        SEEN_PANELS.update(p["id"] for p in panels)
+        # Cache newly scraped panels
+        await cache_panels(satellite_id, scraped_panels)
+
+        SEEN_PANELS.update(p["id"] for p in scraped_panels)
         url_data = parse_grafana_url(url)
 
         sem = asyncio.Semaphore(CONCURRENCY)
         results = []
 
-        for i in range(0, len(panels), BATCH_SIZE):
-            batch = panels[i : i + BATCH_SIZE]
+        for i in range(0, len(scraped_panels), BATCH_SIZE):
+            batch = scraped_panels[i : i + BATCH_SIZE]
             batch_tasks = []
 
             for panel in batch:
@@ -164,7 +312,7 @@ async def get_panels(browser, url: str, output_dir: Path) -> List[Path]:
 
             with tqdm(
                 total=len(batch_tasks),
-                desc=f"Batch {i//BATCH_SIZE+1}/{(len(panels)+BATCH_SIZE-1)//BATCH_SIZE}",
+                desc=f"Batch {i//BATCH_SIZE+1}/{(len(scraped_panels)+BATCH_SIZE-1)//BATCH_SIZE}",
                 bar_format="{desc} [{bar:40}] {percentage:3.0f}% {n_fmt}/{total_fmt}",
                 ascii=" >=",
             ) as progress:
@@ -174,13 +322,17 @@ async def get_panels(browser, url: str, output_dir: Path) -> List[Path]:
                     if result:
                         results.append(result)
 
+        await page.close()
         return [r for r in results if r]
     finally:
         await context.close()
 
 
 async def grafana_fetch(
-    url: str, output_dir: Path, use_headless_browser_mode: bool
+    url: str,
+    output_dir: Path,
+    use_headless_browser_mode: bool,
+    force_refresh: bool,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     start_time = time.monotonic()
@@ -191,7 +343,7 @@ async def grafana_fetch(
         )
 
         try:
-            await get_panels(browser, url, output_dir)
+            await get_panels(browser, url, output_dir, force_refresh)
         finally:
             await browser.close()
 
@@ -207,6 +359,7 @@ def run_grafana_fetch(
     time_from: str = "",
     time_to: str = "",
     use_headless_browser_mode: bool = True,
+    force_refresh_panels_list: bool = False,
 ):
     if time_from or time_to:
         parsed_data = parse_grafana_url(url)
@@ -217,4 +370,11 @@ def run_grafana_fetch(
             time_to=time_to or parsed_data["to"],
         )
 
-    asyncio.run(grafana_fetch(url, output_dir, use_headless_browser_mode))
+    asyncio.run(
+        grafana_fetch(
+            url,
+            output_dir,
+            use_headless_browser_mode,
+            force_refresh_panels_list,
+        )
+    )

@@ -45,6 +45,11 @@ def scrap(
         "--headless/--no-headless",
         help="Run browser in headless mode (default: enabled)",
     ),
+    force_resfresh_panels_list: bool = typer.Option(
+        False,
+        "--no-cache",
+        help="Use cache for panel gathering (default: enabled)",
+    ),
 ) -> None:
     satellite_name = ""
 
@@ -67,7 +72,7 @@ def scrap(
 
     satellite_name = output_dir if output_dir else satellite_name
     logging.debug(
-        f"running grafana fetch, url='{actual_url}', output_dir='{satellite_name}' time_from='{time_from}', time_to='{time_to}', headless='{headless}'"
+        f"running grafana fetch, url='{actual_url}', output_dir='{satellite_name}' time_from='{time_from}', time_to='{time_to}', headless='{headless}', force_refresh_panels_list='{force_resfresh_panels_list}'"
     )
     run_grafana_fetch(
         actual_url,
@@ -75,6 +80,7 @@ def scrap(
         time_from,
         time_to,
         use_headless_browser_mode=headless,
+        force_refresh_panels_list=force_resfresh_panels_list,
     )
 
 
