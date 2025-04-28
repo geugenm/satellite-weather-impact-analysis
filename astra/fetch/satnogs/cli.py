@@ -2,9 +2,12 @@ from typing import Optional
 from urllib.parse import urlparse
 import typer
 from pathlib import Path
+import logging
 
 from astra.fetch.satnogs.info.cli import app as info_app
 from astra.fetch.satnogs.info.cli import get_satellites_map
+
+logging = logging.getLogger(__name__)
 
 app = typer.Typer(help="Enterprise Grafana Scraper with Enhanced Time Handling")
 
@@ -57,6 +60,9 @@ def scrap(
     from astra.fetch.satnogs.dashboard import run_grafana_fetch
 
     satellite_name = output_dir if output_dir else satellite_name
+    logging.debug(
+        f"running grafana fetch, url='{actual_url}', output_dir='{satellite_name}' time_from='{time_from}', time_to='{time_to}'"
+    )
     run_grafana_fetch(actual_url, Path(satellite_name), time_from, time_to)
 
 

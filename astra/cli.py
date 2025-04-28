@@ -12,7 +12,7 @@ from astra.fetch.sun.cli import app as sun_app
 
 logging.basicConfig(
     format="%(asctime)s [%(name)s] %(message)s",
-    level=logging.INFO,
+    level=logging.DEBUG,
     datefmt="%H:%M:%S",
 )
 
@@ -100,16 +100,8 @@ def main(
         is_eager=True,
         help="show version and exit",
     ),
-    debug: bool = typer.Option(
-        False,
-        "--debug",
-        "-d",
-        help="enable debug logging",
-    ),
 ):
-    if debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-        logging.debug("debug mode enabled")
+    pass
 
 
 if __name__ == "__main__":

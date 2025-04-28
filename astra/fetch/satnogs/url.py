@@ -31,10 +31,12 @@ def build_inspection_url(
             for k, v in parse_qs(parsed.query).items()
             if k.startswith("var-")
         },
-        "inspect": [panel_id],
-        "inspectTab": ["data"],
-        "viewPanel": [panel_id],
     }
+    if panel_id != "":
+        params["inspect"] = [panel_id]
+        params["inspectTab"] = ["data"]
+        params["viewPanel"] = [panel_id]
+
     if time_from:
         params["from"] = [time_from]
     if time_to:

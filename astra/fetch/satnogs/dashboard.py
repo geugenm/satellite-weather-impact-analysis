@@ -119,9 +119,13 @@ async def _download_panel(page, output_dir: Path) -> Path:
 async def _process_panel(context, panel_url: str, output_dir: Path):
     page = await context.new_page()
     try:
-        await page.goto(panel_url, wait_until="domcontentloaded", timeout=15000)
+        await page.goto(panel_url, wait_until="load", timeout=15000)
 
-        await asyncio.sleep(random.uniform(0.2, 0.7))  # Render jitter
+        import time
+
+        time.sleep(5)
+
+        await asyncio.sleep(random.uniform(0.2, 2))  # Render jitter
         saved_path = await _download_panel(page, output_dir)
 
         PROCESSED_PANELS.add(panel_url)
@@ -136,22 +140,26 @@ async def _process_panel(context, panel_url: str, output_dir: Path):
 async def _scrape_panels(browser, url: str, output_dir: Path):
     context = await browser.new_context(
         accept_downloads=True,
-        user_agent="Mozilla/5.0 (X11; Linux x86_64) Playwright/Scraper",
     )
 
     try:
         page = await context.new_page()
-        await page.goto(url)
+        await page.goto(url, wait_until="load", timeout=40000)
+        import time
 
-        # Extract panel data with verification
+        time.sleep(5)
+        logging.debug(f"loaded '{url}'")
+
         await page.evaluate(await _load_script(EXPAND_JS))
+        time.sleep(5)
+        logging.debug(f"expanding all on '{url}'")
         panels = [
             p
             for p in await page.evaluate(await _load_script(PANELS_JS))
             if p["type"] == "panel" and p["id"] not in SEEN_PANELS
         ]
 
-        if not panels:
+        if panels == []:
             logging.debug("no new panels to process")
             return []
 
@@ -212,15 +220,19 @@ async def grafana_fetch(url: str, output_dir: Path):
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     browser_args = [
-        "--disable-gpu",
         "--no-sandbox",
         "--disable-dev-shm-usage",
         "--disable-web-security",
         "--js-flags=--max-old-space-size=512",
-        "--disable-features=site-per-process",
         "--disable-extensions",
         "--disable-sync",
         "--blink-settings=imagesEnabled=true",
+        "--disable-notifications",
+        "--disable-popup-blocking",
+        "--disable-ipc-flooding-protection",
+        "--mute-audio",
+        "--disable-features=TranslateUI",
+        "--disable-infobars",
     ]
 
     start_time = time.monotonic()
@@ -229,8 +241,11 @@ async def grafana_fetch(url: str, output_dir: Path):
         browser = await p.chromium.launch(
             headless=True, args=browser_args, proxy=None, timeout=30000
         )
-
+        logging.debug(
+            f"launching chromium with flags: {browser_args}, headless:true"
+        )
         try:
+            logging.debug(f"navigating to '{url}'")
             await _scrape_panels(browser, url, output_dir)
         finally:
             await browser.close()
