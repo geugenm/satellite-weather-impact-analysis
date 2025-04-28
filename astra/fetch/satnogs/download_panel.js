@@ -29,7 +29,7 @@
     }
 
     const expand_data = await wait_for('[aria-label="Expand query row"]');
-    expand_data.click();
+
     const panel = await wait_for(
         'div[aria-label="Panel inspector Data content"]',
     );
@@ -38,7 +38,7 @@
     }
     await sleep(50);
 
-    const input = panel.querySelector(
+    const input = panel?.querySelector(
         '[class*="grafana-select-value-container"] input',
     );
 
@@ -66,5 +66,8 @@
     const downloadBtn = Array.from(panel.querySelectorAll("button")).find(
         (btn) => btn.textContent.includes("Download CSV"),
     );
+    if (!downloadBtn)
+        throw new Error("'Download CSV' was not found, nothing to download");
+
     downloadBtn.click();
 })();

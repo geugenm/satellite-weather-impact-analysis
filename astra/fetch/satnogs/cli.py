@@ -5,7 +5,7 @@ from pathlib import Path
 import logging
 
 from astra.fetch.satnogs.info.cli import app as info_app
-from astra.fetch.satnogs.info.cli import get_satellites_map
+from astra.fetch.satnogs.info.cli import get_satellites
 
 logging = logging.getLogger(__name__)
 
@@ -48,11 +48,11 @@ def scrap(
 ) -> None:
     satellite_name = ""
 
-    actual_url = url
+    actual_url: str = url
     if not url.startswith("http"):
         satellite_name = url.lower()
 
-        satellites_map = get_satellites_map()
+        satellites_map: dict[str, str] = get_satellites()
         if satellite_name not in satellites_map:
             typer.echo(
                 f"error: satellite '{url}' not found. use 'ls' command to see available satellites"
