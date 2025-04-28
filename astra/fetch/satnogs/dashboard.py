@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import random
 import time
 from pathlib import Path
 from typing import List, Optional, Set
@@ -14,8 +13,7 @@ from astra.fetch.format import DataFrameParser
 from astra.fetch.satnogs.url import build_inspection_url, parse_grafana_url
 
 CONCURRENCY = 8
-MIN_DELAY, MAX_DELAY = 0.3, 1.8
-BATCH_SIZE, BATCH_DELAY = 24, 1.5
+BATCH_SIZE = 24
 
 _JS_DIR = Path(__file__).parent.resolve()
 DOWNLOAD_JS = _JS_DIR / "download_panel.js"
@@ -79,7 +77,7 @@ async def download_panel(page, output_dir: Path) -> Optional[Path]:
     dest = None
 
     try:
-        async with page.expect_download(timeout=2000) as dl:
+        async with page.expect_download(timeout=10000) as dl:
             await page.evaluate(script)
         download = await dl.value
         dest = output_dir / download.suggested_filename
@@ -103,7 +101,6 @@ async def process_panel(
     page = await context.new_page()
     try:
         await page.goto(panel_url, wait_until="load", timeout=15000)
-        await asyncio.sleep(3)  # Render jitter
 
         saved_path = await download_panel(page, output_dir)
         if saved_path:
@@ -125,7 +122,7 @@ async def get_panels(browser, url: str, output_dir: Path) -> List[Path]:
         await asyncio.sleep(2)
 
         await page.evaluate(await load_script(EXPAND_JS))
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
 
         panels = [
             p
@@ -161,9 +158,6 @@ async def get_panels(browser, url: str, output_dir: Path) -> List[Path]:
                     async with sem:
                         logging.debug(f"processing '{title}'")
                         result = await process_panel(context, p_url, output_dir)
-                        await asyncio.sleep(
-                            random.uniform(MIN_DELAY, MAX_DELAY)
-                        )
                         return result
 
                 batch_tasks.append(asyncio.create_task(process_with_sem()))
@@ -178,9 +172,6 @@ async def get_panels(browser, url: str, output_dir: Path) -> List[Path]:
                     progress.update(1)
                     if result:
                         results.append(result)
-
-            if i + BATCH_SIZE < len(panels):
-                await asyncio.sleep(BATCH_DELAY)
 
         return [r for r in results if r]
     finally:

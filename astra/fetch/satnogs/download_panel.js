@@ -24,25 +24,25 @@
     const panel = await wait_for(
         'div[aria-label="Panel inspector Data content"]',
     );
+    function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+    await sleep(50);
 
-    const input = await wait_for(
+    const input = panel.querySelector(
         '[class*="grafana-select-value-container"] input',
-        panel,
     );
 
-    input.focus({ preventScroll: true });
+    input?.focus({ preventScroll: true });
     ["mousedown", "focusin"].forEach((evt) =>
-        input.dispatchEvent(
+        input?.dispatchEvent(
             new (evt.startsWith("focus") ? FocusEvent : MouseEvent)(evt, {
                 bubbles: true,
             }),
         ),
     );
 
-    function sleep(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-    await sleep(20);
+    await sleep(50);
 
     const option = Array.from(
         document.querySelectorAll(
@@ -52,7 +52,7 @@
         el.textContent?.toLowerCase().includes("series joined by time"),
     );
 
-    option.click();
+    option?.click();
 
     const downloadBtn = Array.from(panel.querySelectorAll("button")).find(
         (btn) => btn.textContent.includes("Download CSV"),
