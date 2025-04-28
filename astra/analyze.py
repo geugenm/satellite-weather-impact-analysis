@@ -81,9 +81,11 @@ def setup_mlflow(experiment_name: str) -> bool:
 @app.callback(invoke_without_command=True)
 def analyze_time_series(
     graph_name: str = typer.Argument(help="name for the analysis graph"),
-    data_dir: Path | None = typer.Option(
+    data_dirs: list[Path] = typer.Option(
         None,
-        help="directory containing csv files (Using graph_name by default)",
+        "--data-dir",
+        "-d",
+        help="directories containing csv files (can be specified multiple times)",
     ),
     output_dir: Path = typer.Option(
         Path("out"),
@@ -101,14 +103,30 @@ def analyze_time_series(
         False, "--mlflow", help="enable mlflow tracking"
     ),
 ) -> None:
-    if not data_dir:
-        data_dir = Path(graph_name)
+    # Default to graph_name directory if no data directories specified
+    if not data_dirs:
+        data_dirs = [Path(graph_name)]
 
     try:
         config = get_project_config()
-        logging.info(f"analyzing time series data for: '{graph_name}'")
+        logging.info(
+            f"analyzing time series data for: '{graph_name}' from {len(data_dirs)} directories"
+        )
 
-        polars_df = load_time_series_data(data_dir, config.format.time_column)
+        # Load data from multiple directories
+        frames = []
+        for dir_path in data_dirs:
+            logging.info(f"loading data from: {dir_path}")
+            frames.append(
+                load_time_series_data(dir_path, config.format.time_column)
+            )
+
+        # Concatenate all dataframes if multiple directories
+        if len(frames) > 1:
+            polars_df = pl.concat(frames, how="diagonal")
+        else:
+            polars_df = frames[0]
+
         dynamics = process_time_series(polars_df, config)
 
         mlflow_enabled = use_mlflow and setup_mlflow(graph_name)
@@ -130,9 +148,15 @@ def analyze_time_series(
                     enable_experimental_parallelism=parallel,
                 )
 
-                column_map = create_column_mapping(
-                    data_dir, config.format.time_column
-                )
+                # Create column mapping from all data directories
+                column_map = {}
+                for dir_path in data_dirs:
+                    column_map.update(
+                        create_column_mapping(
+                            dir_path, config.format.time_column
+                        )
+                    )
+
                 graph_content = create_dependency_graph(
                     graph_data, column_map
                 ).render_embed()
@@ -148,20 +172,27 @@ def analyze_time_series(
                 use_mlflow=mlflow_enabled,
             )
 
-            column_map = create_column_mapping(
-                data_dir, config.format.time_column
-            )
+            # Create column mapping from all data directories
+            column_map = {}
+            for dir_path in data_dirs:
+                column_map.update(
+                    create_column_mapping(dir_path, config.format.time_column)
+                )
+
             graph_content = create_dependency_graph(
                 graph_data, column_map
             ).render_embed()
 
-            output_path = Path(f"./{graph_name}/{output_dir}")
+            output_path = Path(f"./{graph_name}/{output_dir}").absolute()
             output_path.mkdir(parents=True, exist_ok=True)
 
             with open(output_path / "graph.html", "w") as f:
                 f.write(graph_content)
+                print(f"✨ graph saved to: '{output_path}/graph.html' 🌐")
+
             with open(output_path / "graph.yaml", "w") as f:
                 yaml.dump(graph_data, f)
+                print(f"📝 graph data saved to: '{output_path}/graph.yaml' 🚀")
 
         logging.info(f"successfully analyzed time series data: '{graph_name}'")
 

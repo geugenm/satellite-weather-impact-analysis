@@ -29,8 +29,10 @@ RESTRICTED_FILES = {
     "Last Frame Time",
     "Frame Count",
     "Framecount",
+    "Frame count-data",
     "Ground Stations",
     "Last Frame Received",
+    "Selected Frames",
 }
 SEEN_PANELS: Set[str] = set()
 PROCESSED_PANELS: Set[str] = set()

@@ -25,7 +25,7 @@ app.add_typer(info_app, name="ls", help="Get list of available satellites")
 
       $ scrap https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&from=now-2y&to=now
 
-      $ scrap --o output --from now-7d --to now-1h veronika
+      $ scrap -o output --from now-7d --to now-1h veronika
 
       $ scrap --no-headless veronika now-7d now  # Run with visible browser for debugging
     """,
