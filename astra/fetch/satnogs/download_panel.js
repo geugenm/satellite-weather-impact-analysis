@@ -1,22 +1,31 @@
 (async () => {
     function wait_for(selector, parent = document) {
-        return new Promise((resolve) => {
-            if (parent.querySelector(selector))
-                return resolve(parent.querySelector(selector));
+        return Promise.race([
+            new Promise((resolve) => {
+                if (parent.querySelector(selector))
+                    return resolve(parent.querySelector(selector));
 
-            const observer = new MutationObserver(() => {
-                const element = parent.querySelector(selector);
-                if (element) {
-                    observer.disconnect();
-                    resolve(element);
-                }
-            });
+                const observer = new MutationObserver(() => {
+                    const element = parent.querySelector(selector);
+                    if (element) {
+                        observer.disconnect();
+                        resolve(element);
+                    }
+                });
 
-            observer.observe(parent === document ? document.body : parent, {
-                childList: true,
-                subtree: true,
-            });
-        });
+                observer.observe(parent === document ? document.body : parent, {
+                    childList: true,
+                    subtree: true,
+                });
+            }),
+            new Promise((_, reject) =>
+                setTimeout(
+                    () =>
+                        reject(new Error(`Timeout waiting for "${selector}"`)),
+                    wait_for.timeout || 10000,
+                ),
+            ),
+        ]);
     }
 
     const expand_data = await wait_for('[aria-label="Expand query row"]');

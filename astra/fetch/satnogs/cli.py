@@ -26,6 +26,8 @@ app.add_typer(info_app, name="ls", help="Get list of available satellites")
       $ scrap https://dashboard.satnogs.org/d/abEVHMIIk/veronika?orgId=1&from=now-2y&to=now
 
       $ scrap --o output --from now-7d --to now-1h veronika
+
+      $ scrap --no-headless veronika now-7d now  # Run with visible browser for debugging
     """,
     no_args_is_help=True,
 )
@@ -38,10 +40,14 @@ def scrap(
     output_dir: Optional[Path] = typer.Option(
         None, "--o", help="Output directory. Defaults to url satellite_name"
     ),
+    headless: bool = typer.Option(
+        True,
+        "--headless/--no-headless",
+        help="Run browser in headless mode (default: enabled)",
+    ),
 ) -> None:
     satellite_name = ""
 
-    # Determine if input is URL or satellite name
     actual_url = url
     if not url.startswith("http"):
         satellite_name = url.lower()
@@ -61,9 +67,15 @@ def scrap(
 
     satellite_name = output_dir if output_dir else satellite_name
     logging.debug(
-        f"running grafana fetch, url='{actual_url}', output_dir='{satellite_name}' time_from='{time_from}', time_to='{time_to}'"
+        f"running grafana fetch, url='{actual_url}', output_dir='{satellite_name}' time_from='{time_from}', time_to='{time_to}', headless='{headless}'"
     )
-    run_grafana_fetch(actual_url, Path(satellite_name), time_from, time_to)
+    run_grafana_fetch(
+        actual_url,
+        Path(satellite_name),
+        time_from,
+        time_to,
+        use_headless_browser_mode=headless,
+    )
 
 
 if __name__ == "__main__":

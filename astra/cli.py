@@ -1,5 +1,4 @@
 import logging
-import sys
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Optional

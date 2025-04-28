@@ -165,7 +165,8 @@ async def get_panels(browser, url: str, output_dir: Path) -> List[Path]:
             with tqdm(
                 total=len(batch_tasks),
                 desc=f"Batch {i//BATCH_SIZE+1}/{(len(panels)+BATCH_SIZE-1)//BATCH_SIZE}",
-                bar_format="{desc} [{bar:30}] => {percentage:3.0f}% {n_fmt}/{total_fmt}",
+                bar_format="{desc} [{bar:40}] {percentage:3.0f}% {n_fmt}/{total_fmt}",
+                ascii=" >=",
             ) as progress:
                 for future in asyncio.as_completed(batch_tasks):
                     result = await future
@@ -178,13 +179,15 @@ async def get_panels(browser, url: str, output_dir: Path) -> List[Path]:
         await context.close()
 
 
-async def grafana_fetch(url: str, output_dir: Path) -> None:
+async def grafana_fetch(
+    url: str, output_dir: Path, use_headless_browser_mode: bool
+) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     start_time = time.monotonic()
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=True, args=BROWSER_ARGS, timeout=30000
+            headless=use_headless_browser_mode, args=BROWSER_ARGS, timeout=30000
         )
 
         try:
@@ -199,7 +202,11 @@ async def grafana_fetch(url: str, output_dir: Path) -> None:
 
 
 def run_grafana_fetch(
-    url: str, output_dir: Path, time_from: str = "", time_to: str = ""
+    url: str,
+    output_dir: Path,
+    time_from: str = "",
+    time_to: str = "",
+    use_headless_browser_mode: bool = True,
 ):
     if time_from or time_to:
         parsed_data = parse_grafana_url(url)
@@ -210,4 +217,4 @@ def run_grafana_fetch(
             time_to=time_to or parsed_data["to"],
         )
 
-    asyncio.run(grafana_fetch(url, output_dir))
+    asyncio.run(grafana_fetch(url, output_dir, use_headless_browser_mode))
