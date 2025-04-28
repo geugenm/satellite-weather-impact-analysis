@@ -61,15 +61,24 @@ def get_cache_dir() -> Path:
     return cache_dir
 
 
-def clean_url(url: str) -> str:
-    """Remove time and view parameters from URL."""
+def get_satellite_id(url: str) -> str:
+    parsed = urlparse(url)
+    path_parts = parsed.path.split("/")
+    if len(path_parts) >= 3:
+        return path_parts[-1].split("?")[0]
+    return "unknown"
+
+
+def build_panel_url(
+    base_url: str, panel_id: str, time_from: str, time_to: str
+) -> str:
+    """Build panel URL with required parameters and empty timezone."""
+    url = build_inspection_url(base_url, panel_id, time_from, time_to)
+
+    # Add empty timezone parameter
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
-
-    # Remove time-related parameters
-    for param in ["from", "to", "timezone", "viewPanel", "viewPan"]:
-        if param in query:
-            del query[param]
+    query["timezone"] = [""]
 
     clean_query = urlencode(query, doseq=True)
     return urlunparse(
@@ -84,39 +93,21 @@ def clean_url(url: str) -> str:
     )
 
 
-def get_satellite_id(url: str) -> str:
-    parsed = urlparse(url)
-    path_parts = parsed.path.split("/")
-    if len(path_parts) >= 3:
-        return path_parts[-1].split("?")[0]
-    return "unknown"
-
-
 async def cache_panels(satellite_id: str, panels: List[Dict]) -> None:
     cache_file = get_cache_dir() / f"{satellite_id}_panels.json"
-    clean_panels = []
+    panel_data = []
 
     for panel in panels:
         if panel.get("type") == "panel":
-            panel_url = build_inspection_url(
-                "https://dashboard.satnogs.org",
-                panel.get("id", ""),
-                "",
-                "",  # Empty time params
-            )
-            clean_panels.append(
-                {
-                    "id": panel.get("id", ""),
-                    "title": panel.get("title", ""),
-                    "url": clean_url(panel_url),
-                }
+            panel_data.append(
+                {"id": panel.get("id", ""), "title": panel.get("title", "")}
             )
 
     await asyncio.to_thread(
-        lambda: cache_file.write_text(json.dumps(clean_panels))
+        lambda: cache_file.write_text(json.dumps(panel_data))
     )
     logging.debug(
-        f"cached {len(clean_panels)} panels for '{satellite_id}' -> '{cache_file}'"
+        f"cached {len(panel_data)} panels for '{satellite_id}' -> '{cache_file}'"
     )
 
 
@@ -136,7 +127,7 @@ async def get_cached_panels(satellite_id: str) -> List[Dict]:
         return json.loads(content)
     except Exception as e:
         logging.error(
-            f"failed to load panels fro, cache file '{cache_file}': {e}"
+            f"failed to load panels from cache file '{cache_file}': {e}"
         )
         return []
 
@@ -227,8 +218,8 @@ async def get_panels(
                 batch_tasks = []
 
                 for panel in batch:
-                    # Apply user time parameters to cached URLs
-                    panel_url = build_inspection_url(
+                    # Build URL from panel ID with user time parameters
+                    panel_url = build_panel_url(
                         url_data["base_url"],
                         panel["id"],
                         url_data["from"],
@@ -279,7 +270,7 @@ async def get_panels(
             logging.debug("no new panels to process")
             return []
 
-        # Cache newly scraped panels
+        # Cache newly scraped panels (only ID and title)
         await cache_panels(satellite_id, scraped_panels)
 
         SEEN_PANELS.update(p["id"] for p in scraped_panels)
@@ -293,7 +284,7 @@ async def get_panels(
             batch_tasks = []
 
             for panel in batch:
-                panel_url = build_inspection_url(
+                panel_url = build_panel_url(
                     url_data["base_url"],
                     panel["id"],
                     url_data["from"],

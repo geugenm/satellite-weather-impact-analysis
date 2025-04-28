@@ -38,7 +38,7 @@ def scrap(
     time_from: str = typer.Argument(help="Start of the time range"),
     time_to: str = typer.Argument(help="End of the time range"),
     output_dir: Optional[Path] = typer.Option(
-        None, "--o", help="Output directory. Defaults to url satellite_name"
+        None, "-o", help="Output directory. Defaults to url satellite_name"
     ),
     headless: bool = typer.Option(
         True,
