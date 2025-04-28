@@ -1,24 +1,31 @@
 import logging
-from pathlib import Path
 import sys
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 from typing import Optional
 
-import typer
+from typing_extensions import Annotated
+
+try:
+    import typer_slim as typer
+
+    logging.debug("using typer-slim for faster startup")
+except ImportError:
+    import typer
+
+logging.basicConfig(
+    format="%(asctime)s [%(name)s] %(message)s",
+    level=logging.WARNING,  # Default to WARNING level instead of DEBUG
+    datefmt="%H:%M:%S",
+)
+
+logger = logging.getLogger(__name__)
+
+app = typer.Typer()
 
 from astra.analyze import app as analyzer_app
 from astra.fetch.satnogs.cli import app as satnogs_app
 from astra.fetch.sun.cli import app as sun_app
-
-logging.basicConfig(
-    format="%(asctime)s [%(name)s] %(message)s",
-    level=logging.DEBUG,
-    datefmt="%H:%M:%S",
-)
-
-logging = logging.getLogger(__name__)
-
-app = typer.Typer()
 
 app.add_typer(
     analyzer_app, name="analyze", help="analyze satellite data from database"
@@ -44,25 +51,40 @@ def version_callback(value: bool):
         raise typer.Exit(0)
 
 
+def set_log_level(verbose_level: int):
+    """Set log level based on verbosity"""
+    if verbose_level == 0:
+        logging.getLogger().setLevel(logging.WARNING)
+    elif verbose_level == 1:
+        logging.getLogger().setLevel(logging.INFO)
+    else:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    logger.debug(
+        f"log level set to {logging.getLevelName(logging.getLogger().level)}"
+    )
+
+
 @app.command(
     "workflow", help="combine workflow operations in current directory"
 )
 def workflow(
     ctx: typer.Context,
     satellite_name: str,
-    time_from: Optional[str] = typer.Option(
-        None, "--from", help="Start of the time range"
-    ),
-    time_to: Optional[str] = typer.Option(
-        None, "--to", help="End of the time range"
-    ),
+    time_from: Annotated[
+        Optional[str], typer.Option(help="Start of the time range")
+    ] = None,
+    time_to: Annotated[
+        Optional[str], typer.Option(help="End of the time range")
+    ] = None,
 ) -> None:
-    from astra.fetch.sun.cli import main as sun_cmd
-    from astra.fetch.satnogs.cli import scrap as satnogs_cmd
+    # Lazy import workflow-specific modules to improve performance
     from astra.analyze import analyze_time_series
+    from astra.fetch.satnogs.cli import scrap as satnogs_cmd
+    from astra.fetch.sun.cli import main as sun_cmd
 
     try:
-        logging.info(f"workflow started for satellite '{satellite_name}'")
+        logger.info(f"workflow started for satellite '{satellite_name}'")
 
         ctx.invoke(sun_cmd, parallel=True)
 
@@ -82,9 +104,9 @@ def workflow(
             use_mlflow=False,
         )
 
-        logging.info(f"workflow completed for satellite '{satellite_name}'")
+        logger.info(f"workflow completed for satellite '{satellite_name}'")
     except Exception as e:
-        logging.error(
+        logger.error(
             f"workflow failed for satellite '{satellite_name}': '{str(e)}'"
         )
         raise
@@ -92,22 +114,30 @@ def workflow(
 
 @app.callback()
 def main(
-    version: Optional[bool] = typer.Option(
-        None,
-        "--version",
-        "-v",
-        callback=version_callback,
-        is_eager=True,
-        help="show version and exit",
-    ),
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            callback=version_callback,
+            is_eager=True,
+            help="show version and exit",
+        ),
+    ] = False,
+    verbose: Annotated[
+        int,
+        typer.Option(
+            "--verbose",
+            "-v",
+            count=True,
+            help="increase verbosity (-v: INFO, -vv: DEBUG)",
+        ),
+    ] = 0,
 ):
-    pass
+    set_log_level(verbose)
 
 
 if __name__ == "__main__":
     try:
         app()
-        sys.exit(0)
     except Exception as e:
-        logging.error(f"main failed with error '{str(e)}'")
-        sys.exit(1)
+        logger.exception(f"main failed with error '{str(e)}'")
