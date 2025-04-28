@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 import polars as pl
@@ -82,18 +81,24 @@ def setup_mlflow(experiment_name: str) -> bool:
 @app.callback(invoke_without_command=True)
 def analyze_time_series(
     graph_name: str = typer.Argument(help="name for the analysis graph"),
-    data_dir: Optional[Path] = typer.Option(
+    data_dir: Path | None = typer.Option(
         None,
         help="directory containing csv files (Using graph_name by default)",
+    ),
+    output_dir: Path = typer.Option(
+        Path("out"),
+        "--output",
+        "-o",
+        help="output directory for results (default: ./<graph_name>/out)",
     ),
     parallel: bool = typer.Option(
         False,
         "--parallel",
         "-p",
-        help="enable experimental parallel processing (simple mlflow logs only)",
+        help="enable experimental parallel processing",
     ),
     use_mlflow: bool = typer.Option(
-        False, "--mlflow", help="Enable mlflow tracking"
+        False, "--mlflow", help="enable mlflow tracking"
     ),
 ) -> None:
     if not data_dir:
@@ -150,7 +155,7 @@ def analyze_time_series(
                 graph_data, column_map
             ).render_embed()
 
-            output_path = Path(f"./output/{graph_name}")
+            output_path = Path(f"./{graph_name}/{output_dir}")
             output_path.mkdir(parents=True, exist_ok=True)
 
             with open(output_path / "graph.html", "w") as f:
