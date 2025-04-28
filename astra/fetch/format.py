@@ -5,9 +5,6 @@ from abc import ABC
 from astra.config.data import DataConfig, get_project_config
 
 
-UNIT_PATTERN = (
-    r"^(-?\d*\.?\d+)\s*(v|mv|ma|ms|s|m|kg|hz|db|rpm|celsius|c|°c|days|day|a)$"
-)
 UNIT_MAP = {
     "c": "celsius",
     "°c": "celsius",
@@ -24,7 +21,16 @@ UNIT_MAP = {
     "days": "days",
     "day": "day",
     "a": "amps",
+    "kb": "kilobytes",
+    "mb": "megabytes",
+    "k": "thousands",
+    "mib": "mebibytes",
 }
+
+UNIT_PATTERN = re.compile(
+    f"^(-?\\d*\\.?\\d+)\\s*({"|".join(re.escape(k) for k in sorted(UNIT_MAP.keys(), key=len, reverse=True))})$",
+    re.IGNORECASE,
+)
 
 
 class DataFrameParser(ABC):
@@ -32,10 +38,10 @@ class DataFrameParser(ABC):
         self.config: DataConfig = get_project_config()
 
     def sanitize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        special_symbols = self.config.format.special_symbols
-        for pattern in special_symbols.patterns:
-            df.columns = df.columns.str.replace(
-                pattern, special_symbols.replacement
+        # Clean column names
+        for p in self.config.format.special_symbols.patterns:
+            df.columns = pd.Series(df.columns).str.replace(
+                p, self.config.format.special_symbols.replacement
             )
         df.columns = df.columns.str.lower()
 
@@ -52,20 +58,28 @@ class DataFrameParser(ABC):
         return df
 
     def parse_units(self, df: pd.DataFrame) -> pd.DataFrame:
-        for col in (
+        time_col = self.config.format.time_column
+        rename_dict: dict[str, str] = {}
+
+        # Process string columns that aren't the time column
+        for col in [
             c
-            for c in df.columns
-            if c != self.config.format.time_column and df[c].dtype == "object"
-        ):
-            sample = df[col].dropna().astype(str).iloc[:100]
-            if not sample.str.match(UNIT_PATTERN, case=False).any():
+            for c in df.select_dtypes(include=["object"]).columns
+            if c != time_col
+        ]:
+            sample = df[col].dropna().astype(str).head(10)
+            if not sample.str.match(UNIT_PATTERN).any():
                 continue
 
-            cleaned = df[col].str.extract(UNIT_PATTERN, flags=re.IGNORECASE)
-            if cleaned[0].notna().any():
-                df[col] = pd.to_numeric(cleaned[0], errors="coerce")
-                unit = cleaned[1].dropna().iloc[0].lower()
-                df = df.rename(
-                    columns={col: f"{col}_{UNIT_MAP.get(unit, unit)}"}
-                )
+            extracted = df[col].str.extract(UNIT_PATTERN)
+            if not extracted.iloc[:, 0].notna().any():
+                continue
+
+            df[col] = pd.to_numeric(extracted.iloc[:, 0], errors="coerce")
+            unit = extracted.iloc[:, 1].dropna().iloc[0].lower()
+            rename_dict[col] = f"{col}_{UNIT_MAP.get(unit, unit)}"
+
+        if rename_dict:
+            df.rename(columns=rename_dict, inplace=True)
+
         return df

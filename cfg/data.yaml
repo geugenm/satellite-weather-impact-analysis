@@ -4,5 +4,5 @@ time_format: "%Y-%m-%d"
 separator: "," # CSV delimiter
 
 special_symbols:
-    patterns: [" ", "-", "(", ")", "/", ".", "[", "]"]
+    patterns: ["(", ")", "[", "]", "+"]
     replacement: "_"

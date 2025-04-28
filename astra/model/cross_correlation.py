@@ -2,7 +2,7 @@ import logging
 import multiprocessing
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, TypeAlias, Self
 
 import mlflow.xgboost
 import numpy as np
@@ -19,7 +19,11 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from xgboost import XGBRegressor
 
-logging = logging.getLogger(__name__)
+# Python 3.13 type hints
+ModelType: TypeAlias = Any
+RegressionResult: TypeAlias = tuple[Optional[ModelType], str, Optional[str]]
+
+logger = logging.getLogger(__name__)
 
 
 class XCorr(BaseEstimator, TransformerMixin):
@@ -27,12 +31,15 @@ class XCorr(BaseEstimator, TransformerMixin):
         self,
         dataset_metadata: dict[str, Any],
         cross_correlation_params: dict,
+        use_mlflow: bool = True,
     ) -> None:
-        self.models = []
-        self._importances_map = None
+        self.use_mlflow = use_mlflow
+        self.models: list[ModelType] = []
+        self._importances_map: Optional[pd.DataFrame] = None
         self._importances_lock = threading.Lock()
 
-        log_params(cross_correlation_params["model_params"])
+        if self.use_mlflow:
+            log_params(cross_correlation_params["model_params"])
 
         self.random_state = cross_correlation_params["random_state"]
         self.test_size = cross_correlation_params["test_size"]
@@ -56,38 +63,45 @@ class XCorr(BaseEstimator, TransformerMixin):
     def importances_map(self) -> Optional[pd.DataFrame]:
         return self._importances_map
 
-    def fit(self, x_dataframe: pd.DataFrame) -> None:
+    def fit(self, x_dataframe: pd.DataFrame) -> Self:
         if self.models:
-            logging.warning("models already trained. skipping re-training.")
-            return
+            logger.warning("models already trained. skipping re-training.")
+            return self
 
-        logging.info(f"training with {x_dataframe.shape[1]} features.")
+        logger.info(f"training with {x_dataframe.shape} features.")
 
-        mlflow.xgboost.autolog(model_format="json")
+        if self.use_mlflow:
+            mlflow.xgboost.autolog(model_format="json")
+
         self.reset_importance_map(x_dataframe.columns)
         columns_to_process = self._get_columns_to_process(x_dataframe)
 
         for column in columns_to_process:
-            logging.info(f"training model for '{column}'")
+            logger.info(f"training model for '{column}'")
             model_instance = self._train_model(
                 x_dataframe.drop([column], axis=1), x_dataframe[column]
             )
             self.models.append(model_instance)
 
+        return self
+
     def experimental_fit_parallel(
         self, x_dataframe: pd.DataFrame, max_workers: int = 0
-    ) -> None:
+    ) -> Self:
         if self.models:
-            logging.warning("models already trained. skipping re-training.")
-            return
+            logger.warning("models already trained. skipping re-training.")
+            return self
 
-        logging.info(f"training with {x_dataframe.shape[1]} features.")
+        logger.info(f"training with {x_dataframe.shape} features.")
+
+        if self.use_mlflow:
+            mlflow.xgboost.autolog(model_format="json")
 
         self.reset_importance_map(x_dataframe.columns)
         columns_to_process = self._get_columns_to_process(x_dataframe)
 
         max_workers = max_workers or max(1, multiprocessing.cpu_count() - 1)
-        logging.info(f"using {max_workers} parallel workers for model training")
+        logger.info(f"using {max_workers} parallel workers for model training")
 
         models_lock = threading.Lock()
         self.models = []
@@ -106,21 +120,22 @@ class XCorr(BaseEstimator, TransformerMixin):
                         with models_lock:
                             self.models.append(model)
                     else:
-                        logging.error(
+                        logger.error(
                             f"failed to train model for '{col}': {error}"
                         )
                 except Exception as exc:
-                    logging.error(
+                    logger.error(
                         f"critical failure in model training for '{column}': {exc}"
                     )
 
-        logging.info(
+        logger.info(
             f"parallel training completed. trained {len(self.models)} models"
         )
+        return self
 
     def _get_columns_to_process(self, df: pd.DataFrame) -> list[str]:
         if self.feature_columns:
-            logging.info(f"removing features: {self.feature_columns}")
+            logger.info(f"removing features: {self.feature_columns}")
             return [
                 col for col in df.columns if col not in self.feature_columns
             ]
@@ -128,7 +143,7 @@ class XCorr(BaseEstimator, TransformerMixin):
 
     def _train_model_worker(
         self, df: pd.DataFrame, column: str
-    ) -> Tuple[Any, str, Optional[str]]:
+    ) -> RegressionResult:
         try:
             return (
                 self._train_model(df.drop([column], axis=1), df[column]),
@@ -140,7 +155,7 @@ class XCorr(BaseEstimator, TransformerMixin):
 
     def _train_model(
         self, df_in: pd.DataFrame, target_series: pd.Series
-    ) -> Any:
+    ) -> ModelType:
         # Split data
         df_in_train, df_in_test, target_train, target_test = train_test_split(
             df_in,
@@ -185,15 +200,16 @@ class XCorr(BaseEstimator, TransformerMixin):
             mae = mean_absolute_error(target_test, target_predict)
             r2 = r2_score(target_test, target_predict)
 
-            log_metric(f"{target_name}_rmse", rmse)
-            log_metric(f"{target_name}_mae", mae)
-            log_metric(f"{target_name}_r2", r2)
+            if self.use_mlflow:
+                log_metric(f"{target_name}_rmse", rmse)
+                log_metric(f"{target_name}_mae", mae)
+                log_metric(f"{target_name}_r2", r2)
 
-            logging.info(
+            logger.info(
                 f"metrics for '{target_name}': rmse={rmse:.4f}, mae={mae:.4f}, r²={r2:.4f}"
             )
         except Exception as e:
-            logging.error(f"failed to log metrics for {target_name}: {e}")
+            logger.error(f"failed to log metrics for {target_name}: {e}")
 
     def reset_importance_map(self, columns: pd.Index) -> None:
         with self._importances_lock:

@@ -13,6 +13,7 @@ def cross_correlate(
     input_dataframe: pd.DataFrame,
     index_column: str,
     enable_experimental_parallelism: bool = False,
+    use_mlflow: bool = True,
 ) -> dict:
     """
     Catch linear and non-linear correlations between columns
@@ -36,7 +37,7 @@ def cross_correlate(
         config: dict = yaml.safe_load(f)
 
     satellite_name: str = xcorr_configuration_file.stem
-    xcorr: XCorr = XCorr({"satellite_name": satellite_name}, config)
+    xcorr: XCorr = XCorr({"satellite_name": satellite_name}, config, use_mlflow)
 
     df: pd.DataFrame = input_dataframe.set_index(index_column).drop(
         index_column, axis=1, errors="ignore"

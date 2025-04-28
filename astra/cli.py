@@ -2,15 +2,14 @@ import logging
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Optional
+import typer
 
 from typing_extensions import Annotated
 
-try:
-    import typer_slim as typer
+from astra.fetch.sun.cli import app as sun_app
+from astra.analyze import app as analyzer_app
+from astra.fetch.satnogs.cli import app as satnogs_app
 
-    logging.debug("using typer-slim for faster startup")
-except ImportError:
-    import typer
 
 logging.basicConfig(
     format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
@@ -22,9 +21,6 @@ logger = logging.getLogger(__name__)
 
 app = typer.Typer()
 
-from astra.analyze import app as analyzer_app
-from astra.fetch.satnogs.cli import app as satnogs_app
-from astra.fetch.sun.cli import app as sun_app
 
 app.add_typer(
     analyzer_app, name="analyze", help="analyze satellite data from database"
@@ -44,10 +40,9 @@ def get_version() -> str:
         return "dev"
 
 
-def version_callback(value: bool):
+def version_callback(value: bool) -> None:
     if value:
         print(f"astra {get_version()}")
-        raise typer.Exit(0)
 
 
 def set_log_level(verbose_level: int):

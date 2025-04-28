@@ -62,7 +62,6 @@ def process_time_series(
 
 
 def setup_mlflow(experiment_name: str) -> bool:
-    """Configure MLflow tracking."""
     try:
         import mlflow
 
@@ -141,6 +140,7 @@ def analyze_time_series(
                 index_column=config.format.time_column,
                 xcorr_configuration_file=Path(f"{CONFIG_PATH}/model.yaml"),
                 enable_experimental_parallelism=parallel,
+                use_mlflow=mlflow_enabled,
             )
 
             column_map = create_column_mapping(
