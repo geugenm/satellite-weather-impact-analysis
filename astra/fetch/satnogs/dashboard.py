@@ -137,7 +137,7 @@ async def _process_panel(context, panel_url: str, output_dir: Path):
         await page.close()
 
 
-async def _scrape_panels(browser, url: str, output_dir: Path):
+async def get_panels(browser, url: str, output_dir: Path):
     context = await browser.new_context(
         accept_downloads=True,
     )
@@ -145,13 +145,12 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
     try:
         page = await context.new_page()
         await page.goto(url, wait_until="load", timeout=40000)
-        import time
+        await asyncio.sleep(5)
 
-        time.sleep(5)
         logging.debug(f"loaded '{url}'")
 
         await page.evaluate(await _load_script(EXPAND_JS))
-        time.sleep(5)
+        await asyncio.sleep(5)
         logging.debug(f"expanding all on '{url}'")
         panels = [
             p
@@ -216,10 +215,11 @@ async def _scrape_panels(browser, url: str, output_dir: Path):
         await context.close()
 
 
-async def grafana_fetch(url: str, output_dir: Path):
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
+async def grafana_fetch(url: str, output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    start_time = time.monotonic()
 
-    browser_args = [
+    browser_args: list[str] = [
         "--no-sandbox",
         "--disable-dev-shm-usage",
         "--disable-web-security",
@@ -235,8 +235,6 @@ async def grafana_fetch(url: str, output_dir: Path):
         "--disable-infobars",
     ]
 
-    start_time = time.monotonic()
-
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True, args=browser_args, proxy=None, timeout=30000
@@ -245,8 +243,7 @@ async def grafana_fetch(url: str, output_dir: Path):
             f"launching chromium with flags: {browser_args}, headless:true"
         )
         try:
-            logging.debug(f"navigating to '{url}'")
-            await _scrape_panels(browser, url, output_dir)
+            await get_panels(browser, url, output_dir)
         finally:
             await browser.close()
 
