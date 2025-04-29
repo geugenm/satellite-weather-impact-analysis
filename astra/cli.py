@@ -9,6 +9,8 @@ from typing_extensions import Annotated
 from astra.fetch.sun.cli import app as sun_app
 from astra.analyze import app as analyzer_app
 from astra.fetch.satnogs.cli import app as satnogs_app
+from astra.tools.filter import app as filter_app
+from astra.tools.decrement import app as deincrement_app
 
 
 logging.basicConfig(
@@ -31,6 +33,8 @@ app.add_typer(
     help="download satellite data from satnogs dashboard",
 )
 app.add_typer(sun_app, name="fetch-sun", help="download solar activity data")
+app.add_typer(filter_app, name="filter", help="filter dataframe by dates")
+app.add_typer(deincrement_app, name="deincrement", help="deincrement data")
 
 
 def get_version() -> str:

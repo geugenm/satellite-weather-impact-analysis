@@ -27,6 +27,8 @@ class FluxTableProcessor(DataProcessor):
         time_col = self.config.format.time_column
         df.rename(columns={"fluxdate": time_col}, inplace=True)
 
+        df[time_col] = pd.to_datetime(df[time_col].astype(str), format="%Y%m%d")
+
         return self.sanitize_columns(df)
 
 
